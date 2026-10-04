@@ -117,6 +117,11 @@ public final class BuildManager {
         BlockPos pos = client.player.blockPosition();
         BaritoneBridge.execute("set allowInventory true");
         BaritoneBridge.execute("set buildIgnoreExisting true");
+        // Slower, more careful building: one layer at a time, walking, no risky jumps.
+        BaritoneBridge.execute("set buildInLayers true");
+        BaritoneBridge.execute("set allowSprint false");
+        BaritoneBridge.execute("set allowParkour false");
+        BaritoneBridge.execute("set allowDiagonalAscend false");
         boolean ok = BaritoneBridge.execute("build " + selected.fileName + " " + pos.getX() + " " + pos.getY() + " " + pos.getZ());
         if (ok) {
             building = true;
@@ -146,10 +151,20 @@ public final class BuildManager {
         warnedOut.clear();
     }
 
-    /** Once a second while building, warns about any needed block you have none of. */
+    /**
+     * Once a second while building: in creative mode, refills any needed block you've run out of so the
+     * build never stops for materials; in survival, warns about blocks you have none of.
+     */
     public static void tick(Minecraft client) {
         if (!building || selected == null || client.player == null) return;
         if (++tickCounter % 20 != 0) return;
+
+        if (client.player.isCreative()) {
+            if (refillCreative(client) && !paused) {
+                BaritoneBridge.execute("resume");
+            }
+            return;
+        }
 
         Map<Item, Integer> have = inventoryCounts();
         for (Item item : selected.materials.keySet()) {
@@ -161,6 +176,44 @@ public final class BuildManager {
                 warnedOut.remove(item);
             }
         }
+    }
+
+    /** Puts a full stack of every needed-but-missing block into empty inventory slots. Creative mode only. */
+    private static boolean refillCreative(Minecraft client) {
+        if (client.gameMode == null) return false;
+        Inventory inv = client.player.getInventory();
+        Map<Item, Integer> have = inventoryCounts();
+        boolean refilled = false;
+        for (Item item : selected.materials.keySet()) {
+            if (have.getOrDefault(item, 0) > 0) continue;
+            int slot = emptySlot(inv);
+            if (slot < 0) {
+                if (warnedOut.add(item)) {
+                    message(Component.literal("Inventory full, clear some slots so I can add "
+                            + itemName(item) + ".").withStyle(ChatFormatting.GOLD));
+                }
+                continue;
+            }
+            ItemStack stack = new ItemStack(item, item.getDefaultMaxStackSize());
+            inv.setItem(slot, stack.copy());
+            // Inventory slots 0-8 are the hotbar (menu slots 36-44); 9-35 are the main inventory (same numbers).
+            int menuSlot = slot < 9 ? 36 + slot : slot;
+            client.gameMode.handleCreativeModeItemAdd(stack, menuSlot);
+            warnedOut.remove(item);
+            refilled = true;
+        }
+        return refilled;
+    }
+
+    /** First empty main-inventory slot, then hotbar; -1 if full. */
+    private static int emptySlot(Inventory inv) {
+        for (int i = 9; i < 36; i++) {
+            if (inv.getItem(i).isEmpty()) return i;
+        }
+        for (int i = 0; i < 9; i++) {
+            if (inv.getItem(i).isEmpty()) return i;
+        }
+        return -1;
     }
 
     private static void message(Component text) {
