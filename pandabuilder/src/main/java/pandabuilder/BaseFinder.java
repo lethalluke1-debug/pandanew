@@ -47,7 +47,7 @@ public final class BaseFinder {
    private static final long SCAN_BUDGET_NANOS = 2_000_000L;
    private static final int MAX_RECORDS = 50_000;
 
-   private static final Set<String> STORAGE_LABELS = Set.of("chest", "trapped chest", "barrel", "shulker box");
+   private static final Set<String> TARGET_LABELS = Set.of("chest", "trapped chest", "barrel", "shulker box", "dispenser", "sign", "hanging sign");
    private static final Rule NONE = new Rule("", 0, 0, false, null);
    private static final Map<Block, Rule> BLOCK_RULES = new IdentityHashMap<>();
    private static final Map<Object, Rule> ENTITY_RULES = new IdentityHashMap<>();
@@ -100,7 +100,7 @@ public final class BaseFinder {
       final Map<Rule, Integer> entities = new HashMap<>();
       final Set<String> structures = new HashSet<>();
       final Set<String> entityStructures = new HashSet<>();
-      final List<int[]> storage = new ArrayList<>();
+      final List<Target> targets = new ArrayList<>();
       double bx;
       double by;
       double bz;
@@ -207,6 +207,7 @@ public final class BaseFinder {
       }
 
       if (p.endsWith("shulker_box")) return strong("shulker box", 30, 600);
+      if (p.endsWith("_hanging_sign")) return strong("hanging sign", 8, 64);
       if (p.endsWith("_sign")) return strong("sign", 8, 64);
       if (p.endsWith("_concrete")) return strong("concrete", 1, 40);
       if (p.endsWith("_concrete_powder")) return strong("concrete powder", 0.5, 15);
@@ -244,8 +245,6 @@ public final class BaseFinder {
          case "cake" -> strong("cake", 4, 8);
          case "scaffolding" -> strong("scaffolding", 1, 10);
          case "chiseled_bookshelf" -> strong("chiseled bookshelf", 3, 15);
-         case "nether_portal" -> strong("lit nether portal", 2, 24);
-         case "end_portal" -> strong("lit end portal", 2, 24);
          case "piston", "sticky_piston", "piston_head", "moving_piston" -> weak("piston", 4, 40);
          case "repeater" -> weak("repeater", 2, 20);
          case "redstone_wire" -> weak("redstone dust", 0.5, 10);
@@ -439,8 +438,8 @@ public final class BaseFinder {
                      hits.structures.add(rule.structure);
                   } else {
                      hits.blocks.merge(rule, 1, Integer::sum);
-                     if (STORAGE_LABELS.contains(rule.label)) {
-                        hits.storage.add(new int[]{baseX + x, baseY + y, baseZ + z});
+                     if (TARGET_LABELS.contains(rule.label)) {
+                        hits.targets.add(new Target(baseX + x, baseY + y, baseZ + z, rule.label));
                      }
 
                      double w = rule.strong ? rule.weight * 2.0 : rule.weight;
@@ -661,9 +660,20 @@ public final class BaseFinder {
       return list;
    }
 
-   /** Chests, barrels and shulker boxes the scanner has seen within {@code radius} blocks (horizontally) of x/z. */
-   public static List<int[]> storageNear(int x, int z, int radius) {
-      List<int[]> list = new ArrayList<>();
+   /** A block the Storage Run visits: containers (chest, barrel, shulker box, dispenser/dropper) and signs. */
+   public record Target(int x, int y, int z, String kind) {
+      public boolean isSign() {
+         return this.kind.endsWith("sign");
+      }
+
+      public boolean isChest() {
+         return this.kind.endsWith("chest");
+      }
+   }
+
+   /** Visit targets the scanner has seen within {@code radius} blocks (horizontally) of x/z. */
+   public static List<Target> targetsNear(int x, int z, int radius) {
+      List<Target> list = new ArrayList<>();
 
       for (ChunkHits h : records.values()) {
          int mx = (h.cx << 4) + 8;
@@ -672,8 +682,8 @@ public final class BaseFinder {
             continue;
          }
 
-         for (int[] p : h.storage) {
-            if (Math.abs(p[0] - x) <= radius && Math.abs(p[2] - z) <= radius) {
+         for (Target p : h.targets) {
+            if (Math.abs(p.x() - x) <= radius && Math.abs(p.z() - z) <= radius) {
                list.add(p);
             }
          }

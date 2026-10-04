@@ -3,6 +3,7 @@ package pandabuilder;
 import java.lang.reflect.Method;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
 
 public final class BaritoneBridge {
    public enum Mode {
@@ -89,6 +90,28 @@ public final class BaritoneBridge {
             return true;
          default:
             return false;
+      }
+   }
+
+   /**
+    * Paths to a spot right next to the block (without standing in or on it). Needs the API jar;
+    * returns false otherwise so callers can fall back to a plain goto command.
+    */
+   public static boolean gotoNextTo(int x, int y, int z) {
+      if (mode() != Mode.API) {
+         return false;
+      }
+
+      try {
+         Object goal = Class.forName("baritone.api.pathing.goals.GoalGetToBlock").getConstructor(BlockPos.class).newInstance(new BlockPos(x, y, z));
+         Object process = Class.forName("baritone.api.IBaritone").getMethod("getCustomGoalProcess").invoke(primaryBaritone());
+         Class.forName("baritone.api.process.ICustomGoalProcess")
+            .getMethod("setGoalAndPath", Class.forName("baritone.api.pathing.goals.Goal"))
+            .invoke(process, goal);
+         return true;
+      } catch (LinkageError | ReflectiveOperationException e) {
+         PandaBuilderClient.LOGGER.warn("Baritone goal failed", e);
+         return false;
       }
    }
 

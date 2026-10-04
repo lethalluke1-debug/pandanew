@@ -10,14 +10,17 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 
 /**
- * Walks Baritone into a found base and visits every chest, barrel and shulker box there, nearest first.
- * Baritone digs its own way in with whatever pickaxe is in the inventory (allowInventory moves it to the hotbar).
- * At each container it waits for you to open and close it (or press Next) before moving on.
+ * Walks Baritone into a found base and visits every chest, barrel, shulker box, dispenser/dropper and sign there,
+ * nearest first. Baritone digs its own way in with whatever pickaxe is in the inventory (allowInventory moves it to the hotbar).
+ * At a container it waits for you to open and close it (or press Next); at a sign it waits a few seconds so you can read it.
  */
 public final class StorageRun {
    private static final int SEARCH_RADIUS = 64;
    private static final int APPROACH_TIMEOUT_TICKS = 20 * 60;
    private static final int VISIT_TIMEOUT_TICKS = 20 * 90;
+   private static final int SIGN_READ_TICKS = 20 * 4;
+   private static final double REACH = 4.0;
+   private static final double CLOSE = 2.6;
 
    private enum Phase {
       IDLE,
@@ -29,7 +32,7 @@ public final class StorageRun {
    private static Phase phase = Phase.IDLE;
    private static BaseFinder.Base base;
    private static final Set<Long> visited = new HashSet<>();
-   private static int[] target;
+   private static BaseFinder.Target target;
    private static int total;
    private static int phaseTicks;
    private static int idleChecks;
@@ -46,8 +49,8 @@ public final class StorageRun {
       return switch (phase) {
          case IDLE -> "";
          case APPROACH -> "Storage run: heading to base";
-         case TRAVEL -> "Storage run: " + visited.size() + "/" + total + " -> " + target[0] + ", " + target[1] + ", " + target[2];
-         case AT_STORAGE -> "Storage run: " + (visited.size() + 1) + "/" + total + " open it, then close it (or press Next)";
+         case TRAVEL -> "Storage run: " + visited.size() + "/" + total + " -> " + target.kind() + " at " + target.x() + ", " + target.y() + ", " + target.z();
+         case AT_STORAGE -> "Storage run: " + (visited.size() + 1) + "/" + total + (target.isSign() ? " reading sign..." : " open it, then close it (or press Next)");
       };
    }
 
@@ -113,7 +116,7 @@ public final class StorageRun {
    }
 
    private static String avoidList() {
-      List<String> names = new ArrayList<>(List.of("crafting_table", "furnace", "chest", "trapped_chest", "barrel", "ender_chest", "shulker_box"));
+      List<String> names = new ArrayList<>(List.of("crafting_table", "furnace", "chest", "trapped_chest", "barrel", "ender_chest", "shulker_box", "dispenser", "dropper", "hopper"));
 
       for (String color : new String[]{
          "white", "orange", "magenta", "light_blue", "yellow", "lime", "pink", "gray", "light_gray", "cyan", "purple", "blue", "brown", "green", "red", "black"
@@ -121,11 +124,18 @@ public final class StorageRun {
          names.add(color + "_shulker_box");
       }
 
+      for (String wood : new String[]{"oak", "spruce", "birch", "jungle", "acacia", "dark_oak", "mangrove", "cherry", "pale_oak", "bamboo", "crimson", "warped"}) {
+         names.add(wood + "_sign");
+         names.add(wood + "_wall_sign");
+         names.add(wood + "_hanging_sign");
+         names.add(wood + "_wall_hanging_sign");
+      }
+
       return String.join(",", names);
    }
 
-   private static long key(int[] p) {
-      return ((long)p[0] & 67108863L) << 38 | ((long)p[1] & 4095L) << 26 | (long)p[2] & 67108863L;
+   private static long key(BaseFinder.Target p) {
+      return ((long)p.x() & 67108863L) << 38 | ((long)p.y() & 4095L) << 26 | (long)p.z() & 67108863L;
    }
 
    private static void markVisited() {
@@ -134,26 +144,25 @@ public final class StorageRun {
       }
    }
 
-   /** Picks the nearest unvisited container and sends Baritone to stand on top of it. */
+   /** Picks the nearest unvisited target and sends Baritone right next to it. */
    private static boolean nextTarget() {
       LocalPlayer player = Minecraft.getInstance().player;
       if (player == null || base == null) {
          return false;
       }
 
-      List<int[]> storage = BaseFinder.storageNear(base.x, base.z, SEARCH_RADIUS);
-      // A double chest is two blocks: only visit one half.
-      List<int[]> todo = new ArrayList<>();
+      List<BaseFinder.Target> todo = new ArrayList<>();
 
-      for (int[] p : storage) {
+      for (BaseFinder.Target p : BaseFinder.targetsNear(base.x, base.z, SEARCH_RADIUS)) {
          if (visited.contains(key(p))) {
             continue;
          }
 
+         // A double chest is two blocks: only visit one half.
          boolean twin = false;
 
-         for (int[] q : todo) {
-            if (q[1] == p[1] && Math.abs(q[0] - p[0]) + Math.abs(q[2] - p[2]) == 1) {
+         for (BaseFinder.Target q : todo) {
+            if (p.isChest() && q.kind().equals(p.kind()) && q.y() == p.y() && Math.abs(q.x() - p.x()) + Math.abs(q.z() - p.z()) == 1) {
                twin = true;
                break;
             }
@@ -169,14 +178,11 @@ public final class StorageRun {
          return false;
       }
 
-      int[] best = null;
+      BaseFinder.Target best = null;
       double bestD = Double.MAX_VALUE;
 
-      for (int[] p : todo) {
-         double dx = player.getX() - (p[0] + 0.5);
-         double dy = player.getY() - p[1];
-         double dz = player.getZ() - (p[2] + 0.5);
-         double d = dx * dx + dy * dy * 4.0 + dz * dz;
+      for (BaseFinder.Target p : todo) {
+         double d = distSq(player, p, 4.0);
          if (d < bestD) {
             bestD = d;
             best = p;
@@ -188,15 +194,27 @@ public final class StorageRun {
       phaseTicks = 0;
       idleChecks = 0;
       openedHere = false;
-      // Standing on top of the container: Baritone breaks the blocks in the way but never the target itself.
-      BaritoneBridge.execute("goto " + best[0] + " " + (best[1] + 1) + " " + best[2]);
+      // Next to the block, never inside it. Without the API jar fall back to goto: on top of solid
+      // containers, or the sign's own spot (signs have no collision).
+      if (!BaritoneBridge.gotoNextTo(best.x(), best.y(), best.z())) {
+         int y = best.isSign() ? best.y() : best.y() + 1;
+         BaritoneBridge.execute("goto " + best.x() + " " + y + " " + best.z());
+      }
+
       return true;
+   }
+
+   private static double distSq(LocalPlayer player, BaseFinder.Target p, double yWeight) {
+      double dx = player.getX() - (p.x() + 0.5);
+      double dy = player.getEyeY() - (p.y() + 0.5);
+      double dz = player.getZ() - (p.z() + 0.5);
+      return dx * dx + dy * dy * yWeight + dz * dz;
    }
 
    private static void finish() {
       phase = Phase.IDLE;
       target = null;
-      BaseFinder.message(Component.literal("Storage run done: visited " + visited.size() + " containers.").withStyle(ChatFormatting.GREEN));
+      BaseFinder.message(Component.literal("Storage run done: visited " + visited.size() + " spots.").withStyle(ChatFormatting.GREEN));
    }
 
    public static void tick(Minecraft client) {
@@ -219,20 +237,21 @@ public final class StorageRun {
                }
 
                if (phaseTicks > APPROACH_TIMEOUT_TICKS && Boolean.FALSE.equals(BaritoneBridge.isProcessActive("getCustomGoalProcess"))) {
-                  BaseFinder.message(Component.literal("Reached the base area but found no chests, barrels or shulker boxes.").withStyle(ChatFormatting.GOLD));
+                  BaseFinder.message(Component.literal("Reached the base area but found no chests, barrels, shulker boxes, dispensers or signs.").withStyle(ChatFormatting.GOLD));
                   phase = Phase.IDLE;
                }
             }
             break;
          case TRAVEL:
-            double dx = player.getX() - (target[0] + 0.5);
-            double dz = player.getZ() - (target[2] + 0.5);
-            double dy = player.getY() - (target[1] + 1);
-            if (dx * dx + dz * dz <= 2.25 && Math.abs(dy) <= 1.5) {
+            double d = distSq(player, target, 1.0);
+            boolean baritoneDone = phaseTicks % 10 == 0 && Boolean.FALSE.equals(BaritoneBridge.isProcessActive("getCustomGoalProcess"));
+            if (d <= CLOSE * CLOSE || d <= REACH * REACH && baritoneDone) {
                phase = Phase.AT_STORAGE;
                phaseTicks = 0;
+               BaritoneBridge.execute("cancel");
+               String what = target.kind() + " " + (visited.size() + 1) + "/" + total + " (" + target.x() + ", " + target.y() + ", " + target.z() + ")";
                BaseFinder.message(
-                  Component.literal("At container " + (visited.size() + 1) + "/" + total + " (" + target[0] + ", " + target[1] + ", " + target[2] + "). Open it, close it and I'll go to the next one.")
+                  Component.literal(target.isSign() ? "At " + what + ". Read it, moving on in a few seconds." : "At " + what + ". Open it, close it and I'll go to the next one.")
                      .withStyle(ChatFormatting.GREEN)
                );
             } else if (phaseTicks % 20 == 0) {
@@ -244,12 +263,20 @@ public final class StorageRun {
                }
 
                if (idleChecks >= 3 || phaseTicks > VISIT_TIMEOUT_TICKS) {
-                  BaseFinder.message(Component.literal("Couldn't reach " + target[0] + ", " + target[1] + ", " + target[2] + ", skipping it.").withStyle(ChatFormatting.GOLD));
+                  BaseFinder.message(Component.literal("Couldn't reach the " + target.kind() + " at " + target.x() + ", " + target.y() + ", " + target.z() + ", skipping it.").withStyle(ChatFormatting.GOLD));
                   next();
                }
             }
             break;
          case AT_STORAGE:
+            if (target.isSign()) {
+               if (phaseTicks >= SIGN_READ_TICKS) {
+                  next();
+               }
+
+               break;
+            }
+
             boolean open = player.containerMenu != player.inventoryMenu;
             if (open) {
                openedHere = true;
