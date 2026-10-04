@@ -7,6 +7,9 @@ on:
       - ".github/workflows/build-pandabuilder.yml"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,3 +30,12 @@ jobs:
         with:
           name: pandabuilder-jar
           path: pandabuilder/build/libs/pandabuilder-*.jar
+      - name: Publish release with direct jar download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: pandabuilder-build-${{ github.run_number }}
+          name: Panda Builder build ${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          body: Download pandabuilder-1.0.0.jar below and put it in .minecraft/mods (Minecraft 1.21.1, Fabric).
+          files: pandabuilder/build/libs/pandabuilder-1.0.0.jar
