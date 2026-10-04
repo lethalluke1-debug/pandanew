@@ -46,8 +46,9 @@ public final class BaseFinder {
    private static final int SWEEP_RADIUS = 34;
    private static final long SCAN_BUDGET_NANOS = 2_000_000L;
    private static final int MAX_RECORDS = 50_000;
+   private static final int MAX_TARGETS_PER_CHUNK = 256;
 
-   private static final Set<String> TARGET_LABELS = Set.of("chest", "trapped chest", "barrel", "shulker box", "dispenser", "sign", "hanging sign");
+   private static final Map<Block, String> TARGET_IDS = new IdentityHashMap<>();
    private static final Rule NONE = new Rule("", 0, 0, false, null);
    private static final Map<Block, Rule> BLOCK_RULES = new IdentityHashMap<>();
    private static final Map<Object, Rule> ENTITY_RULES = new IdentityHashMap<>();
@@ -167,8 +168,27 @@ public final class BaseFinder {
       return rule;
    }
 
+   /** The block's id if it's one of the Storage Run targets picked in the menu, else null. */
+   private static String targetId(Block block) {
+      String id = TARGET_IDS.get(block);
+      if (id == null) {
+         Identifier key = BuiltInRegistries.BLOCK.getKey(block);
+         id = key != null && Settings.runTargets.contains(key.toString()) ? key.toString() : "";
+         TARGET_IDS.put(block, id);
+      }
+
+      return id.isEmpty() ? null : id;
+   }
+
+   /** Call after changing the target list so chunks get scanned for the new blocks. */
+   public static void targetsChanged() {
+      TARGET_IDS.clear();
+      rescan();
+   }
+
    private static boolean interesting(BlockState state) {
-      return blockRule(state.getBlock()) != NONE;
+      Block block = state.getBlock();
+      return blockRule(block) != NONE || targetId(block) != null;
    }
 
    private static Rule classifyBlock(String p) {
@@ -429,7 +449,14 @@ public final class BaseFinder {
          for (int y = 0; y < 16; y++) {
             for (int z = 0; z < 16; z++) {
                for (int x = 0; x < 16; x++) {
-                  Rule rule = blockRule(section.getBlockState(x, y, z).getBlock());
+                  Block block = section.getBlockState(x, y, z).getBlock();
+                  String targetId = targetId(block);
+                  // Capped so picking a common block (stone...) can't eat all memory.
+                  if (targetId != null && hits.targets.size() < MAX_TARGETS_PER_CHUNK) {
+                     hits.targets.add(new Target(baseX + x, baseY + y, baseZ + z, targetId));
+                  }
+
+                  Rule rule = blockRule(block);
                   if (rule == NONE) {
                      continue;
                   }
@@ -438,10 +465,6 @@ public final class BaseFinder {
                      hits.structures.add(rule.structure);
                   } else {
                      hits.blocks.merge(rule, 1, Integer::sum);
-                     if (TARGET_LABELS.contains(rule.label)) {
-                        hits.targets.add(new Target(baseX + x, baseY + y, baseZ + z, rule.label));
-                     }
-
                      double w = rule.strong ? rule.weight * 2.0 : rule.weight;
                      hits.bx += (baseX + x) * w;
                      hits.by += (baseY + y) * w;
@@ -458,7 +481,7 @@ public final class BaseFinder {
 
    private static void store(long k, ChunkHits hits) {
       hits.score();
-      if (hits.blocks.isEmpty() && hits.entities.isEmpty()) {
+      if (hits.blocks.isEmpty() && hits.entities.isEmpty() && hits.targets.isEmpty()) {
          records.remove(k);
       } else if (records.size() < MAX_RECORDS || records.containsKey(k)) {
          records.put(k, hits);
@@ -660,14 +683,19 @@ public final class BaseFinder {
       return list;
    }
 
-   /** A block the Storage Run visits: containers (chest, barrel, shulker box, dispenser/dropper) and signs. */
-   public record Target(int x, int y, int z, String kind) {
+   /** A block the Storage Run visits; {@code id} is the block id, e.g. "minecraft:chest". */
+   public record Target(int x, int y, int z, String id) {
+      public String kind() {
+         String path = this.id.substring(this.id.indexOf(':') + 1);
+         return path.replace('_', ' ');
+      }
+
       public boolean isSign() {
-         return this.kind.endsWith("sign");
+         return this.id.endsWith("sign");
       }
 
       public boolean isChest() {
-         return this.kind.endsWith("chest");
+         return this.id.endsWith("chest");
       }
    }
 

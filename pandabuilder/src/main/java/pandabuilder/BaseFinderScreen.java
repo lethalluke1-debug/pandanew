@@ -68,6 +68,8 @@ public class BaseFinderScreen extends Screen {
          BaritoneBridge.execute("cancel");
       }).bounds(x, y, w, 20).build());
       x += w + 4;
+      this.addRenderableWidget(Button.builder(Component.literal("Run Targets..."), b -> this.minecraft.gui.setScreen(new BlockPickerScreen(this))).bounds(x, y, w + 10, 20).build());
+      x += w + 14;
       this.addRenderableWidget(Button.builder(Component.literal("Back"), b -> this.minecraft.gui.setScreen(this.parent)).bounds(x, y, w, 20).build());
    }
 

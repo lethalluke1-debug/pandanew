@@ -19,6 +19,7 @@ public final class StorageRun {
    private static final int APPROACH_TIMEOUT_TICKS = 20 * 60;
    private static final int VISIT_TIMEOUT_TICKS = 20 * 90;
    private static final int SIGN_READ_TICKS = 20 * 4;
+   private static final int OPEN_WAIT_TICKS = 20 * 8;
    private static final double REACH = 4.0;
    private static final double CLOSE = 2.6;
 
@@ -70,6 +71,11 @@ public final class StorageRun {
          return;
       }
 
+      if (Settings.runTargets.isEmpty()) {
+         BaseFinder.message(Component.literal("No Run Targets picked. Pick some blocks in Base Finder > Run Targets.").withStyle(ChatFormatting.RED));
+         return;
+      }
+
       AutoExplore.setEnabled(false);
       if (!Settings.baseFinder) {
          BaseFinder.toggle();
@@ -116,21 +122,9 @@ public final class StorageRun {
    }
 
    private static String avoidList() {
-      List<String> names = new ArrayList<>(List.of("crafting_table", "furnace", "chest", "trapped_chest", "barrel", "ender_chest", "shulker_box", "dispenser", "dropper", "hopper"));
-
-      for (String color : new String[]{
-         "white", "orange", "magenta", "light_blue", "yellow", "lime", "pink", "gray", "light_gray", "cyan", "purple", "blue", "brown", "green", "red", "black"
-      }) {
-         names.add(color + "_shulker_box");
-      }
-
-      for (String wood : new String[]{"oak", "spruce", "birch", "jungle", "acacia", "dark_oak", "mangrove", "cherry", "pale_oak", "bamboo", "crimson", "warped"}) {
-         names.add(wood + "_sign");
-         names.add(wood + "_wall_sign");
-         names.add(wood + "_hanging_sign");
-         names.add(wood + "_wall_hanging_sign");
-      }
-
+      // Baritone's defaults plus everything you picked, so it doesn't dig through what it's visiting.
+      Set<String> names = new java.util.LinkedHashSet<>(List.of("minecraft:crafting_table", "minecraft:furnace", "minecraft:chest", "minecraft:trapped_chest"));
+      names.addAll(Settings.runTargets);
       return String.join(",", names);
    }
 
@@ -237,7 +231,7 @@ public final class StorageRun {
                }
 
                if (phaseTicks > APPROACH_TIMEOUT_TICKS && Boolean.FALSE.equals(BaritoneBridge.isProcessActive("getCustomGoalProcess"))) {
-                  BaseFinder.message(Component.literal("Reached the base area but found no chests, barrels, shulker boxes, dispensers or signs.").withStyle(ChatFormatting.GOLD));
+                  BaseFinder.message(Component.literal("Reached the base area but found none of your picked blocks (Base Finder > Run Targets).").withStyle(ChatFormatting.GOLD));
                   phase = Phase.IDLE;
                }
             }
@@ -251,7 +245,7 @@ public final class StorageRun {
                BaritoneBridge.execute("cancel");
                String what = target.kind() + " " + (visited.size() + 1) + "/" + total + " (" + target.x() + ", " + target.y() + ", " + target.z() + ")";
                BaseFinder.message(
-                  Component.literal(target.isSign() ? "At " + what + ". Read it, moving on in a few seconds." : "At " + what + ". Open it, close it and I'll go to the next one.")
+                  Component.literal(target.isSign() ? "At " + what + ". Read it, moving on in a few seconds." : "At " + what + ". Open it (within 8s) and close it, and I'll go to the next one.")
                      .withStyle(ChatFormatting.GREEN)
                );
             } else if (phaseTicks % 20 == 0) {
@@ -280,7 +274,8 @@ public final class StorageRun {
             boolean open = player.containerMenu != player.inventoryMenu;
             if (open) {
                openedHere = true;
-            } else if (openedHere) {
+            } else if (openedHere || phaseTicks >= OPEN_WAIT_TICKS) {
+               // Closed it, or didn't open anything (not every picked block has an inventory).
                next();
             }
             break;
