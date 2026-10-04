@@ -16,6 +16,7 @@ public final class Settings {
    public static boolean baseFinder = false;
    public static boolean stopOnFind = false;
    public static int baseSensitivity = 1;
+   public static boolean clickStorageRun = true;
 
    private Settings() {
    }
@@ -42,6 +43,7 @@ public final class Settings {
          autoTotem = Boolean.parseBoolean(props.getProperty("autoTotem", "false"));
          baseFinder = Boolean.parseBoolean(props.getProperty("baseFinder", "false"));
          stopOnFind = Boolean.parseBoolean(props.getProperty("stopOnFind", "false"));
+         clickStorageRun = Boolean.parseBoolean(props.getProperty("clickStorageRun", "true"));
 
          try {
             baseSensitivity = Math.max(0, Math.min(2, Integer.parseInt(props.getProperty("baseSensitivity", "1"))));
@@ -59,6 +61,7 @@ public final class Settings {
       props.setProperty("autoTotem", Boolean.toString(autoTotem));
       props.setProperty("baseFinder", Boolean.toString(baseFinder));
       props.setProperty("stopOnFind", Boolean.toString(stopOnFind));
+      props.setProperty("clickStorageRun", Boolean.toString(clickStorageRun));
       props.setProperty("baseSensitivity", Integer.toString(baseSensitivity));
       Path file = file();
 

@@ -32,6 +32,7 @@ public final class AutoExplore {
             BaseFinder.toggle();
          }
 
+         StorageRun.stop(false);
          if (BaritoneBridge.execute("explore")) {
             running = true;
             startTick = ticks;

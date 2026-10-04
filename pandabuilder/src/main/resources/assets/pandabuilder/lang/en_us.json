@@ -2,5 +2,7 @@
   "key.pandabuilder.open": "Open Panda Builder",
   "key.pandabuilder.autototem": "Toggle Auto Totem",
   "key.pandabuilder.basefinder": "Open Base Finder",
+  "key.pandabuilder.nextstorage": "Storage Run: Next Container",
+  "key.pandabuilder.freecam": "Toggle Freecam",
   "category.pandabuilder": "Panda Builder"
 }

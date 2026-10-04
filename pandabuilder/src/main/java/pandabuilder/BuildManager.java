@@ -130,6 +130,7 @@ public final class BuildManager {
             boolean ok = BaritoneBridge.execute("build " + selected.fileName + " " + pos.getX() + " " + pos.getY() + " " + pos.getZ());
             if (ok) {
                AutoExplore.stopForBuild();
+               StorageRun.stop(false);
                building = true;
                buildStartTick = tickCounter;
                paused = false;

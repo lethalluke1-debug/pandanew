@@ -31,7 +31,7 @@ public class BuilderScreen extends Screen {
    protected void init() {
       this.files = BuildManager.listSchematics();
       int tx = 10;
-      int tw = Math.min(130, (this.width - 20 - 16) / 5);
+      int tw = Math.min(130, (this.width - 20 - 20) / 6);
       this.addRenderableWidget(Button.builder(toggleLabel("Schematic Builder", Settings.builder), b -> {
          Settings.builder = !Settings.builder;
          if (!Settings.builder && BuildManager.isBuilding()) {
@@ -60,6 +60,11 @@ public class BuilderScreen extends Screen {
       }).bounds(tx, 20, tw, 20).build());
       tx += tw + 4;
       this.addRenderableWidget(Button.builder(Component.literal("Base Finder..."), b -> this.minecraft.gui.setScreen(new BaseFinderScreen(this))).bounds(tx, 20, tw, 20).build());
+      tx += tw + 4;
+      this.addRenderableWidget(Button.builder(toggleLabel("Freecam", Freecam.isActive()), b -> {
+         Freecam.toggle();
+         this.onClose();
+      }).bounds(tx, 20, tw, 20).build());
       int y = this.height - 26;
       int w = 70;
       int x = 10;

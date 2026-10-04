@@ -47,6 +47,7 @@ public final class BaseFinder {
    private static final long SCAN_BUDGET_NANOS = 2_000_000L;
    private static final int MAX_RECORDS = 50_000;
 
+   private static final Set<String> STORAGE_LABELS = Set.of("chest", "trapped chest", "barrel", "shulker box");
    private static final Rule NONE = new Rule("", 0, 0, false, null);
    private static final Map<Block, Rule> BLOCK_RULES = new IdentityHashMap<>();
    private static final Map<Object, Rule> ENTITY_RULES = new IdentityHashMap<>();
@@ -99,6 +100,7 @@ public final class BaseFinder {
       final Map<Rule, Integer> entities = new HashMap<>();
       final Set<String> structures = new HashSet<>();
       final Set<String> entityStructures = new HashSet<>();
+      final List<int[]> storage = new ArrayList<>();
       double bx;
       double by;
       double bz;
@@ -437,6 +439,10 @@ public final class BaseFinder {
                      hits.structures.add(rule.structure);
                   } else {
                      hits.blocks.merge(rule, 1, Integer::sum);
+                     if (STORAGE_LABELS.contains(rule.label)) {
+                        hits.storage.add(new int[]{baseX + x, baseY + y, baseZ + z});
+                     }
+
                      double w = rule.strong ? rule.weight * 2.0 : rule.weight;
                      hits.bx += (baseX + x) * w;
                      hits.by += (baseY + y) * w;
@@ -649,6 +655,27 @@ public final class BaseFinder {
       for (Base b : bases) {
          if (b.world.equals(worldId)) {
             list.add(b);
+         }
+      }
+
+      return list;
+   }
+
+   /** Chests, barrels and shulker boxes the scanner has seen within {@code radius} blocks (horizontally) of x/z. */
+   public static List<int[]> storageNear(int x, int z, int radius) {
+      List<int[]> list = new ArrayList<>();
+
+      for (ChunkHits h : records.values()) {
+         int mx = (h.cx << 4) + 8;
+         int mz = (h.cz << 4) + 8;
+         if (Math.abs(mx - x) > radius + 16 || Math.abs(mz - z) > radius + 16) {
+            continue;
+         }
+
+         for (int[] p : h.storage) {
+            if (Math.abs(p[0] - x) <= radius && Math.abs(p[2] - z) <= radius) {
+               list.add(p);
+            }
          }
       }
 

@@ -27,6 +27,8 @@ public class PandaBuilderClient implements ClientModInitializer {
    private static KeyMapping openKey;
    private static KeyMapping autoTotemKey;
    private static KeyMapping baseFinderKey;
+   private static KeyMapping nextStorageKey;
+   private static KeyMapping freecamKey;
 
    public void onInitializeClient() {
       Settings.load();
@@ -34,6 +36,9 @@ public class PandaBuilderClient implements ClientModInitializer {
       // Unbound by default (-1), set it in Controls if you want a hotkey.
       autoTotemKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.pandabuilder.autototem", Type.KEYSYM, -1, CATEGORY));
       baseFinderKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.pandabuilder.basefinder", Type.KEYSYM, -1, CATEGORY));
+      nextStorageKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.pandabuilder.nextstorage", Type.KEYSYM, -1, CATEGORY));
+      freecamKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.pandabuilder.freecam", Type.KEYSYM, -1, CATEGORY));
+      ClientTickEvents.START_CLIENT_TICK.register(Freecam::startTick);
       ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> BaseFinder.onChunkLoad(chunk));
       ClientTickEvents.END_CLIENT_TICK.register(client -> {
          while (openKey.consumeClick()) {
@@ -48,10 +53,19 @@ public class PandaBuilderClient implements ClientModInitializer {
             client.gui.setScreen(new BaseFinderScreen(null));
          }
 
+         while (nextStorageKey.consumeClick()) {
+            StorageRun.next();
+         }
+
+         while (freecamKey.consumeClick()) {
+            Freecam.toggle();
+         }
+
          BuildManager.tick(client);
          AutoTotem.tick(client);
          BaseFinder.tick(client);
          AutoExplore.tick();
+         StorageRun.tick(client);
       });
       HudElementRegistry.attachElementBefore(
          VanillaHudElements.CHAT, Identifier.fromNamespaceAndPath("pandabuilder", "status"), PandaBuilderClient::extractHud
@@ -76,6 +90,11 @@ public class PandaBuilderClient implements ClientModInitializer {
          int dist = (int)Math.sqrt(BaseFinder.distanceSq(client.player, nearest.x, nearest.z));
          String line2 = "Nearest: " + nearest.x + ", " + nearest.y + ", " + nearest.z + " (" + dist + "m)";
          graphics.text(client.font, line2, right - client.font.width(line2), 14, -11141291, true);
+      }
+
+      if (StorageRun.isRunning()) {
+         String line3 = StorageRun.status();
+         graphics.text(client.font, line3, right - client.font.width(line3), 24, -171, true);
       }
    }
 

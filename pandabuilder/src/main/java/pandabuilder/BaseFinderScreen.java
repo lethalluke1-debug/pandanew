@@ -23,7 +23,7 @@ public class BaseFinderScreen extends Screen {
 
    protected void init() {
       int tx = 10;
-      int tw = Math.min(130, (this.width - 20 - 12) / 4);
+      int tw = Math.min(130, (this.width - 20 - 16) / 5);
       this.addRenderableWidget(Button.builder(toggleLabel("Base Finder", Settings.baseFinder), b -> {
          BaseFinder.toggle();
          b.setMessage(toggleLabel("Base Finder", Settings.baseFinder));
@@ -46,6 +46,12 @@ public class BaseFinderScreen extends Screen {
          BaseFinder.rescan();
          b.setMessage(sensitivityLabel());
       }).bounds(tx, 20, tw, 20).build());
+      tx += tw + 4;
+      this.addRenderableWidget(Button.builder(clickLabel(), b -> {
+         Settings.clickStorageRun = !Settings.clickStorageRun;
+         Settings.save();
+         b.setMessage(clickLabel());
+      }).bounds(tx, 20, tw, 20).build());
       int y = this.height - 26;
       int w = 80;
       int x = 10;
@@ -58,6 +64,7 @@ public class BaseFinderScreen extends Screen {
       x += w + 4;
       this.addRenderableWidget(Button.builder(Component.literal("Stop Baritone"), b -> {
          AutoExplore.setEnabled(false);
+         StorageRun.stop(false);
          BaritoneBridge.execute("cancel");
       }).bounds(x, y, w, 20).build());
       x += w + 4;
@@ -66,6 +73,10 @@ public class BaseFinderScreen extends Screen {
 
    private static Component toggleLabel(String name, boolean on) {
       return Component.literal(name + ": " + (on ? "§aON" : "§cOFF"));
+   }
+
+   private static Component clickLabel() {
+      return Component.literal("Click: " + (Settings.clickStorageRun ? "Storage Run" : "Walk There"));
    }
 
    private static Component sensitivityLabel() {
@@ -105,7 +116,7 @@ public class BaseFinderScreen extends Screen {
       int right = this.width - 10;
       List<BaseFinder.Base> list = this.sortedBases();
       String header = Settings.baseFinder
-         ? "Found " + list.size() + " | scanned " + BaseFinder.scannedChunks() + " chunks, " + BaseFinder.queuedChunks() + " queued | click a base to walk there"
+         ? "Found " + list.size() + " | scanned " + BaseFinder.scannedChunks() + " chunks, " + BaseFinder.queuedChunks() + " queued | click a base: " + (Settings.clickStorageRun ? "storage run" : "walk there")
          : "Base Finder is OFF. Turn it on to scan chunks as they load.";
       graphics.text(this.font, this.font.plainSubstrByWidth(header, right - left), left, 45, Settings.baseFinder ? -171 : -22016, true);
       graphics.fill(left, LIST_TOP, right, this.listBottom(), -2013265920);
@@ -166,7 +177,14 @@ public class BaseFinderScreen extends Screen {
          return;
       }
 
+      if (Settings.clickStorageRun) {
+         StorageRun.start(b);
+         this.onClose();
+         return;
+      }
+
       AutoExplore.setEnabled(false);
+      StorageRun.stop(false);
       if (BaritoneBridge.execute("goto " + b.x + " " + b.y + " " + b.z)) {
          BaseFinder.message(Component.literal("Walking to base at " + b.x + ", " + b.y + ", " + b.z).withStyle(ChatFormatting.GREEN));
          this.onClose();
