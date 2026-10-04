@@ -19,6 +19,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -178,6 +179,44 @@ public final class BaseFinder {
       }
 
       return id.isEmpty() ? null : id;
+   }
+
+   /**
+    * Checks the world right now: TRUE if a picked block is still at the target, FALSE if something else
+    * is there (broken, replaced, or no longer picked), null if that chunk isn't loaded so we can't tell.
+    */
+   public static Boolean stillTarget(Target t) {
+      ClientLevel level = Minecraft.getInstance().level;
+      if (level == null || level.getChunkSource().getChunkNow(t.x() >> 4, t.z() >> 4) == null) {
+         return null;
+      }
+
+      Identifier key = BuiltInRegistries.BLOCK.getKey(level.getBlockState(new BlockPos(t.x(), t.y(), t.z())).getBlock());
+      return key != null && Settings.runTargets.contains(key.toString());
+   }
+
+   /** Scans the loaded chunks around x/z again right away (blocks may have changed since they loaded). */
+   public static int rescanNear(int x, int z, int radius) {
+      ClientLevel level = Minecraft.getInstance().level;
+      if (level == null) {
+         return 0;
+      }
+
+      int count = 0;
+      int r = (radius >> 4) + 1;
+
+      for (int cx = (x >> 4) - r; cx <= (x >> 4) + r; cx++) {
+         for (int cz = (z >> 4) - r; cz <= (z >> 4) + r; cz++) {
+            LevelChunk chunk = level.getChunkSource().getChunkNow(cx, cz);
+            if (chunk != null) {
+               scanChunk(chunk, cx, cz);
+               scanned.add(key(cx, cz));
+               count++;
+            }
+         }
+      }
+
+      return count;
    }
 
    /** Call after changing the target list so chunks get scanned for the new blocks. */

@@ -24,6 +24,7 @@ public class BlockPickerScreen extends Screen {
    private EditBox search;
    private boolean onlyPicked;
    private boolean changed;
+   private String notice;
    private int scroll;
 
    private record Entry(Block block, String id, String name, String searchText) {
@@ -63,6 +64,13 @@ public class BlockPickerScreen extends Screen {
       }).bounds(x, 21, 90, 20).build());
       x += 94;
       this.addRenderableWidget(Button.builder(Component.literal("Pick Shown"), b -> {
+         // Without a search this would pick every block in the game (stone, dirt...).
+         if (this.search.getValue().isBlank() && !this.onlyPicked) {
+            this.notice = "Type a search first (e.g. \"ore\"), Pick Shown picks everything in the list.";
+            return;
+         }
+
+         this.notice = null;
          for (Entry e : this.shown) {
             Settings.runTargets.add(e.id);
          }
@@ -123,7 +131,7 @@ public class BlockPickerScreen extends Screen {
       int left = 10;
       int right = this.width - 10;
       String header = Settings.runTargets.size() + " picked | " + this.shown.size() + " shown | click a block to pick or unpick it";
-      graphics.text(this.font, this.font.plainSubstrByWidth(header, right - left), left, 45, -171, true);
+      graphics.text(this.font, this.font.plainSubstrByWidth(this.notice != null ? this.notice : header, right - left), left, 45, this.notice != null ? -43691 : -171, true);
       graphics.fill(left, LIST_TOP, right, this.listBottom(), -2013265920);
       int visible = this.visibleRows();
       this.scroll = Math.max(0, Math.min(this.scroll, Math.max(0, this.shown.size() - visible)));

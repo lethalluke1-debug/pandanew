@@ -49,7 +49,7 @@ public final class StorageRun {
    public static String status() {
       return switch (phase) {
          case IDLE -> "";
-         case APPROACH -> "Storage run: heading to base";
+         case APPROACH -> "Storage run: walking to the base area to scan it (no target yet)";
          case TRAVEL -> "Storage run: " + visited.size() + "/" + total + " -> " + target.kind() + " at " + target.x() + ", " + target.y() + ", " + target.z();
          case AT_STORAGE -> "Storage run: " + (visited.size() + 1) + "/" + total + (target.isSign() ? " reading sign..." : " open it, then close it (or press Next)");
       };
@@ -86,6 +86,7 @@ public final class StorageRun {
       BaritoneBridge.execute("set autoTool true");
       BaritoneBridge.execute("set blocksToAvoidBreaking " + avoidList());
       base = b;
+      BaseFinder.rescanNear(b.x, b.z, SEARCH_RADIUS);
       visited.clear();
       target = null;
       total = 0;
@@ -94,6 +95,7 @@ public final class StorageRun {
          // Chunks around the base aren't scanned yet (too far away): walk there first.
          phase = Phase.APPROACH;
          phaseTicks = 0;
+         BaseFinder.message(Component.literal("None of your picked blocks are scanned near that base yet, walking to the base area first.").withStyle(ChatFormatting.GOLD));
          BaritoneBridge.execute("goto " + b.x + " " + b.y + " " + b.z);
       }
    }
@@ -148,7 +150,7 @@ public final class StorageRun {
       List<BaseFinder.Target> todo = new ArrayList<>();
 
       for (BaseFinder.Target p : BaseFinder.targetsNear(base.x, base.z, SEARCH_RADIUS)) {
-         if (visited.contains(key(p))) {
+         if (visited.contains(key(p)) || !Settings.runTargets.contains(p.id()) || Boolean.FALSE.equals(BaseFinder.stillTarget(p))) {
             continue;
          }
 
@@ -184,6 +186,10 @@ public final class StorageRun {
       }
 
       target = best;
+      BaseFinder.message(
+         Component.literal("Going to " + best.id() + " at " + best.x() + ", " + best.y() + ", " + best.z() + " (" + (visited.size() + 1) + "/" + total + ")")
+            .withStyle(ChatFormatting.AQUA)
+      );
       phase = Phase.TRAVEL;
       phaseTicks = 0;
       idleChecks = 0;
@@ -226,6 +232,10 @@ public final class StorageRun {
       switch (phase) {
          case APPROACH:
             if (phaseTicks % 20 == 0) {
+               if (phaseTicks % 100 == 0) {
+                  BaseFinder.rescanNear(base.x, base.z, SEARCH_RADIUS);
+               }
+
                if (nextTarget()) {
                   return;
                }
@@ -237,6 +247,12 @@ public final class StorageRun {
             }
             break;
          case TRAVEL:
+            if (phaseTicks % 10 == 0 && Boolean.FALSE.equals(BaseFinder.stillTarget(target))) {
+               BaseFinder.message(Component.literal("The " + target.kind() + " at " + target.x() + ", " + target.y() + ", " + target.z() + " isn't there anymore (or isn't picked), skipping it.").withStyle(ChatFormatting.GOLD));
+               next();
+               return;
+            }
+
             double d = distSq(player, target, 1.0);
             boolean baritoneDone = phaseTicks % 10 == 0 && Boolean.FALSE.equals(BaritoneBridge.isProcessActive("getCustomGoalProcess"));
             if (d <= CLOSE * CLOSE || d <= REACH * REACH && baritoneDone) {
