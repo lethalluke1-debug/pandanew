@@ -29,6 +29,7 @@ public class PandaBuilderClient implements ClientModInitializer {
    private static KeyMapping baseFinderKey;
    private static KeyMapping nextStorageKey;
    private static KeyMapping freecamKey;
+   private static KeyMapping espKey;
 
    public void onInitializeClient() {
       Settings.load();
@@ -38,6 +39,7 @@ public class PandaBuilderClient implements ClientModInitializer {
       baseFinderKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.pandabuilder.basefinder", Type.KEYSYM, -1, CATEGORY));
       nextStorageKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.pandabuilder.nextstorage", Type.KEYSYM, -1, CATEGORY));
       freecamKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.pandabuilder.freecam", Type.KEYSYM, -1, CATEGORY));
+      espKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.pandabuilder.esp", Type.KEYSYM, -1, CATEGORY));
       ClientTickEvents.START_CLIENT_TICK.register(Freecam::startTick);
       ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> BaseFinder.onChunkLoad(chunk));
       ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -61,11 +63,16 @@ public class PandaBuilderClient implements ClientModInitializer {
             Freecam.toggle();
          }
 
+         while (espKey.consumeClick()) {
+            Esp.toggle();
+         }
+
          BuildManager.tick(client);
          AutoTotem.tick(client);
          BaseFinder.tick(client);
          AutoExplore.tick();
          StorageRun.tick(client);
+         Esp.tick(client);
       });
       HudElementRegistry.attachElementBefore(
          VanillaHudElements.CHAT, Identifier.fromNamespaceAndPath("pandabuilder", "status"), PandaBuilderClient::extractHud

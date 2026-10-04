@@ -23,7 +23,7 @@ public class BaseFinderScreen extends Screen {
 
    protected void init() {
       int tx = 10;
-      int tw = Math.min(130, (this.width - 20 - 16) / 5);
+      int tw = Math.min(130, (this.width - 20 - 20) / 6);
       this.addRenderableWidget(Button.builder(toggleLabel("Base Finder", Settings.baseFinder), b -> {
          BaseFinder.toggle();
          b.setMessage(toggleLabel("Base Finder", Settings.baseFinder));
@@ -51,6 +51,11 @@ public class BaseFinderScreen extends Screen {
          Settings.clickStorageRun = !Settings.clickStorageRun;
          Settings.save();
          b.setMessage(clickLabel());
+      }).bounds(tx, 20, tw, 20).build());
+      tx += tw + 4;
+      this.addRenderableWidget(Button.builder(toggleLabel("ESP", Settings.esp), b -> {
+         Esp.toggle();
+         this.rebuildWidgets();
       }).bounds(tx, 20, tw, 20).build());
       int y = this.height - 26;
       int w = 80;

@@ -84,6 +84,11 @@ public final class StorageRun {
       BaritoneBridge.execute("set allowBreak true");
       BaritoneBridge.execute("set allowInventory true");
       BaritoneBridge.execute("set autoTool true");
+      // Make digging straight through (and down) as cheap as walking around, so it tunnels to
+      // underground bases instead of wandering over the surface looking for a cave.
+      BaritoneBridge.execute("set allowDownward true");
+      BaritoneBridge.execute("set blockBreakAdditionalPenalty 0");
+      BaritoneBridge.execute("set allowDiagonalDescend true");
       BaritoneBridge.execute("set blocksToAvoidBreaking " + avoidList());
       base = b;
       BaseFinder.rescanNear(b.x, b.z, SEARCH_RADIUS);

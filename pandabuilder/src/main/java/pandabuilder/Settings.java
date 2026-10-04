@@ -19,6 +19,7 @@ public final class Settings {
    public static boolean stopOnFind = false;
    public static int baseSensitivity = 1;
    public static boolean clickStorageRun = true;
+   public static boolean esp = false;
    // Block ids ("minecraft:chest") the Storage Run walks to.
    public static final Set<String> runTargets = new LinkedHashSet<>(defaultRunTargets());
 
@@ -71,6 +72,7 @@ public final class Settings {
          baseFinder = Boolean.parseBoolean(props.getProperty("baseFinder", "false"));
          stopOnFind = Boolean.parseBoolean(props.getProperty("stopOnFind", "false"));
          clickStorageRun = Boolean.parseBoolean(props.getProperty("clickStorageRun", "true"));
+         esp = Boolean.parseBoolean(props.getProperty("esp", "false"));
          String targets = props.getProperty("runTargets");
          if (targets != null) {
             runTargets.clear();
@@ -99,6 +101,7 @@ public final class Settings {
       props.setProperty("baseFinder", Boolean.toString(baseFinder));
       props.setProperty("stopOnFind", Boolean.toString(stopOnFind));
       props.setProperty("clickStorageRun", Boolean.toString(clickStorageRun));
+      props.setProperty("esp", Boolean.toString(esp));
       props.setProperty("runTargets", String.join(",", runTargets));
       props.setProperty("baseSensitivity", Integer.toString(baseSensitivity));
       Path file = file();
