@@ -65,7 +65,7 @@ public final class AnchorAura {
         LocalPlayer player = mc.player;
         ClientLevel level = mc.level;
         if (!Settings.anchorAura || player == null || level == null || mc.gameMode == null
-                || mc.screen != null || player.getHealth() <= 0 || !isOwnWorld(mc)) {
+                || mc.gui.screen() != null || player.getHealth() <= 0 || !isOwnWorld(mc)) {
             return;
         }
         // Anchors don't explode in the Nether, they just set your spawn.
