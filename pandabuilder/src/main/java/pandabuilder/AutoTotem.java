@@ -64,6 +64,20 @@ public final class AutoTotem {
       cooldown = SWAP_COOLDOWN_TICKS;
    }
 
+   /** Totems in the main inventory, hotbar and offhand. */
+   public static int countTotems(Inventory inv) {
+      int count = 0;
+
+      for (int i = 0; i < inv.getContainerSize(); i++) {
+         ItemStack stack = inv.getItem(i);
+         if (stack.getItem() == Items.TOTEM_OF_UNDYING) {
+            count += stack.getCount();
+         }
+      }
+
+      return count;
+   }
+
    private static int findTotem(Inventory inv) {
       // Main inventory first so hotbar totems stay where the player put them.
       for (int i = 9; i < 36; i++) {

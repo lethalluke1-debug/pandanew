@@ -1,9 +1,5 @@
 {
-  "key.pandabuilder.open": "Open Panda Builder",
+  "key.pandabuilder.open": "Open Panda Builder Menu",
   "key.pandabuilder.autototem": "Toggle Auto Totem",
-  "key.pandabuilder.basefinder": "Open Base Finder",
-  "key.pandabuilder.nextstorage": "Storage Run: Next Container",
-  "key.pandabuilder.freecam": "Toggle Freecam",
-  "key.pandabuilder.esp": "Toggle ESP",
   "category.pandabuilder": "Panda Builder"
 }

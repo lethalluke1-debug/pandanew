@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "id": "pandabuilder",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "name": "Panda Builder",
-  "description": "Schematic menu with material checking, auto totem, base finder, storage run, ESP and freecam. Uses Baritone to walk to and place blocks from your inventory.",
+  "description": "Auto Totem: keeps a Totem of Undying in your offhand. Toggle it from the menu (Right Shift) or a hotkey.",
   "authors": [
     "lethalluke1"
   ],
@@ -19,11 +19,5 @@
     "minecraft": "~26.2",
     "java": ">=25",
     "fabric-api": "*"
-  },
-  "suggests": {
-    "baritone": "*"
-  },
-  "mixins": [
-    "pandabuilder.mixins.json"
-  ]
+  }
 }
