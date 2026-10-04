@@ -1,12 +1,12 @@
 package pandabuilder;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -32,7 +33,7 @@ public final class BuildManager {
     }
 
     public static Path schematicsDir() {
-        return MinecraftClient.getInstance().runDirectory.toPath().resolve("schematics");
+        return Minecraft.getInstance().gameDirectory.toPath().resolve("schematics");
     }
 
     public static List<Path> listSchematics() {
@@ -71,14 +72,18 @@ public final class BuildManager {
         selected = Schematic.load(path);
     }
 
+    public static String itemName(Item item) {
+        return new ItemStack(item).getHoverName().getString();
+    }
+
     /** Counts every item in the player's inventory, including offhand and armor slots. */
     public static Map<Item, Integer> inventoryCounts() {
         Map<Item, Integer> counts = new HashMap<>();
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client.player == null) return counts;
-        PlayerInventory inv = client.player.getInventory();
-        for (int i = 0; i < inv.size(); i++) {
-            ItemStack stack = inv.getStack(i);
+        Inventory inv = client.player.getInventory();
+        for (int i = 0; i < inv.getContainerSize(); i++) {
+            ItemStack stack = inv.getItem(i);
             if (!stack.isEmpty()) {
                 counts.merge(stack.getItem(), stack.getCount(), Integer::sum);
             }
@@ -88,28 +93,28 @@ public final class BuildManager {
 
     /** Items the schematic needs that you don't have enough of: item -> how many more. */
     public static Map<Item, Integer> missing() {
-        Map<Item, Integer> result = new java.util.LinkedHashMap<>();
+        Map<Item, Integer> result = new LinkedHashMap<>();
         if (selected == null) return result;
         Map<Item, Integer> have = inventoryCounts();
         selected.materials.forEach((item, need) -> {
-            int short_ = need - have.getOrDefault(item, 0);
-            if (short_ > 0) result.put(item, short_);
+            int shortBy = need - have.getOrDefault(item, 0);
+            if (shortBy > 0) result.put(item, shortBy);
         });
         return result;
     }
 
     public static void startBuild() {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client.player == null || selected == null) return;
         if (!BaritoneBridge.isInstalled()) {
-            message(Text.literal("Baritone isn't installed. Put the Baritone api-fabric jar in your mods folder.").formatted(Formatting.RED));
+            message(Component.literal("Baritone isn't installed. Put the Baritone api-fabric jar in your mods folder.").withStyle(ChatFormatting.RED));
             return;
         }
         if (selected.fileName.contains(" ")) {
-            message(Text.literal("Rename the schematic so it has no spaces, Baritone can't read names with spaces.").formatted(Formatting.RED));
+            message(Component.literal("Rename the schematic so it has no spaces, Baritone can't read names with spaces.").withStyle(ChatFormatting.RED));
             return;
         }
-        BlockPos pos = client.player.getBlockPos();
+        BlockPos pos = client.player.blockPosition();
         BaritoneBridge.execute("set allowInventory true");
         BaritoneBridge.execute("set buildIgnoreExisting true");
         boolean ok = BaritoneBridge.execute("build " + selected.fileName + " " + pos.getX() + " " + pos.getY() + " " + pos.getZ());
@@ -117,9 +122,9 @@ public final class BuildManager {
             building = true;
             paused = false;
             warnedOut.clear();
-            message(Text.literal("Building " + selected.fileName + " at " + pos.toShortString()).formatted(Formatting.GREEN));
+            message(Component.literal("Building " + selected.fileName + " at " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ()).withStyle(ChatFormatting.GREEN));
         } else {
-            message(Text.literal("Baritone refused the build command, check chat for its error.").formatted(Formatting.RED));
+            message(Component.literal("Baritone refused the build command, check chat for its error.").withStyle(ChatFormatting.RED));
         }
     }
 
@@ -142,7 +147,7 @@ public final class BuildManager {
     }
 
     /** Once a second while building, warns about any needed block you have none of. */
-    public static void tick(MinecraftClient client) {
+    public static void tick(Minecraft client) {
         if (!building || selected == null || client.player == null) return;
         if (++tickCounter % 20 != 0) return;
 
@@ -150,18 +155,18 @@ public final class BuildManager {
         for (Item item : selected.materials.keySet()) {
             boolean out = have.getOrDefault(item, 0) == 0;
             if (out && warnedOut.add(item)) {
-                message(Text.literal("Out of " + item.getName().getString()
-                        + ". Get more, then press Resume (or type #resume).").formatted(Formatting.GOLD));
+                message(Component.literal("Out of " + itemName(item)
+                        + ". Get more, then press Resume (or type #resume).").withStyle(ChatFormatting.GOLD));
             } else if (!out) {
                 warnedOut.remove(item);
             }
         }
     }
 
-    private static void message(Text text) {
-        MinecraftClient client = MinecraftClient.getInstance();
+    private static void message(Component text) {
+        Minecraft client = Minecraft.getInstance();
         if (client.player != null) {
-            client.player.sendMessage(Text.literal("[Panda Builder] ").formatted(Formatting.AQUA).append(text), false);
+            client.player.sendSystemMessage(Component.literal("[Panda Builder] ").withStyle(ChatFormatting.AQUA).append(text));
         }
     }
 }

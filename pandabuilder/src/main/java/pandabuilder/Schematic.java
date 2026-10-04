@@ -1,15 +1,14 @@
 package pandabuilder;
 
-import net.minecraft.block.Block;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtSizeTracker;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -42,7 +41,7 @@ public final class Schematic {
             return new Schematic(path, Map.of(), false);
         }
 
-        NbtCompound root = NbtIo.readCompressed(path, NbtSizeTracker.ofUnlimitedBytes());
+        CompoundTag root = NbtIo.readCompressed(path, NbtAccounter.unlimitedHeap());
         Map<String, Long> stateCounts = new HashMap<>();
         if (name.endsWith(".litematic")) {
             readLitematic(root, stateCounts);
@@ -63,25 +62,26 @@ public final class Schematic {
     }
 
     /** Sponge .schem, versions 2 and 3. */
-    private static void readSponge(NbtCompound root, Map<String, Long> out) {
-        if (root.contains("Schematic", NbtElement.COMPOUND_TYPE)) {
-            root = root.getCompound("Schematic");
+    private static void readSponge(CompoundTag root, Map<String, Long> out) {
+        if (root.contains("Schematic")) {
+            root = root.getCompoundOrEmpty("Schematic");
         }
-        NbtCompound palette;
+        CompoundTag palette;
         byte[] data;
-        if (root.contains("Blocks", NbtElement.COMPOUND_TYPE)) {
-            NbtCompound blocks = root.getCompound("Blocks");
-            palette = blocks.getCompound("Palette");
-            data = blocks.getByteArray("Data");
+        if (root.contains("Blocks")) {
+            CompoundTag blocks = root.getCompoundOrEmpty("Blocks");
+            palette = blocks.getCompoundOrEmpty("Palette");
+            data = blocks.getByteArray("Data").orElse(new byte[0]);
         } else {
-            palette = root.getCompound("Palette");
-            data = root.getByteArray("BlockData");
+            palette = root.getCompoundOrEmpty("Palette");
+            data = root.getByteArray("BlockData").orElse(new byte[0]);
         }
 
         Map<Integer, String> byId = new HashMap<>();
         int maxId = 0;
-        for (String state : palette.getKeys()) {
-            int id = palette.getInt(state);
+        for (String state : palette.keySet()) {
+            int id = palette.getIntOr(state, -1);
+            if (id < 0) continue;
             byId.put(id, state);
             maxId = Math.max(maxId, id);
         }
@@ -110,26 +110,26 @@ public final class Schematic {
     }
 
     /** Litematica .litematic, all regions. */
-    private static void readLitematic(NbtCompound root, Map<String, Long> out) {
-        NbtCompound regions = root.getCompound("Regions");
-        for (String regionName : regions.getKeys()) {
-            NbtCompound region = regions.getCompound(regionName);
-            NbtList paletteNbt = region.getList("BlockStatePalette", NbtElement.COMPOUND_TYPE);
-            long[] states = region.getLongArray("BlockStates");
-            NbtCompound size = region.getCompound("Size");
-            long volume = Math.abs((long) size.getInt("x") * size.getInt("y") * size.getInt("z"));
+    private static void readLitematic(CompoundTag root, Map<String, Long> out) {
+        CompoundTag regions = root.getCompoundOrEmpty("Regions");
+        for (String regionName : regions.keySet()) {
+            CompoundTag region = regions.getCompoundOrEmpty(regionName);
+            ListTag paletteNbt = region.getListOrEmpty("BlockStatePalette");
+            long[] states = region.getLongArray("BlockStates").orElse(new long[0]);
+            CompoundTag size = region.getCompoundOrEmpty("Size");
+            long volume = Math.abs((long) size.getIntOr("x", 0) * size.getIntOr("y", 0) * size.getIntOr("z", 0));
 
             String[] palette = new String[paletteNbt.size()];
             for (int p = 0; p < palette.length; p++) {
-                NbtCompound entry = paletteNbt.getCompound(p);
-                StringBuilder sb = new StringBuilder(entry.getString("Name"));
-                if (entry.contains("Properties", NbtElement.COMPOUND_TYPE)) {
-                    NbtCompound props = entry.getCompound("Properties");
+                CompoundTag entry = paletteNbt.getCompoundOrEmpty(p);
+                StringBuilder sb = new StringBuilder(entry.getStringOr("Name", "minecraft:air"));
+                if (entry.contains("Properties")) {
+                    CompoundTag props = entry.getCompoundOrEmpty("Properties");
                     sb.append('[');
                     boolean first = true;
-                    for (String key : props.getKeys()) {
+                    for (String key : props.keySet()) {
                         if (!first) sb.append(',');
-                        sb.append(key).append('=').append(props.getString(key));
+                        sb.append(key).append('=').append(props.getStringOr(key, ""));
                         first = false;
                     }
                     sb.append(']');
@@ -179,7 +179,7 @@ public final class Schematic {
 
         Identifier identifier = Identifier.tryParse(id);
         if (identifier == null) return;
-        Block block = Registries.BLOCK.get(identifier);
+        Block block = BuiltInRegistries.BLOCK.getValue(identifier);
         Item item = block.asItem();
         if (item == Items.AIR) return;
 
