@@ -4,13 +4,13 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -26,7 +26,7 @@ import java.util.List;
 
 /**
  * Places a respawn anchor next to the nearest mob, charges it with glowstone and detonates it,
- * all within a single tick. Only runs in your own singleplayer world (not on servers or LAN).
+ * all within a single tick. Only mobs are targeted, never players.
  */
 public final class AnchorAura {
     /** How far from the target's feet an anchor may be placed or reused. */
@@ -46,15 +46,6 @@ public final class AnchorAura {
         warnedNether = false;
         AutoTotem.message(Component.literal("Anchor Aura " + (Settings.anchorAura ? "ON" : "OFF"))
                 .withStyle(Settings.anchorAura ? ChatFormatting.GREEN : ChatFormatting.RED));
-        if (Settings.anchorAura && !isOwnWorld(Minecraft.getInstance())) {
-            AutoTotem.message(Component.literal("Anchor Aura only works in your own singleplayer world.")
-                    .withStyle(ChatFormatting.GOLD));
-        }
-    }
-
-    private static boolean isOwnWorld(Minecraft mc) {
-        IntegratedServer server = mc.getSingleplayerServer();
-        return server != null && !server.isPublished();
     }
 
     public static void tick(Minecraft mc) {
@@ -65,7 +56,7 @@ public final class AnchorAura {
         LocalPlayer player = mc.player;
         ClientLevel level = mc.level;
         if (!Settings.anchorAura || player == null || level == null || mc.gameMode == null
-                || mc.gui.screen() != null || player.getHealth() <= 0 || !isOwnWorld(mc)) {
+                || mc.gui.screen() != null || player.getHealth() <= 0) {
             return;
         }
         // Anchors don't explode in the Nether, they just set your spawn.
@@ -135,7 +126,7 @@ public final class AnchorAura {
         double range = Settings.anchorRange;
         List<LivingEntity> candidates = level.getEntitiesOfClass(LivingEntity.class,
                 player.getBoundingBox().inflate(range),
-                e -> e != player && e.isAlive() && !e.isSpectator() && player.distanceToSqr(e) <= range * range);
+                e -> !(e instanceof Player) && e.isAlive() && !e.isSpectator() && player.distanceToSqr(e) <= range * range);
         return candidates.stream().min(Comparator.comparingDouble(player::distanceToSqr)).orElse(null);
     }
 

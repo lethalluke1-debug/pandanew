@@ -3,7 +3,7 @@
   "id": "pandabuilder",
   "version": "${version}",
   "name": "Panda Builder",
-  "description": "Auto Totem keeps a Totem of Undying in your offhand. Anchor Aura places, charges and detonates respawn anchors next to nearby mobs (singleplayer worlds only). Toggle from the menu (Right Shift) or hotkeys.",
+  "description": "Auto Totem keeps a Totem of Undying in your offhand. Anchor Aura places, charges and detonates respawn anchors next to nearby mobs (never targets players). Toggle from the menu (Right Shift) or hotkeys.",
   "authors": [
     "lethalluke1"
   ],
