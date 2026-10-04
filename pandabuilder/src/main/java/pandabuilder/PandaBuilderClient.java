@@ -44,7 +44,7 @@ public class PandaBuilderClient implements ClientModInitializer {
 
     private static void extractHud(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         Minecraft client = Minecraft.getInstance();
-        if (!BuildManager.isBuilding() || BuildManager.selected() == null || client.options.hideGui) return;
+        if (!BuildManager.isBuilding() || BuildManager.selected() == null) return;
 
         int x = 4;
         int y = 4;
