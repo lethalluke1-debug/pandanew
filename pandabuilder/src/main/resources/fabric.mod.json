@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "id": "pandabuilder",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "Panda Builder",
-  "description": "Schematic menu with material checking. Uses Baritone to walk to and place blocks from your inventory.",
+  "description": "Schematic menu with material checking, auto totem and a base finder. Uses Baritone to walk to and place blocks from your inventory.",
   "authors": ["lethalluke1"],
   "license": "MIT",
   "environment": "client",

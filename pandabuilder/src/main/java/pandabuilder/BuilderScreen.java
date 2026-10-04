@@ -31,7 +31,7 @@ public class BuilderScreen extends Screen {
    protected void init() {
       this.files = BuildManager.listSchematics();
       int tx = 10;
-      int tw = Math.min(130, (this.width - 20 - 12) / 4);
+      int tw = Math.min(130, (this.width - 20 - 16) / 5);
       this.addRenderableWidget(Button.builder(toggleLabel("Schematic Builder", Settings.builder), b -> {
          Settings.builder = !Settings.builder;
          if (!Settings.builder && BuildManager.isBuilding()) {
@@ -58,6 +58,8 @@ public class BuilderScreen extends Screen {
          AutoTotem.toggle();
          b.setMessage(toggleLabel("Auto Totem", Settings.autoTotem));
       }).bounds(tx, 20, tw, 20).build());
+      tx += tw + 4;
+      this.addRenderableWidget(Button.builder(Component.literal("Base Finder..."), b -> this.minecraft.gui.setScreen(new BaseFinderScreen(this))).bounds(tx, 20, tw, 20).build());
       int y = this.height - 26;
       int w = 70;
       int x = 10;
@@ -99,7 +101,7 @@ public class BuilderScreen extends Screen {
       super.extractRenderState(graphics, mouseX, mouseY, delta);
       String title = "Panda Builder";
       graphics.text(this.font, title, (this.width - this.font.width(title)) / 2, 6, -1, true);
-      String baritone = BaritoneBridge.isInstalled() ? "Baritone: found" : "Baritone: NOT installed";
+      String baritone = BaritoneBridge.statusText();
       graphics.text(this.font, baritone, this.width - this.font.width(baritone) - 8, 6, BaritoneBridge.isInstalled() ? -11141291 : -43691, true);
       this.extractFileList(graphics, mouseX, mouseY);
       this.extractMaterials(graphics);

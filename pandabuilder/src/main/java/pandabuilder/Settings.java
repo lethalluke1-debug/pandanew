@@ -13,6 +13,9 @@ public final class Settings {
    public static boolean creativeRefill = true;
    public static boolean checklistHud = true;
    public static boolean autoTotem = false;
+   public static boolean baseFinder = false;
+   public static boolean stopOnFind = false;
+   public static int baseSensitivity = 1;
 
    private Settings() {
    }
@@ -37,6 +40,14 @@ public final class Settings {
          creativeRefill = Boolean.parseBoolean(props.getProperty("creativeRefill", "true"));
          checklistHud = Boolean.parseBoolean(props.getProperty("checklistHud", "true"));
          autoTotem = Boolean.parseBoolean(props.getProperty("autoTotem", "false"));
+         baseFinder = Boolean.parseBoolean(props.getProperty("baseFinder", "false"));
+         stopOnFind = Boolean.parseBoolean(props.getProperty("stopOnFind", "false"));
+
+         try {
+            baseSensitivity = Math.max(0, Math.min(2, Integer.parseInt(props.getProperty("baseSensitivity", "1"))));
+         } catch (NumberFormatException e) {
+            baseSensitivity = 1;
+         }
       }
    }
 
@@ -46,6 +57,9 @@ public final class Settings {
       props.setProperty("creativeRefill", Boolean.toString(creativeRefill));
       props.setProperty("checklistHud", Boolean.toString(checklistHud));
       props.setProperty("autoTotem", Boolean.toString(autoTotem));
+      props.setProperty("baseFinder", Boolean.toString(baseFinder));
+      props.setProperty("stopOnFind", Boolean.toString(stopOnFind));
+      props.setProperty("baseSensitivity", Integer.toString(baseSensitivity));
       Path file = file();
 
       try {

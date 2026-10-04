@@ -26,6 +26,7 @@ public final class BuildManager {
    private static boolean paused;
    private static final Set<Item> warnedOut = new HashSet<>();
    private static int tickCounter;
+   private static int buildStartTick;
 
    private BuildManager() {
    }
@@ -115,7 +116,7 @@ public final class BuildManager {
          if (!Settings.builder) {
             message(Component.literal("Schematic Builder is turned off. Turn it on in the menu (Right Shift).").withStyle(ChatFormatting.RED));
          } else if (!BaritoneBridge.isInstalled()) {
-            message(Component.literal("Baritone isn't installed. Put the Baritone api-fabric jar in your mods folder.").withStyle(ChatFormatting.RED));
+            message(Component.literal("Baritone isn't installed. Put the Baritone fabric jar for 26.2 in your mods folder.").withStyle(ChatFormatting.RED));
          } else if (selected.fileName.contains(" ")) {
             message(Component.literal("Rename the schematic so it has no spaces, Baritone can't read names with spaces.").withStyle(ChatFormatting.RED));
          } else {
@@ -128,7 +129,9 @@ public final class BuildManager {
             BaritoneBridge.execute("set allowDiagonalAscend false");
             boolean ok = BaritoneBridge.execute("build " + selected.fileName + " " + pos.getX() + " " + pos.getY() + " " + pos.getZ());
             if (ok) {
+               AutoExplore.stopForBuild();
                building = true;
+               buildStartTick = tickCounter;
                paused = false;
                warnedOut.clear();
                message(
@@ -163,8 +166,17 @@ public final class BuildManager {
    }
 
    public static void tick(Minecraft client) {
+      tickCounter++;
       if (building && selected != null && client.player != null) {
-         if (++tickCounter % 20 == 0) {
+         if (tickCounter % 20 == 0) {
+            // Baritone doesn't tell us when a build ends, so ask it. Skip the first few seconds while it starts up.
+            if (!paused && tickCounter - buildStartTick > 60 && Boolean.FALSE.equals(BaritoneBridge.isProcessActive("getBuilderProcess"))) {
+               building = false;
+               warnedOut.clear();
+               message(Component.literal("Build finished (or was stopped in Baritone).").withStyle(ChatFormatting.GREEN));
+               return;
+            }
+
             if (client.player.isCreative() && Settings.creativeRefill) {
                if (refillCreative(client) && !paused) {
                   BaritoneBridge.execute("resume");
