@@ -28,6 +28,7 @@ public class PandaBuilderClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        Settings.load();
         openKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.pandabuilder.open", InputConstants.Type.KEYSYM, InputConstants.KEY_RSHIFT, CATEGORY));
 
@@ -44,11 +45,12 @@ public class PandaBuilderClient implements ClientModInitializer {
 
     private static void extractHud(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         Minecraft client = Minecraft.getInstance();
-        if (!BuildManager.isBuilding() || BuildManager.selected() == null) return;
+        if (BuildManager.selected() == null) return;
+        if (!BuildManager.isBuilding() && !Settings.checklistHud) return;
 
         int x = 4;
         int y = 4;
-        String status = BuildManager.isPaused() ? "Paused: " : "Building: ";
+        String status = !BuildManager.isBuilding() ? "Schematic: " : BuildManager.isPaused() ? "Paused: " : "Building: ";
         graphics.text(client.font, status + BuildManager.selected().fileName, x, y, 0xFF55FFFF, true);
         y += 12;
 

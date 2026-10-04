@@ -106,6 +106,10 @@ public final class BuildManager {
     public static void startBuild() {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null || selected == null) return;
+        if (!Settings.builder) {
+            message(Component.literal("Schematic Builder is turned off. Turn it on in the menu (Right Shift).").withStyle(ChatFormatting.RED));
+            return;
+        }
         if (!BaritoneBridge.isInstalled()) {
             message(Component.literal("Baritone isn't installed. Put the Baritone api-fabric jar in your mods folder.").withStyle(ChatFormatting.RED));
             return;
@@ -159,7 +163,7 @@ public final class BuildManager {
         if (!building || selected == null || client.player == null) return;
         if (++tickCounter % 20 != 0) return;
 
-        if (client.player.isCreative()) {
+        if (client.player.isCreative() && Settings.creativeRefill) {
             if (refillCreative(client) && !paused) {
                 BaritoneBridge.execute("resume");
             }

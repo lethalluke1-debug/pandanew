@@ -8,6 +8,7 @@ A Fabric client mod for Minecraft 26.2 for building schematics in survival with 
 - **Build Here** starts building at your feet. Baritone walks to each spot and places blocks from your inventory.
 - Warns in chat when you run out of a block. Get more, then press **Resume** (or type `#resume`).
 - HUD in the top-left shows build status and what you're still missing.
+- Toggles at the top of the menu turn each feature on or off: Schematic Builder, Creative Refill (adds missing blocks in creative so builds never stop), and Checklist HUD. Saved to `config/pandabuilder.properties`.
 
 This mod does not hide from anti-cheat. Check the server's rules before using Baritone there.
 

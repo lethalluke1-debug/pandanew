@@ -18,7 +18,7 @@ import java.util.Map;
 public class BuilderScreen extends Screen {
     private static final int FILE_ROW = 12;
     private static final int MAT_ROW = 18;
-    private static final int LIST_TOP = 30;
+    private static final int LIST_TOP = 56;
 
     private List<Path> files = new ArrayList<>();
     private int fileScroll;
@@ -32,6 +32,27 @@ public class BuilderScreen extends Screen {
     @Override
     protected void init() {
         files = BuildManager.listSchematics();
+
+        int tx = 10;
+        int tw = 130;
+        addRenderableWidget(Button.builder(toggleLabel("Schematic Builder", Settings.builder), b -> {
+            Settings.builder = !Settings.builder;
+            if (!Settings.builder && BuildManager.isBuilding()) BuildManager.cancel();
+            Settings.save();
+            b.setMessage(toggleLabel("Schematic Builder", Settings.builder));
+        }).bounds(tx, 20, tw, 20).build());
+        tx += tw + 4;
+        addRenderableWidget(Button.builder(toggleLabel("Creative Refill", Settings.creativeRefill), b -> {
+            Settings.creativeRefill = !Settings.creativeRefill;
+            Settings.save();
+            b.setMessage(toggleLabel("Creative Refill", Settings.creativeRefill));
+        }).bounds(tx, 20, tw, 20).build());
+        tx += tw + 4;
+        addRenderableWidget(Button.builder(toggleLabel("Checklist HUD", Settings.checklistHud), b -> {
+            Settings.checklistHud = !Settings.checklistHud;
+            Settings.save();
+            b.setMessage(toggleLabel("Checklist HUD", Settings.checklistHud));
+        }).bounds(tx, 20, tw, 20).build());
 
         int y = height - 26;
         int w = 70;
@@ -53,6 +74,10 @@ public class BuilderScreen extends Screen {
                 .bounds(x, y, w + 10, 20).build());
     }
 
+    private static Component toggleLabel(String name, boolean on) {
+        return Component.literal(name + ": " + (on ? "\u00a7aON" : "\u00a7cOFF"));
+    }
+
     private int fileListRight() {
         return Math.min(180, width / 3);
     }
@@ -65,10 +90,10 @@ public class BuilderScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
         String title = "Panda Builder";
-        graphics.text(font, title, (width - font.width(title)) / 2, 8, 0xFFFFFFFF, true);
+        graphics.text(font, title, (width - font.width(title)) / 2, 6, 0xFFFFFFFF, true);
 
         String baritone = BaritoneBridge.isInstalled() ? "Baritone: found" : "Baritone: NOT installed";
-        graphics.text(font, baritone, width - font.width(baritone) - 8, 8,
+        graphics.text(font, baritone, width - font.width(baritone) - 8, 6,
                 BaritoneBridge.isInstalled() ? 0xFF55FF55 : 0xFFFF5555, true);
 
         extractFileList(graphics, mouseX, mouseY);
