@@ -20,14 +20,27 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.Vec3;
 
-/** Digs a 1 wide, 2 tall tunnel in the direction the player faced when it was turned on. */
+/**
+ * Digs a tunnel in the direction the player faced when it was turned on. Lava, missing floor and unbreakable
+ * blocks ahead are avoided by stepping into the lane to the left or right, tunnelling past, and stepping back
+ * onto the original line once it's safe again.
+ */
 public final class AutoMine {
+    /** How many lanes it may wander from the original line while going around something. */
+    private static final int MAX_LANE = 3;
+
     private static boolean on;
     private static Direction direction = Direction.NORTH;
-    private static boolean walking;
-    private static boolean jumping;
+    /** Where it was turned on; lane 0 runs through here. Lanes count to the right of {@link #direction}. */
+    private static BlockPos origin = BlockPos.ZERO;
+    private static int targetLane;
     /** For pickaxes that break 3x3: only the head-height block ahead is mined, the pickaxe clears the rest. */
     private static boolean pickaxe3x3;
+
+    // Movement for KeyboardInputMixin, worked out every tick. Not tied to the WASD keys, so Freecam can run too.
+    private static boolean forward;
+    private static boolean jump;
+    private static int strafe; // +1 right, -1 left
 
     private AutoMine() {}
 
@@ -44,14 +57,14 @@ public final class AutoMine {
         save();
     }
 
-    /** Read by KeyboardInputMixin, which walks the player forward. Not tied to the W key, so Freecam can use it. */
-    public static boolean isWalking() {
-        return on && walking;
+    public static boolean isMoving() {
+        return on && (forward || strafe != 0);
     }
 
-    public static boolean isJumping() {
-        return on && walking && jumping;
-    }
+    public static boolean forward() { return on && forward; }
+    public static boolean jump() { return on && jump; }
+    public static boolean left() { return on && strafe < 0; }
+    public static boolean right() { return on && strafe > 0; }
 
     public static void toggle() {
         Minecraft mc = Minecraft.getInstance();
@@ -62,12 +75,17 @@ public final class AutoMine {
         if (mc.player == null) return;
         on = true;
         direction = mc.player.getDirection();
+        origin = mc.player.blockPosition();
+        targetLane = 0;
         mc.player.setYRot(direction.toYRot());
         mc.player.setXRot(0);
         AutoTotem.message(Component.literal("Auto Mine: ON (heading " + direction.getName() + ")"));
     }
 
     public static void tick(Minecraft mc) {
+        forward = false;
+        jump = false;
+        strafe = 0;
         if (!on) return;
         LocalPlayer player = mc.player;
         ClientLevel level = mc.level;
@@ -75,55 +93,130 @@ public final class AutoMine {
             stop(mc, null);
             return;
         }
-        walking = false;
-        jumping = false;
         if (mc.gui.screen() != null) return;
 
         player.setYRot(direction.toYRot());
+        // In 3x3 mode the view stays level: that already points at the head-height block it mines.
+        if (pickaxe3x3) player.setXRot(0);
 
-        BlockPos feet = player.blockPosition().relative(direction);
+        Direction right = direction.getClockWise();
+        BlockPos pos = player.blockPosition();
+        int lane = laneOf(pos, right);
+
+        if (lane != targetLane) {
+            sidestep(mc, player, level, pos, right, lane);
+            return;
+        }
+
+        // Stay centred in the lane so the player doesn't catch on the tunnel walls.
+        double off = (player.getX() - (pos.getX() + 0.5)) * right.getStepX()
+                + (player.getZ() - (pos.getZ() + 0.5)) * right.getStepZ();
+        if (Math.abs(off) > 0.25) strafe = off > 0 ? -1 : 1;
+
+        // Off the original line: step back towards it once both the lane beside and the block past it are safe.
+        if (lane != 0) {
+            Direction back = lane > 0 ? right.getOpposite() : right;
+            BlockPos side = pos.relative(back);
+            if (safe(level, side) && safe(level, side.relative(direction))) {
+                targetLane = lane + (lane > 0 ? -1 : 1);
+                return;
+            }
+        }
+
+        BlockPos feet = pos.relative(direction);
+        if (!safe(level, feet)) {
+            goAround(mc, level, pos, right, lane, hazard(level, feet));
+            return;
+        }
+        digForward(mc, player, level, feet);
+    }
+
+    /** Picks a free lane to the side; the side nearer the original line first. */
+    private static void goAround(Minecraft mc, ClientLevel level, BlockPos pos, Direction right, int lane, String reason) {
+        int[] order = lane > 0 ? new int[] {-1, 1} : new int[] {1, -1};
+        for (int d : order) {
+            int next = lane + d;
+            if (Math.abs(next) > MAX_LANE) continue;
+            if (safe(level, pos.relative(d > 0 ? right : right.getOpposite()))) {
+                targetLane = next;
+                AutoTotem.message(Component.literal("Auto Mine: " + reason + " ahead, going around"));
+                return;
+            }
+        }
+        stop(mc, reason + " ahead and no safe way around");
+    }
+
+    /** Clears the column beside the player and strafes into it. */
+    private static void sidestep(Minecraft mc, LocalPlayer player, ClientLevel level, BlockPos pos, Direction right, int lane) {
+        Direction side = targetLane > lane ? right : right.getOpposite();
+        BlockPos feet = pos.relative(side);
+        if (!safe(level, feet)) {
+            targetLane = lane; // that side became unsafe; plan again next tick
+            return;
+        }
         BlockPos head = feet.above();
-
-        if (nearLava(level, feet) || nearLava(level, head)) {
-            stop(mc, "lava ahead");
-            return;
+        if (!level.getBlockState(head).isAir()) {
+            mine(mc, player, level, head, side);
+        } else if (!level.getBlockState(feet).isAir()) {
+            mine(mc, player, level, feet, side);
+        } else {
+            strafe = side == right ? 1 : -1;
         }
-        BlockPos floor = feet.below();
-        if (level.getBlockState(floor).getCollisionShape(level, floor).isEmpty()) {
-            stop(mc, "no floor ahead");
-            return;
-        }
+    }
 
+    private static void digForward(Minecraft mc, LocalPlayer player, ClientLevel level, BlockPos feet) {
+        BlockPos head = feet.above();
         // Head height first. A 3x3 pickaxe centred there also clears the feet block and the row above.
         boolean headSolid = !level.getBlockState(head).isAir();
         boolean feetSolid = !level.getBlockState(feet).isAir();
-        BlockPos target = headSolid ? head : feetSolid ? feet : null;
 
         // In 3x3 mode a lone block at feet height is stepped onto instead: mining it with a 3x3 pickaxe would dig
         // out the floor ahead. Only when there's no headroom to step up is it mined.
         if (pickaxe3x3 && !headSolid && feetSolid
                 && level.getBlockState(head.above()).isAir() && level.getBlockState(player.blockPosition().above(2)).isAir()) {
-            player.setXRot(0);
-            walking = true;
-            jumping = true;
+            forward = true;
+            jump = true;
             return;
         }
 
+        BlockPos target = headSolid ? head : feetSolid ? feet : null;
         if (target == null) {
-            player.setXRot(0);
-            walking = true;
+            if (!pickaxe3x3) player.setXRot(0);
+            forward = true;
             return;
         }
+        if (!pickaxe3x3) lookAt(player, target);
+        mine(mc, player, level, target, direction);
+    }
 
-        BlockState state = level.getBlockState(target);
-        if (state.getDestroySpeed(level, target) < 0) {
-            stop(mc, "unbreakable block");
-            return;
-        }
-        lookAt(player, target);
-        selectBestTool(player.getInventory(), state);
-        mc.gameMode.continueDestroyBlock(target, direction.getOpposite());
+    private static void mine(Minecraft mc, LocalPlayer player, ClientLevel level, BlockPos target, Direction towards) {
+        selectBestTool(player.getInventory(), level.getBlockState(target));
+        mc.gameMode.continueDestroyBlock(target, towards.getOpposite());
         player.swing(InteractionHand.MAIN_HAND);
+    }
+
+    /** Lane number of a block: how many blocks right of the original line it is (negative = left). */
+    private static int laneOf(BlockPos pos, Direction right) {
+        return (pos.getX() - origin.getX()) * right.getStepX() + (pos.getZ() - origin.getZ()) * right.getStepZ();
+    }
+
+    /** Whether the player can stand at {@code feet}: no lava touching it, a floor, nothing unbreakable. */
+    private static boolean safe(ClientLevel level, BlockPos feet) {
+        return hazard(level, feet) == null;
+    }
+
+    private static String hazard(ClientLevel level, BlockPos feet) {
+        BlockPos head = feet.above();
+        if (nearLava(level, feet) || nearLava(level, head)) return "lava";
+        BlockPos floor = feet.below();
+        if (level.getBlockState(floor).getCollisionShape(level, floor).isEmpty()) return "hole";
+        if (unbreakable(level, feet) || unbreakable(level, head)) return "unbreakable block";
+        return null;
+    }
+
+    private static boolean unbreakable(ClientLevel level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
+        return !state.isAir() && state.getDestroySpeed(level, pos) < 0;
     }
 
     /** Points the crosshair at the centre of the target's near face, so servers see the player looking at it. */
@@ -189,8 +282,9 @@ public final class AutoMine {
 
     private static void stop(Minecraft mc, String reason) {
         on = false;
-        walking = false;
-        jumping = false;
+        forward = false;
+        jump = false;
+        strafe = 0;
         if (mc.gameMode != null) mc.gameMode.stopDestroyBlock();
         AutoTotem.message(Component.literal(reason == null ? "Auto Mine: OFF" : "Auto Mine stopped: " + reason));
     }

@@ -17,7 +17,7 @@ public final class Modules {
                     + "distance markers on or off.",
                     Module.Tab.CHEATING, StorageEsp::isOn, StorageEsp::toggle, PandaBuilderClient::storageEspKey,
                     Module.STORAGE_ESP),
-            new Module("Auto Mine", "Digs a straight tunnel the way you're facing. Stops at lava, holes and bedrock. "
+            new Module("Auto Mine", "Digs a straight tunnel the way you're facing and goes around lava, holes and bedrock. "
                     + "Click the gear for 3x3 Pickaxe mode.",
                     Module.Tab.CHEATING, AutoMine::isOn, AutoMine::toggle, PandaBuilderClient::autoMineKey,
                     Module.AUTO_MINE),
