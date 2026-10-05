@@ -6,6 +6,7 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
+import java.util.Set;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -15,11 +16,17 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ServerboundSwingPacket;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -42,7 +49,17 @@ public final class AutoMine {
     private static boolean pickaxe3x3;
     /** While Freecam is on: no arm swing, and mouse clicks can't break or place blocks. */
     private static boolean freezeInFreecam;
+    /** Fill holes in the floor ahead with stone/dirt from the inventory, so caves are crossed in a straight line. */
+    private static boolean fillHoles = true;
     private static int swapCooldown;
+    private static int placeCooldown;
+    /** Pitch the head turns towards this tick, at most 15 degrees per tick. */
+    private static float wantPitch;
+
+    /** Throwaway blocks used to fill holes. */
+    private static final Set<Block> FILLERS = Set.of(Blocks.COBBLESTONE, Blocks.COBBLED_DEEPSLATE, Blocks.STONE,
+            Blocks.DEEPSLATE, Blocks.DIRT, Blocks.NETHERRACK, Blocks.ANDESITE, Blocks.DIORITE, Blocks.GRANITE,
+            Blocks.TUFF, Blocks.BLACKSTONE, Blocks.END_STONE);
 
     // Movement for KeyboardInputMixin, worked out every tick. Not tied to the WASD keys, so Freecam can run too.
     private static boolean forward;
@@ -62,6 +79,15 @@ public final class AutoMine {
 
     public static void togglePickaxe3x3() {
         pickaxe3x3 = !pickaxe3x3;
+        save();
+    }
+
+    public static boolean fillHoles() {
+        return fillHoles;
+    }
+
+    public static void toggleFillHoles() {
+        fillHoles = !fillHoles;
         save();
     }
 
@@ -110,7 +136,17 @@ public final class AutoMine {
         jump = false;
         strafe = 0;
         if (swapCooldown > 0) swapCooldown--;
+        if (placeCooldown > 0) placeCooldown--;
         if (!on) return;
+        wantPitch = 0.0f;
+        step(mc);
+        LocalPlayer player = mc.player;
+        if (on && player != null) {
+            player.setXRot(player.getXRot() + Math.clamp(wantPitch - player.getXRot(), -15.0f, 15.0f));
+        }
+    }
+
+    private static void step(Minecraft mc) {
         LocalPlayer player = mc.player;
         ClientLevel level = mc.level;
         if (player == null || level == null || mc.gameMode == null) {
@@ -120,8 +156,6 @@ public final class AutoMine {
         // Keeps going with chat, inventory or the pause menu open (tabbing out opens the pause menu).
 
         player.setYRot(direction.toYRot());
-        // In 3x3 mode the view stays level: that already points at the head-height block it mines.
-        if (pickaxe3x3) player.setXRot(0);
 
         Direction right = direction.getClockWise();
         BlockPos pos = player.blockPosition();
@@ -144,27 +178,28 @@ public final class AutoMine {
         if (lane != 0) {
             Direction back = lane > 0 ? right.getOpposite() : right;
             BlockPos side = pos.relative(back);
-            if (safe(level, side) && safe(level, side.relative(direction))) {
+            if (safe(level, player, side) && safe(level, player, side.relative(direction))) {
                 targetLane = lane + (lane > 0 ? -1 : 1);
                 return;
             }
         }
 
         BlockPos feet = pos.relative(direction);
-        if (!safe(level, feet)) {
-            goAround(mc, level, pos, right, lane, hazard(level, feet));
+        if (!safe(level, player, feet)) {
+            goAround(mc, level, player, pos, right, lane, hazard(level, player, feet));
             return;
         }
         digForward(mc, player, level, feet);
     }
 
     /** Picks a free lane to the side; the side nearer the original line first. */
-    private static void goAround(Minecraft mc, ClientLevel level, BlockPos pos, Direction right, int lane, String reason) {
+    private static void goAround(Minecraft mc, ClientLevel level, LocalPlayer player, BlockPos pos, Direction right, int lane,
+                                 String reason) {
         int[] order = lane > 0 ? new int[] {-1, 1} : new int[] {1, -1};
         for (int d : order) {
             int next = lane + d;
             if (Math.abs(next) > MAX_LANE) continue;
-            if (safe(level, pos.relative(d > 0 ? right : right.getOpposite()))) {
+            if (safe(level, player, pos.relative(d > 0 ? right : right.getOpposite()))) {
                 targetLane = next;
                 AutoTotem.message(Component.literal("Auto Mine: " + reason + " ahead, going around"));
                 return;
@@ -177,15 +212,17 @@ public final class AutoMine {
     private static void sidestep(Minecraft mc, LocalPlayer player, ClientLevel level, BlockPos pos, Direction right, int lane) {
         Direction side = targetLane > lane ? right : right.getOpposite();
         BlockPos feet = pos.relative(side);
-        if (!safe(level, feet)) {
+        if (!safe(level, player, feet)) {
             targetLane = lane; // that side became unsafe; plan again next tick
             return;
         }
         BlockPos head = feet.above();
-        if (!level.getBlockState(head).isAir()) {
+        if (blocks(level, head)) {
             mine(mc, player, level, head, side);
-        } else if (!level.getBlockState(feet).isAir()) {
+        } else if (blocks(level, feet)) {
             mine(mc, player, level, feet, side);
+        } else if (noFloor(level, feet.below())) {
+            fill(mc, player, level, feet.below(), pos.below(), side);
         } else {
             strafe = side == right ? 1.0f : -1.0f;
         }
@@ -194,13 +231,15 @@ public final class AutoMine {
     private static void digForward(Minecraft mc, LocalPlayer player, ClientLevel level, BlockPos feet) {
         BlockPos head = feet.above();
         // Head height first. A 3x3 pickaxe centred there also clears the feet block and the row above.
-        boolean headSolid = !level.getBlockState(head).isAir();
-        boolean feetSolid = !level.getBlockState(feet).isAir();
+        // Water, plants, vines and the like don't count: they're walked through, not mined.
+        boolean headSolid = blocks(level, head);
+        boolean feetSolid = blocks(level, feet);
 
-        // In 3x3 mode a lone block at feet height is stepped onto instead: mining it with a 3x3 pickaxe would dig
-        // out the floor ahead. Only when there's no headroom to step up is it mined.
-        if (pickaxe3x3 && !headSolid && feetSolid
-                && level.getBlockState(head.above()).isAir() && level.getBlockState(player.blockPosition().above(2)).isAir()) {
+        // In 3x3 mode without Fill Holes, a lone block at feet height is stepped onto instead: mining it with a 3x3
+        // pickaxe would dig out the floor ahead. With Fill Holes it's mined and any floor it takes is filled back in,
+        // so the tunnel keeps its height instead of climbing over every bump in a cave.
+        if (pickaxe3x3 && !fillHoles && !headSolid && feetSolid
+                && !blocks(level, head.above()) && !blocks(level, player.blockPosition().above(2))) {
             forward = true;
             jump = true;
             return;
@@ -208,11 +247,16 @@ public final class AutoMine {
 
         BlockPos target = headSolid ? head : feetSolid ? feet : null;
         if (target == null) {
-            if (!pickaxe3x3) player.setXRot(player.getXRot() + Math.clamp(-player.getXRot(), -15.0f, 15.0f));
+            // Tunnel ahead is clear. Cave floor missing? Fill it first so the line stays at the same height.
+            if (noFloor(level, feet.below())) {
+                fill(mc, player, level, feet.below(), player.blockPosition().below(), direction);
+                return;
+            }
             forward = true;
             return;
         }
-        if (!pickaxe3x3) lookAt(player, target);
+        // In 3x3 mode the view stays level: that already points at the head-height block it mines.
+        if (!pickaxe3x3) wantPitch = pitchTo(player, faceCenter(target, direction.getOpposite()));
         mine(mc, player, level, target, direction);
     }
 
@@ -223,6 +267,10 @@ public final class AutoMine {
         // the short delay after a block breaks), so mining looks smooth instead of restarting the swing every tick.
         if (!mc.gameMode.continueDestroyBlock(target, face)) return;
         if (!blockClicks()) level.addBreakingBlockEffect(target, face);
+        swing(mc, player);
+    }
+
+    private static void swing(Minecraft mc, LocalPlayer player) {
         if (blockClicks()) {
             // Frozen in Freecam: no swing animation, but the server still gets the swing. Anti-cheat plugins reject
             // block breaks without one, which made the player rubber-band.
@@ -237,18 +285,77 @@ public final class AutoMine {
         return (pos.getX() - origin.getX()) * right.getStepX() + (pos.getZ() - origin.getZ()) * right.getStepZ();
     }
 
-    /** Whether the player can stand at {@code feet}: no lava touching it, a floor, nothing unbreakable. */
-    private static boolean safe(ClientLevel level, BlockPos feet) {
-        return hazard(level, feet) == null;
+    /**
+     * Whether the player can stand at {@code feet}: no lava touching it, nothing unbreakable, and a floor, or a
+     * hole it can fill.
+     */
+    private static boolean safe(ClientLevel level, LocalPlayer player, BlockPos feet) {
+        return hazard(level, player, feet) == null;
     }
 
-    private static String hazard(ClientLevel level, BlockPos feet) {
+    private static String hazard(ClientLevel level, LocalPlayer player, BlockPos feet) {
         BlockPos head = feet.above();
         if (nearLava(level, feet) || nearLava(level, head)) return "lava";
-        BlockPos floor = feet.below();
-        if (level.getBlockState(floor).getCollisionShape(level, floor).isEmpty()) return "hole";
         if (unbreakable(level, feet) || unbreakable(level, head)) return "unbreakable block";
+        BlockPos floor = feet.below();
+        if (noFloor(level, floor)) {
+            if (!fillHoles) return "hole";
+            if (!level.getBlockState(floor).canBeReplaced()) return "hole";
+            if (findFiller(player.getInventory()) < 0) return "hole (no stone or dirt to fill it)";
+        }
         return null;
+    }
+
+    /** A block in the way that has to be mined. Air, water, grass, vines, lichen and so on don't. */
+    private static boolean blocks(ClientLevel level, BlockPos pos) {
+        return !level.getBlockState(pos).canBeReplaced();
+    }
+
+    private static boolean noFloor(ClientLevel level, BlockPos floor) {
+        return level.getBlockState(floor).getCollisionShape(level, floor).isEmpty();
+    }
+
+    /** Places a filler block at {@code floor} by clicking the {@code face} side of {@code support}. */
+    private static void fill(Minecraft mc, LocalPlayer player, ClientLevel level, BlockPos floor, BlockPos support,
+                             Direction face) {
+        Vec3 hit = faceCenter(support, face);
+        wantPitch = pitchTo(player, hit);
+        if (placeCooldown > 0 || noFloor(level, support)) return;
+        Inventory inv = player.getInventory();
+        int slot = findFiller(inv);
+        if (slot < 0) return;
+        if (slot >= Inventory.getSelectionSize()) {
+            // Filler only in the main inventory: swap it into the hand first.
+            if (player.containerMenu != player.inventoryMenu || swapCooldown > 0) return;
+            mc.gameMode.handleContainerInput(player.inventoryMenu.containerId, slot, inv.getSelectedSlot(),
+                    ContainerInput.SWAP, player);
+            swapCooldown = 4;
+            return;
+        }
+        inv.setSelectedSlot(slot);
+        // Wait until the head is roughly aimed at the face, so the click looks like a normal placement.
+        if (Math.abs(wantPitch - player.getXRot()) > 10.0f) return;
+        InteractionResult result = mc.gameMode.useItemOn(player, InteractionHand.MAIN_HAND,
+                new BlockHitResult(hit, face, support, false));
+        if (result.consumesAction()) swing(mc, player);
+        placeCooldown = 3;
+    }
+
+    private static int findFiller(Inventory inv) {
+        int selected = inv.getSelectedSlot();
+        if (isFiller(inv.getItem(selected))) return selected;
+        for (int i = 0; i < MAIN_INVENTORY_SIZE; i++) {
+            if (isFiller(inv.getItem(i))) return i;
+        }
+        return -1;
+    }
+
+    private static boolean isFiller(ItemStack stack) {
+        return stack.getItem() instanceof BlockItem item && FILLERS.contains(item.getBlock());
+    }
+
+    private static Vec3 faceCenter(BlockPos pos, Direction face) {
+        return Vec3.atCenterOf(pos).add(face.getStepX() * 0.5, face.getStepY() * 0.5, face.getStepZ() * 0.5);
     }
 
     private static boolean unbreakable(ClientLevel level, BlockPos pos) {
@@ -256,15 +363,11 @@ public final class AutoMine {
         return !state.isAir() && state.getDestroySpeed(level, pos) < 0;
     }
 
-    /** Points the crosshair at the centre of the target's near face, so servers see the player looking at it. */
-    private static void lookAt(LocalPlayer player, BlockPos target) {
+    /** Pitch that points the crosshair at {@code point}, so servers see the player looking at what it clicks. */
+    private static float pitchTo(LocalPlayer player, Vec3 point) {
         Vec3 eye = player.getEyePosition();
-        double dx = target.getX() + 0.5 - direction.getStepX() * 0.5 - eye.x;
-        double dy = target.getY() + 0.5 - eye.y;
-        double dz = target.getZ() + 0.5 - direction.getStepZ() * 0.5 - eye.z;
-        float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
-        // Turn at most 15 degrees a tick so the head moves smoothly instead of snapping.
-        player.setXRot(player.getXRot() + Math.clamp(pitch - player.getXRot(), -15.0f, 15.0f));
+        double dx = point.x - eye.x, dy = point.y - eye.y, dz = point.z - eye.z;
+        return (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
     }
 
     private static boolean nearLava(ClientLevel level, BlockPos pos) {
@@ -319,6 +422,7 @@ public final class AutoMine {
             p.load(r);
             pickaxe3x3 = Boolean.parseBoolean(p.getProperty("pickaxe3x3", "false"));
             freezeInFreecam = Boolean.parseBoolean(p.getProperty("freezeInFreecam", "false"));
+            fillHoles = Boolean.parseBoolean(p.getProperty("fillHoles", "true"));
         } catch (IOException e) {
             PandaBuilderClient.LOGGER.warn("Could not read Auto Mine settings", e);
         }
@@ -328,6 +432,7 @@ public final class AutoMine {
         Properties p = new Properties();
         p.setProperty("pickaxe3x3", Boolean.toString(pickaxe3x3));
         p.setProperty("freezeInFreecam", Boolean.toString(freezeInFreecam));
+        p.setProperty("fillHoles", Boolean.toString(fillHoles));
         try (Writer w = Files.newBufferedWriter(file())) {
             p.store(w, Brand.NAME + " Auto Mine settings");
         } catch (IOException e) {
