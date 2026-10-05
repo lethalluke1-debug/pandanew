@@ -218,7 +218,11 @@ public final class AutoMine {
 
     private static void mine(Minecraft mc, LocalPlayer player, ClientLevel level, BlockPos target, Direction towards) {
         selectBestTool(mc, player, level.getBlockState(target));
-        mc.gameMode.continueDestroyBlock(target, towards.getOpposite());
+        Direction face = towards.getOpposite();
+        // Like vanilla: only swing and show crack particles on ticks where breaking actually progressed (not during
+        // the short delay after a block breaks), so mining looks smooth instead of restarting the swing every tick.
+        if (!mc.gameMode.continueDestroyBlock(target, face)) return;
+        if (!blockClicks()) level.addBreakingBlockEffect(target, face);
         if (blockClicks()) {
             // Frozen in Freecam: no swing animation, but the server still gets the swing. Anti-cheat plugins reject
             // block breaks without one, which made the player rubber-band.
