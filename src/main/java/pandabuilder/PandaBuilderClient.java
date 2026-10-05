@@ -20,6 +20,8 @@ public class PandaBuilderClient implements ClientModInitializer {
     private static KeyMapping autoTotemKey;
     private static KeyMapping autoXpKey;
     private static KeyMapping autoCrystalKey;
+    private static KeyMapping espKey;
+    private static KeyMapping autoMineKey;
 
     @Override
     public void onInitializeClient() {
@@ -29,6 +31,8 @@ public class PandaBuilderClient implements ClientModInitializer {
         autoTotemKey = register("key.pandabuilder.autototem", InputConstants.UNKNOWN.getValue());
         autoXpKey = register("key.pandabuilder.autoxp", InputConstants.UNKNOWN.getValue());
         autoCrystalKey = register("key.pandabuilder.autocrystal", InputConstants.UNKNOWN.getValue());
+        espKey = register("key.pandabuilder.esp", InputConstants.UNKNOWN.getValue());
+        autoMineKey = register("key.pandabuilder.automine", InputConstants.UNKNOWN.getValue());
 
         ClientTickEvents.END_CLIENT_TICK.register(PandaBuilderClient::tick);
     }
@@ -37,14 +41,23 @@ public class PandaBuilderClient implements ClientModInitializer {
         return KeyMappingHelper.registerKeyMapping(new KeyMapping(name, InputConstants.Type.KEYSYM, key, CATEGORY));
     }
 
+    public static KeyMapping autoTotemKey() { return autoTotemKey; }
+    public static KeyMapping autoXpKey() { return autoXpKey; }
+    public static KeyMapping autoCrystalKey() { return autoCrystalKey; }
+    public static KeyMapping espKey() { return espKey; }
+    public static KeyMapping autoMineKey() { return autoMineKey; }
+
     private static void tick(Minecraft mc) {
         if (openKey.consumeClick()) mc.gui.setScreen(new MenuScreen());
         if (autoTotemKey.consumeClick()) AutoTotem.toggle();
         if (autoXpKey.consumeClick()) AutoXP.toggle();
         if (autoCrystalKey.consumeClick()) AutoCrystal.toggle();
+        if (espKey.consumeClick()) Esp.toggle();
+        if (autoMineKey.consumeClick()) AutoMine.toggle();
 
         AutoTotem.tick(mc);
         AutoXP.tick(mc);
         AutoCrystal.tick(mc);
+        AutoMine.tick(mc);
     }
 }
