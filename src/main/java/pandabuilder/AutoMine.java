@@ -41,6 +41,12 @@ public final class AutoMine {
     private static final int MAX_LEVEL = 4;
     /** How far ahead lava is looked for, so stairs up or down start while still on solid ground. */
     private static final int LOOKAHEAD = 3;
+    /**
+     * A cave is open space this many blocks ahead. Never 1: the block right ahead is open every time Auto Mine has
+     * just dug it (and a 3x3 drill opens the blocks beside it too), which made it think every step was a cave and
+     * zig-zag. Nothing this far ahead is ever dug by Auto Mine itself.
+     */
+    private static final int CAVE_DISTANCE = 2;
     /** Hotbar plus main inventory. */
     private static final int MAIN_INVENTORY_SIZE = 36;
 
@@ -224,12 +230,12 @@ public final class AutoMine {
         // Back towards the original line and height when the tunnel there is clear (and, hugging walls, not
         // open cave).
         if (lane != 0 && pathClear(level, player, pos, right, lane, lane - Integer.signum(lane), height)
-                && !(hugWalls && open(level, columnAt(pos, right, -Integer.signum(lane), height, 1)))) {
+                && !(hugWalls && open(level, columnAt(pos, right, -Integer.signum(lane), height, CAVE_DISTANCE)))) {
             targetLane = lane - Integer.signum(lane);
             return;
         }
         if (height != 0 && pathClear(level, player, pos, right, lane, lane, height - Integer.signum(height))
-                && !(hugWalls && open(level, columnAt(pos, right, 0, height - Integer.signum(height), 1)))) {
+                && !(hugWalls && open(level, columnAt(pos, right, 0, height - Integer.signum(height), CAVE_DISTANCE)))) {
             targetLevel = height - Integer.signum(height);
             return;
         }
@@ -237,7 +243,7 @@ public final class AutoMine {
         BlockPos feet = pos.relative(direction);
         String reason = hazard(level, player, feet);
         boolean lavaSoon = lavaAhead(level, pos);
-        boolean cave = hugWalls && reason == null && open(level, feet);
+        boolean cave = hugWalls && reason == null && open(level, pos.relative(direction, CAVE_DISTANCE));
         if (reason != null || lavaSoon || cave) {
             String why = reason != null ? reason : lavaSoon ? "lava" : "cave";
             if (plan(level, player, pos, right, lane, height, why, cave)) return;
@@ -267,7 +273,7 @@ public final class AutoMine {
             for (int h = Math.min(minH, height); h <= Math.max(maxH, height); h++) {
                 if (l == lane && h == height) continue;
                 if (!pathClear(level, player, pos, right, lane, l, h)) continue;
-                if (cave && !blocks(level, columnAt(pos, right, l - lane, h, 1))) continue;
+                if (cave && open(level, columnAt(pos, right, l - lane, h, CAVE_DISTANCE))) continue;
                 double cost = Math.abs(l - lane) + Math.abs(h - height) * 1.5 + (Math.abs(l) + Math.abs(h)) * 0.01;
                 if (cost < bestCost) {
                     bestCost = cost;
