@@ -22,6 +22,7 @@ public class PandaBuilderClient implements ClientModInitializer {
     private static KeyMapping autoCrystalKey;
     private static KeyMapping espKey;
     private static KeyMapping autoMineKey;
+    private static KeyMapping freecamKey;
 
     @Override
     public void onInitializeClient() {
@@ -33,6 +34,7 @@ public class PandaBuilderClient implements ClientModInitializer {
         autoCrystalKey = register("key.pandabuilder.autocrystal", InputConstants.UNKNOWN.getValue());
         espKey = register("key.pandabuilder.esp", InputConstants.UNKNOWN.getValue());
         autoMineKey = register("key.pandabuilder.automine", InputConstants.UNKNOWN.getValue());
+        freecamKey = register("key.pandabuilder.freecam", InputConstants.UNKNOWN.getValue());
 
         ClientTickEvents.END_CLIENT_TICK.register(PandaBuilderClient::tick);
     }
@@ -46,6 +48,7 @@ public class PandaBuilderClient implements ClientModInitializer {
     public static KeyMapping autoCrystalKey() { return autoCrystalKey; }
     public static KeyMapping espKey() { return espKey; }
     public static KeyMapping autoMineKey() { return autoMineKey; }
+    public static KeyMapping freecamKey() { return freecamKey; }
 
     private static void tick(Minecraft mc) {
         if (openKey.consumeClick()) mc.gui.setScreen(new MenuScreen());
@@ -54,10 +57,12 @@ public class PandaBuilderClient implements ClientModInitializer {
         if (autoCrystalKey.consumeClick()) AutoCrystal.toggle();
         if (espKey.consumeClick()) Esp.toggle();
         if (autoMineKey.consumeClick()) AutoMine.toggle();
+        if (freecamKey.consumeClick()) Freecam.toggle();
 
         AutoTotem.tick(mc);
         AutoXP.tick(mc);
         AutoCrystal.tick(mc);
         AutoMine.tick(mc);
+        Freecam.tick(mc);
     }
 }

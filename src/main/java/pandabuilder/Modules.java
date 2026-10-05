@@ -15,5 +15,7 @@ public final class Modules {
             new Module("ESP", "Outlines other players through walls.", Module.Tab.CHEATING,
                     Esp::isOn, Esp::toggle, PandaBuilderClient::espKey),
             new Module("Auto Mine", "Digs a straight 1x2 tunnel the way you're facing. Stops at lava, holes and bedrock.",
-                    Module.Tab.CHEATING, AutoMine::isOn, AutoMine::toggle, PandaBuilderClient::autoMineKey));
+                    Module.Tab.CHEATING, AutoMine::isOn, AutoMine::toggle, PandaBuilderClient::autoMineKey),
+            new Module("Freecam", "Fly the camera away from your body. WASD, Space and Shift move, Sprint is faster.",
+                    Module.Tab.CHEATING, Freecam::isOn, Freecam::toggle, PandaBuilderClient::freecamKey));
 }

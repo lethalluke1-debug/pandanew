@@ -3,6 +3,10 @@
   "package": "pandabuilder.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": [
+    "CameraMixin",
+    "EntityMixin",
+    "KeyboardInputMixin",
+    "LevelExtractorMixin",
     "MinecraftMixin"
   ],
   "injectors": {

@@ -11,6 +11,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.phys.Vec3;
 
 /** Digs a 1 wide, 2 tall tunnel in the direction the player faced when it was turned on. */
 public final class AutoMine {
@@ -69,6 +70,7 @@ public final class AutoMine {
                 : !level.getBlockState(feet).isAir() ? feet : null;
 
         if (target == null) {
+            player.setXRot(0);
             mc.options.keyUp.setDown(true);
             return;
         }
@@ -79,9 +81,19 @@ public final class AutoMine {
             return;
         }
         mc.options.keyUp.setDown(false);
+        lookAt(player, target);
         selectBestTool(player.getInventory(), state);
         mc.gameMode.continueDestroyBlock(target, direction.getOpposite());
         player.swing(InteractionHand.MAIN_HAND);
+    }
+
+    /** Points the crosshair at the centre of the target's near face, so servers see the player looking at it. */
+    private static void lookAt(LocalPlayer player, BlockPos target) {
+        Vec3 eye = player.getEyePosition();
+        double dx = target.getX() + 0.5 - direction.getStepX() * 0.5 - eye.x;
+        double dy = target.getY() + 0.5 - eye.y;
+        double dz = target.getZ() + 0.5 - direction.getStepZ() * 0.5 - eye.z;
+        player.setXRot((float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz))));
     }
 
     private static boolean nearLava(ClientLevel level, BlockPos pos) {

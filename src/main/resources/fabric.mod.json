@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "id": "pandabuilder",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "name": "Lethal Client",
-  "description": "PvP: Auto Totem, Auto Crystal, Auto XP. Cheating: ESP, Auto Mine. Open the menu with Right Shift.",
+  "description": "PvP: Auto Totem, Auto Crystal, Auto XP. Cheating: ESP, Auto Mine, Freecam. Open the menu with Right Shift.",
   "authors": [
     "lethalluke1"
   ],

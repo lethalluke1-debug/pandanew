@@ -5,7 +5,7 @@ public final class Brand {
     private Brand() {}
 
     public static final String NAME = "Lethal Client";
-    public static final String VERSION = "v2.2.0";
+    public static final String VERSION = "v2.3.0";
 
     public static final int ACCENT = 0xFFF0313F;
     public static final int ACCENT_SOFT = 0x33F0313F;
