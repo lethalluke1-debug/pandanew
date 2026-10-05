@@ -15,6 +15,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
@@ -28,6 +29,8 @@ import net.minecraft.world.phys.Vec3;
 public final class AutoMine {
     /** How many lanes it may wander from the original line while going around something. */
     private static final int MAX_LANE = 3;
+    /** Hotbar plus main inventory. */
+    private static final int MAIN_INVENTORY_SIZE = 36;
 
     private static boolean on;
     private static Direction direction = Direction.NORTH;
@@ -36,6 +39,9 @@ public final class AutoMine {
     private static int targetLane;
     /** For pickaxes that break 3x3: only the head-height block ahead is mined, the pickaxe clears the rest. */
     private static boolean pickaxe3x3;
+    /** While Freecam is on: no arm swing, and mouse clicks can't break or place blocks. */
+    private static boolean freezeInFreecam;
+    private static int swapCooldown;
 
     // Movement for KeyboardInputMixin, worked out every tick. Not tied to the WASD keys, so Freecam can run too.
     private static boolean forward;
@@ -55,6 +61,20 @@ public final class AutoMine {
     public static void togglePickaxe3x3() {
         pickaxe3x3 = !pickaxe3x3;
         save();
+    }
+
+    public static boolean freezeInFreecam() {
+        return freezeInFreecam;
+    }
+
+    public static void toggleFreezeInFreecam() {
+        freezeInFreecam = !freezeInFreecam;
+        save();
+    }
+
+    /** Read by MinecraftMixin: blocks the player's own attack/use/pick clicks. */
+    public static boolean blockClicks() {
+        return freezeInFreecam && Freecam.isOn();
     }
 
     public static boolean isMoving() {
@@ -86,6 +106,7 @@ public final class AutoMine {
         forward = false;
         jump = false;
         strafe = 0;
+        if (swapCooldown > 0) swapCooldown--;
         if (!on) return;
         LocalPlayer player = mc.player;
         ClientLevel level = mc.level;
@@ -93,7 +114,7 @@ public final class AutoMine {
             stop(mc, null);
             return;
         }
-        if (mc.gui.screen() != null) return;
+        // Keeps going with chat, inventory or the pause menu open (tabbing out opens the pause menu).
 
         player.setYRot(direction.toYRot());
         // In 3x3 mode the view stays level: that already points at the head-height block it mines.
@@ -190,9 +211,9 @@ public final class AutoMine {
     }
 
     private static void mine(Minecraft mc, LocalPlayer player, ClientLevel level, BlockPos target, Direction towards) {
-        selectBestTool(player.getInventory(), level.getBlockState(target));
+        selectBestTool(mc, player, level.getBlockState(target));
         mc.gameMode.continueDestroyBlock(target, towards.getOpposite());
-        player.swing(InteractionHand.MAIN_HAND);
+        if (!blockClicks()) player.swing(InteractionHand.MAIN_HAND);
     }
 
     /** Lane number of a block: how many blocks right of the original line it is (negative = left). */
@@ -241,17 +262,31 @@ public final class AutoMine {
         return fluid == Fluids.LAVA || fluid == Fluids.FLOWING_LAVA;
     }
 
-    private static void selectBestTool(Inventory inv, BlockState state) {
-        int best = inv.getSelectedSlot();
-        float bestSpeed = inv.getItem(best).getDestroySpeed(state);
-        for (int i = 0; i < Inventory.getSelectionSize(); i++) {
+    /**
+     * Holds the fastest tool for the block (a shovel for gravel, a pickaxe for stone). Hotbar tools are selected;
+     * a better one in the main inventory is swapped into the selected hotbar slot.
+     */
+    private static void selectBestTool(Minecraft mc, LocalPlayer player, BlockState state) {
+        Inventory inv = player.getInventory();
+        int selected = inv.getSelectedSlot();
+        int best = selected;
+        float bestSpeed = inv.getItem(selected).getDestroySpeed(state);
+        for (int i = 0; i < MAIN_INVENTORY_SIZE; i++) {
             float speed = inv.getItem(i).getDestroySpeed(state);
             if (speed > bestSpeed) {
                 best = i;
                 bestSpeed = speed;
             }
         }
-        inv.setSelectedSlot(best);
+        if (best < Inventory.getSelectionSize()) {
+            inv.setSelectedSlot(best);
+            return;
+        }
+        // Main inventory slots 9-35 have the same index in the inventory menu. Skipped while another container
+        // (chest, furnace, ...) is open, and briefly after a swap so the server can catch up.
+        if (player.containerMenu != player.inventoryMenu || swapCooldown > 0) return;
+        mc.gameMode.handleContainerInput(player.inventoryMenu.containerId, best, selected, ContainerInput.SWAP, player);
+        swapCooldown = 4;
     }
 
     private static Path file() {
@@ -265,6 +300,7 @@ public final class AutoMine {
         try (Reader r = Files.newBufferedReader(file)) {
             p.load(r);
             pickaxe3x3 = Boolean.parseBoolean(p.getProperty("pickaxe3x3", "false"));
+            freezeInFreecam = Boolean.parseBoolean(p.getProperty("freezeInFreecam", "false"));
         } catch (IOException e) {
             PandaBuilderClient.LOGGER.warn("Could not read Auto Mine settings", e);
         }
@@ -273,6 +309,7 @@ public final class AutoMine {
     private static void save() {
         Properties p = new Properties();
         p.setProperty("pickaxe3x3", Boolean.toString(pickaxe3x3));
+        p.setProperty("freezeInFreecam", Boolean.toString(freezeInFreecam));
         try (Writer w = Files.newBufferedWriter(file())) {
             p.store(w, Brand.NAME + " Auto Mine settings");
         } catch (IOException e) {

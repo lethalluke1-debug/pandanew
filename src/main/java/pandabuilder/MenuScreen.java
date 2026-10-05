@@ -126,8 +126,11 @@ public class MenuScreen extends Screen {
 
     private List<Section> sections() {
         if (Module.AUTO_MINE.equals(settingsPage)) {
-            return List.of(new Section("MODE", List.of(new Option("3x3 Pickaxe", 0, AutoMine::pickaxe3x3,
-                    AutoMine::togglePickaxe3x3)), "Mines at head height with a level view; steps up instead of digging the floor."));
+            return List.of(
+                    new Section("MODE", List.of(new Option("3x3 Pickaxe", 0, AutoMine::pickaxe3x3,
+                            AutoMine::togglePickaxe3x3)), "Mines at head height with a level view; steps up instead of digging the floor."),
+                    new Section("FREECAM", List.of(new Option("Freeze in Freecam", 0, AutoMine::freezeInFreecam,
+                            AutoMine::toggleFreezeInFreecam)), "No arm swing, and your clicks can't break blocks. Auto Mine keeps digging."));
         }
         String q = query.trim().toLowerCase(Locale.ROOT);
         if (!q.isEmpty()) {
