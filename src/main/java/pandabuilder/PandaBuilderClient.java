@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
@@ -37,6 +38,7 @@ public class PandaBuilderClient implements ClientModInitializer {
         freecamKey = register("key.pandabuilder.freecam", InputConstants.UNKNOWN.getValue());
 
         ClientTickEvents.END_CLIENT_TICK.register(PandaBuilderClient::tick);
+        HudElementRegistry.addFirst(Identifier.fromNamespaceAndPath("pandabuilder", "esp"), EspHud::extractRenderState);
     }
 
     private static KeyMapping register(String name, int key) {

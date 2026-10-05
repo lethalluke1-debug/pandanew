@@ -8,15 +8,24 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import pandabuilder.AutoMine;
 import pandabuilder.Freecam;
 
 @Mixin(KeyboardInput.class)
 public abstract class KeyboardInputMixin extends ClientInput {
-    // While Freecam is on the movement keys fly the camera, so the player itself gets no input.
+    private static final Input FORWARD = new Input(true, false, false, false, false, false, false);
+
     @Inject(method = "tick", at = @At("TAIL"))
-    private void pandabuilder$freezePlayer(CallbackInfo ci) {
-        if (!Freecam.isOn()) return;
-        keyPresses = Input.EMPTY;
-        moveVector = Vec2.ZERO;
+    private void pandabuilder$overrideMovement(CallbackInfo ci) {
+        // While Freecam is on the movement keys fly the camera, so the player itself gets no input...
+        if (Freecam.isOn()) {
+            keyPresses = Input.EMPTY;
+            moveVector = Vec2.ZERO;
+        }
+        // ...except Auto Mine walking forward, which keeps going in Freecam.
+        if (AutoMine.isWalking()) {
+            keyPresses = FORWARD;
+            moveVector = new Vec2(0.0f, 1.0f);
+        }
     }
 }

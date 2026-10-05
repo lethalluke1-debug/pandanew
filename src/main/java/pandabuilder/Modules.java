@@ -12,7 +12,7 @@ public final class Modules {
                     Module.Tab.PVP, AutoCrystal::isOn, AutoCrystal::toggle, PandaBuilderClient::autoCrystalKey),
             new Module("Auto XP", "Throws XP bottles from your hotbar every tick.", Module.Tab.PVP,
                     AutoXP::isOn, AutoXP::toggle, PandaBuilderClient::autoXpKey),
-            new Module("ESP", "Outlines other players through walls.", Module.Tab.CHEATING,
+            new Module("ESP", "Boxes, names, distance and health for other players, through walls.", Module.Tab.CHEATING,
                     Esp::isOn, Esp::toggle, PandaBuilderClient::espKey),
             new Module("Auto Mine", "Digs a straight 1x2 tunnel the way you're facing. Stops at lava, holes and bedrock.",
                     Module.Tab.CHEATING, AutoMine::isOn, AutoMine::toggle, PandaBuilderClient::autoMineKey),

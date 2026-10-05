@@ -17,11 +17,17 @@ import net.minecraft.world.phys.Vec3;
 public final class AutoMine {
     private static boolean on;
     private static Direction direction = Direction.NORTH;
+    private static boolean walking;
 
     private AutoMine() {}
 
     public static boolean isOn() {
         return on;
+    }
+
+    /** Read by KeyboardInputMixin, which walks the player forward. Not tied to the W key, so Freecam can use it. */
+    public static boolean isWalking() {
+        return on && walking;
     }
 
     public static void toggle() {
@@ -46,10 +52,8 @@ public final class AutoMine {
             stop(mc, null);
             return;
         }
-        if (mc.gui.screen() != null) {
-            mc.options.keyUp.setDown(false);
-            return;
-        }
+        walking = false;
+        if (mc.gui.screen() != null) return;
 
         player.setYRot(direction.toYRot());
 
@@ -71,7 +75,7 @@ public final class AutoMine {
 
         if (target == null) {
             player.setXRot(0);
-            mc.options.keyUp.setDown(true);
+            walking = true;
             return;
         }
 
@@ -80,7 +84,6 @@ public final class AutoMine {
             stop(mc, "unbreakable block");
             return;
         }
-        mc.options.keyUp.setDown(false);
         lookAt(player, target);
         selectBestTool(player.getInventory(), state);
         mc.gameMode.continueDestroyBlock(target, direction.getOpposite());
@@ -124,7 +127,7 @@ public final class AutoMine {
 
     private static void stop(Minecraft mc, String reason) {
         on = false;
-        mc.options.keyUp.setDown(false);
+        walking = false;
         if (mc.gameMode != null) mc.gameMode.stopDestroyBlock();
         AutoTotem.message(Component.literal(reason == null ? "Auto Mine: OFF" : "Auto Mine stopped: " + reason));
     }
