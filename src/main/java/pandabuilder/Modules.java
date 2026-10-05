@@ -13,10 +13,14 @@ public final class Modules {
             new Module("Auto XP", "Throws XP bottles from your hotbar every tick.", Module.Tab.PVP,
                     AutoXP::isOn, AutoXP::toggle, PandaBuilderClient::autoXpKey),
             new Module("Storage ESP", "Shows chests, shulkers, barrels and other base blocks through walls. "
-                    + "Click the gear to pick blocks and turn boxes, tracers and distance markers on or off.",
-                    Module.Tab.CHEATING, StorageEsp::isOn, StorageEsp::toggle, PandaBuilderClient::storageEspKey, true),
-            new Module("Auto Mine", "Digs a straight 1x2 tunnel the way you're facing. Stops at lava, holes and bedrock.",
-                    Module.Tab.CHEATING, AutoMine::isOn, AutoMine::toggle, PandaBuilderClient::autoMineKey),
+                    + "Click the gear to pick blocks, search for any block to add, and turn boxes, tracers and "
+                    + "distance markers on or off.",
+                    Module.Tab.CHEATING, StorageEsp::isOn, StorageEsp::toggle, PandaBuilderClient::storageEspKey,
+                    Module.STORAGE_ESP),
+            new Module("Auto Mine", "Digs a straight tunnel the way you're facing. Stops at lava, holes and bedrock. "
+                    + "Click the gear for 3x3 Pickaxe mode.",
+                    Module.Tab.CHEATING, AutoMine::isOn, AutoMine::toggle, PandaBuilderClient::autoMineKey,
+                    Module.AUTO_MINE),
             new Module("Freecam", "Fly the camera away from your body. WASD, Space and Shift move, Sprint is faster.",
                     Module.Tab.CHEATING, Freecam::isOn, Freecam::toggle, PandaBuilderClient::freecamKey));
 }

@@ -29,6 +29,7 @@ public class PandaBuilderClient implements ClientModInitializer {
     public void onInitializeClient() {
         Settings.load();
         StorageEsp.load();
+        AutoMine.load();
 
         openKey = register("key.pandabuilder.open", InputConstants.KEY_RSHIFT);
         autoTotemKey = register("key.pandabuilder.autototem", InputConstants.UNKNOWN.getValue());

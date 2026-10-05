@@ -7,6 +7,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -14,8 +16,12 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.world.level.block.entity.BarrelBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -30,6 +36,7 @@ import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.block.entity.TrappedChestBlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 
 /**
@@ -64,13 +71,18 @@ public final class StorageEsp {
         }
     }
 
-    public record Target(BlockPos pos, Type type) {}
+    public record Target(BlockPos pos, String label, int color) {}
+
+    /** Custom blocks are searched for in chunks closer than this, since every block has to be checked. */
+    private static final int CUSTOM_RADIUS = 8;
 
     private static boolean on;
     private static boolean boxes = true;
     private static boolean tracers = false;
     private static boolean markers = true;
     private static final Set<Type> enabled = EnumSet.allOf(Type.class);
+    /** Extra blocks the player added through the search, in the order added. */
+    private static final Set<Block> custom = new LinkedHashSet<>();
 
     private static int cooldown;
     private static List<Target> targets = List.of();
@@ -105,6 +117,26 @@ public final class StorageEsp {
     public static void toggleTracers() { tracers = !tracers; save(); }
     public static void toggleMarkers() { markers = !markers; save(); }
 
+    public static List<Block> customBlocks() {
+        return List.copyOf(custom);
+    }
+
+    public static boolean isCustom(Block block) {
+        return custom.contains(block);
+    }
+
+    public static void toggleCustom(Block block) {
+        if (!custom.remove(block)) custom.add(block);
+        cooldown = 0;
+        save();
+    }
+
+    /** Box colour for a custom block: its map colour, or white if it has none. */
+    public static int colorOf(Block block) {
+        int col = block.defaultMapColor().col;
+        return col == 0 ? 0xFFFFFFFF : 0xFF000000 | col;
+    }
+
     public static void toggleType(Type type) {
         if (!enabled.remove(type)) enabled.add(type);
         cooldown = 0;
@@ -126,8 +158,10 @@ public final class StorageEsp {
 
     private static List<Target> scan(Minecraft mc, ClientLevel level) {
         List<Target> found = new ArrayList<>();
+        Set<BlockPos> seen = new HashSet<>();
         ChunkPos center = mc.player.chunkPosition();
         int radius = mc.options.getEffectiveRenderDistance();
+        int customRadius = Math.min(radius, CUSTOM_RADIUS);
         for (int cx = center.x() - radius; cx <= center.x() + radius; cx++) {
             for (int cz = center.z() - radius; cz <= center.z() + radius; cz++) {
                 LevelChunk chunk = level.getChunkSource().getChunk(cx, cz, ChunkStatus.FULL, false);
@@ -135,13 +169,41 @@ public final class StorageEsp {
                 for (BlockEntity be : chunk.getBlockEntities().values()) {
                     Type type = classify(be);
                     if (type != null && enabled.contains(type) && !be.isRemoved()) {
-                        found.add(new Target(be.getBlockPos(), type));
+                        found.add(new Target(be.getBlockPos(), type.label, type.color));
+                        seen.add(be.getBlockPos());
                         if (found.size() >= MAX_TARGETS) return found;
+                    }
+                }
+                boolean near = Math.abs(cx - center.x()) <= customRadius && Math.abs(cz - center.z()) <= customRadius;
+                if (near && !custom.isEmpty() && scanCustom(level, chunk, found, seen)) return found;
+            }
+        }
+        return found;
+    }
+
+    /** Adds custom blocks in one chunk. Returns true once the target cap is reached. */
+    private static boolean scanCustom(ClientLevel level, LevelChunk chunk, List<Target> found, Set<BlockPos> seen) {
+        LevelChunkSection[] sections = chunk.getSections();
+        int baseX = chunk.getPos().getMinBlockX(), baseZ = chunk.getPos().getMinBlockZ();
+        for (int i = 0; i < sections.length; i++) {
+            LevelChunkSection section = sections[i];
+            // The palette check skips sections that can't contain any custom block without reading every block.
+            if (section.hasOnlyAir() || !section.getStates().maybeHas(st -> custom.contains(st.getBlock()))) continue;
+            int baseY = SectionPos.sectionToBlockCoord(level.getSectionYFromSectionIndex(i));
+            for (int y = 0; y < 16; y++) {
+                for (int z = 0; z < 16; z++) {
+                    for (int x = 0; x < 16; x++) {
+                        Block block = section.getBlockState(x, y, z).getBlock();
+                        if (!custom.contains(block)) continue;
+                        BlockPos pos = new BlockPos(baseX + x, baseY + y, baseZ + z);
+                        if (!seen.add(pos)) continue;
+                        found.add(new Target(pos, block.getName().getString(), colorOf(block)));
+                        if (found.size() >= MAX_TARGETS) return true;
                     }
                 }
             }
         }
-        return found;
+        return false;
     }
 
     /** Subclasses are checked before the classes they extend (trapped chest, dropper). */
@@ -184,6 +246,11 @@ public final class StorageEsp {
         for (Type t : Type.values()) {
             if (Boolean.parseBoolean(p.getProperty("block." + t.name().toLowerCase(), "true"))) enabled.add(t);
         }
+        custom.clear();
+        for (String id : p.getProperty("custom", "").split(",")) {
+            Identifier key = Identifier.tryParse(id.trim());
+            if (key != null && !id.isBlank()) BuiltInRegistries.BLOCK.getOptional(key).ifPresent(custom::add);
+        }
     }
 
     private static void save() {
@@ -192,6 +259,12 @@ public final class StorageEsp {
         p.setProperty("tracers", Boolean.toString(tracers));
         p.setProperty("markers", Boolean.toString(markers));
         for (Type t : Type.values()) p.setProperty("block." + t.name().toLowerCase(), Boolean.toString(enabled.contains(t)));
+        StringBuilder ids = new StringBuilder();
+        for (Block b : custom) {
+            if (!ids.isEmpty()) ids.append(',');
+            ids.append(BuiltInRegistries.BLOCK.getKey(b));
+        }
+        p.setProperty("custom", ids.toString());
         try (Writer w = Files.newBufferedWriter(file())) {
             p.store(w, Brand.NAME + " Storage ESP settings");
         } catch (IOException e) {

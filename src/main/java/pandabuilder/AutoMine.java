@@ -1,5 +1,12 @@
 package pandabuilder;
 
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Properties;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
@@ -18,6 +25,9 @@ public final class AutoMine {
     private static boolean on;
     private static Direction direction = Direction.NORTH;
     private static boolean walking;
+    private static boolean jumping;
+    /** For pickaxes that break 3x3: only the head-height block ahead is mined, the pickaxe clears the rest. */
+    private static boolean pickaxe3x3;
 
     private AutoMine() {}
 
@@ -25,9 +35,22 @@ public final class AutoMine {
         return on;
     }
 
+    public static boolean pickaxe3x3() {
+        return pickaxe3x3;
+    }
+
+    public static void togglePickaxe3x3() {
+        pickaxe3x3 = !pickaxe3x3;
+        save();
+    }
+
     /** Read by KeyboardInputMixin, which walks the player forward. Not tied to the W key, so Freecam can use it. */
     public static boolean isWalking() {
         return on && walking;
+    }
+
+    public static boolean isJumping() {
+        return on && walking && jumping;
     }
 
     public static void toggle() {
@@ -53,6 +76,7 @@ public final class AutoMine {
             return;
         }
         walking = false;
+        jumping = false;
         if (mc.gui.screen() != null) return;
 
         player.setYRot(direction.toYRot());
@@ -70,8 +94,20 @@ public final class AutoMine {
             return;
         }
 
-        BlockPos target = !level.getBlockState(head).isAir() ? head
-                : !level.getBlockState(feet).isAir() ? feet : null;
+        // Head height first. A 3x3 pickaxe centred there also clears the feet block and the row above.
+        boolean headSolid = !level.getBlockState(head).isAir();
+        boolean feetSolid = !level.getBlockState(feet).isAir();
+        BlockPos target = headSolid ? head : feetSolid ? feet : null;
+
+        // In 3x3 mode a lone block at feet height is stepped onto instead: mining it with a 3x3 pickaxe would dig
+        // out the floor ahead. Only when there's no headroom to step up is it mined.
+        if (pickaxe3x3 && !headSolid && feetSolid
+                && level.getBlockState(head.above()).isAir() && level.getBlockState(player.blockPosition().above(2)).isAir()) {
+            player.setXRot(0);
+            walking = true;
+            jumping = true;
+            return;
+        }
 
         if (target == null) {
             player.setXRot(0);
@@ -125,9 +161,36 @@ public final class AutoMine {
         inv.setSelectedSlot(best);
     }
 
+    private static Path file() {
+        return FabricLoader.getInstance().getConfigDir().resolve("pandabuilder-automine.properties");
+    }
+
+    public static void load() {
+        Path file = file();
+        if (!Files.exists(file)) return;
+        Properties p = new Properties();
+        try (Reader r = Files.newBufferedReader(file)) {
+            p.load(r);
+            pickaxe3x3 = Boolean.parseBoolean(p.getProperty("pickaxe3x3", "false"));
+        } catch (IOException e) {
+            PandaBuilderClient.LOGGER.warn("Could not read Auto Mine settings", e);
+        }
+    }
+
+    private static void save() {
+        Properties p = new Properties();
+        p.setProperty("pickaxe3x3", Boolean.toString(pickaxe3x3));
+        try (Writer w = Files.newBufferedWriter(file())) {
+            p.store(w, Brand.NAME + " Auto Mine settings");
+        } catch (IOException e) {
+            PandaBuilderClient.LOGGER.warn("Could not save Auto Mine settings", e);
+        }
+    }
+
     private static void stop(Minecraft mc, String reason) {
         on = false;
         walking = false;
+        jumping = false;
         if (mc.gameMode != null) mc.gameMode.stopDestroyBlock();
         AutoTotem.message(Component.literal(reason == null ? "Auto Mine: OFF" : "Auto Mine stopped: " + reason));
     }

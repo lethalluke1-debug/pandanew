@@ -36,7 +36,7 @@ public final class EspHud {
 
         int shown = 0;
         for (StorageEsp.Target t : StorageEsp.targets()) {
-            int color = t.type().color;
+            int color = t.color();
             Vec3 center = Vec3.atCenterOf(t.pos());
 
             if (StorageEsp.tracers() && projectPoint(center.subtract(cam), sw, sh)) {
@@ -52,7 +52,7 @@ public final class EspHud {
                 g.outline(RECT[0], RECT[1], RECT[2] - RECT[0], RECT[3] - RECT[1], color);
             }
             if (StorageEsp.markers()) {
-                String label = t.type().label + " " + Math.round(Math.sqrt(mc.player.distanceToSqr(center))) + "m";
+                String label = t.label() + " " + Math.round(Math.sqrt(mc.player.distanceToSqr(center))) + "m";
                 int lw = mc.font.width(label);
                 int lx = (RECT[0] + RECT[2]) / 2 - lw / 2, ly = RECT[1] - 11;
                 g.fill(lx - 2, ly - 1, lx + lw + 2, ly + 9, 0x99000000);

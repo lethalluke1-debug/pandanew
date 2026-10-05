@@ -14,6 +14,7 @@ import pandabuilder.Freecam;
 @Mixin(KeyboardInput.class)
 public abstract class KeyboardInputMixin extends ClientInput {
     private static final Input FORWARD = new Input(true, false, false, false, false, false, false);
+    private static final Input FORWARD_JUMP = new Input(true, false, false, false, true, false, false);
 
     @Inject(method = "tick", at = @At("TAIL"))
     private void pandabuilder$overrideMovement(CallbackInfo ci) {
@@ -24,7 +25,7 @@ public abstract class KeyboardInputMixin extends ClientInput {
         }
         // ...except Auto Mine walking forward, which keeps going in Freecam.
         if (AutoMine.isWalking()) {
-            keyPresses = FORWARD;
+            keyPresses = AutoMine.isJumping() ? FORWARD_JUMP : FORWARD;
             moveVector = new Vec2(0.0f, 1.0f);
         }
     }

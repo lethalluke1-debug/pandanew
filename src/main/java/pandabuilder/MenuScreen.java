@@ -3,6 +3,7 @@ package pandabuilder;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.BooleanSupplier;
@@ -15,7 +16,9 @@ import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.block.Block;
 
 /** Click GUI: sidebar with tabs on the left, header with search on top, two columns of module cards. */
 public class MenuScreen extends Screen {
@@ -44,12 +47,28 @@ public class MenuScreen extends Screen {
 
     private static Module.Tab selectedTab = Module.Tab.PVP;
     private static String query = "";
-    private static boolean storageSettings;
+    /** Settings page being shown (Module.STORAGE_ESP / Module.AUTO_MINE), or null for the module cards. */
+    private static String settingsPage;
+    private static int scroll;
 
     /** Module whose key is being rebound; the next key press is captured for it. */
     private Module binding;
 
-    private record Option(String label, int swatch, BooleanSupplier on, Runnable toggle) {}
+    /** A switch on a settings page. Removable ones show an x instead of a switch and are removed on click. */
+    private record Option(String label, int swatch, BooleanSupplier on, Runnable toggle, boolean removable) {
+        Option(String label, int swatch, BooleanSupplier on, Runnable toggle) {
+            this(label, swatch, on, toggle, false);
+        }
+    }
+
+    private record Section(String title, List<Option> options, String hint) {}
+
+    /** A positioned element of a settings page: an option, or (option == null) a line of text. */
+    private record Placed(int x, int y, Option option, String text, int color) {}
+
+    private int contentHeight;
+    private String cachedQuery;
+    private List<Block> cachedResults = List.of();
 
     private EditBox search;
     private int x0, y0, w, h;
@@ -73,7 +92,9 @@ public class MenuScreen extends Screen {
         search.setValue(query);
         search.setResponder(s -> {
             query = s;
-            if (!s.isBlank()) storageSettings = false;
+            scroll = 0;
+            // On the Storage ESP page the box searches blocks; anywhere else it searches modules.
+            if (!s.isBlank() && !Module.STORAGE_ESP.equals(settingsPage)) settingsPage = null;
         });
         addRenderableWidget(search);
     }
@@ -91,26 +112,94 @@ public class MenuScreen extends Screen {
     private int tabY(int i) { return y0 + 68 + i * (TAB_H + 4); }
     private int gearX(int i) { return cardX(i) + cardW() - 44; }
 
-    // Storage ESP settings page: a back button, then a "Display" row and a grid of block toggles, 3 per row.
+    // Settings pages: a header row (back, title, on/off), then scrollable sections of options, 3 per row.
     private static final int OPT_H = 18;
     private int optW() { return (mainW() - 2 * GAP) / 3; }
     private int optX(int i) { return mainX() + (i % 3) * (optW() + GAP); }
-    private int displayY(int i) { return cardsY() + 30 + (i / 3) * (OPT_H + 3); }
-    private int blockY(int i) { return cardsY() + 68 + (i / 3) * (OPT_H + 3); }
+    private int settingsTop() { return cardsY() + 22; }
+    private int settingsBottom() { return y0 + h - 8; }
 
-    private static List<Option> displayOptions() {
-        return List.of(
+    private Module settingsModule() {
+        for (Module m : Modules.ALL) if (settingsPage.equals(m.settings())) return m;
+        return null;
+    }
+
+    private List<Section> sections() {
+        if (Module.AUTO_MINE.equals(settingsPage)) {
+            return List.of(new Section("MODE", List.of(new Option("3x3 Pickaxe", 0, AutoMine::pickaxe3x3,
+                    AutoMine::togglePickaxe3x3)), "Mines at head height only; steps up instead of digging the floor."));
+        }
+        String q = query.trim().toLowerCase(Locale.ROOT);
+        if (!q.isEmpty()) {
+            List<Option> results = new ArrayList<>();
+            for (Block b : searchBlocks(q)) {
+                results.add(new Option(b.getName().getString(), StorageEsp.colorOf(b), () -> StorageEsp.isCustom(b),
+                        () -> StorageEsp.toggleCustom(b)));
+            }
+            return List.of(new Section("ADD BLOCKS \u2022 click to add or remove", results,
+                    results.isEmpty() ? "No blocks match \"" + query.trim() + "\"" : null));
+        }
+        List<Option> custom = new ArrayList<>();
+        for (Block b : StorageEsp.customBlocks()) {
+            custom.add(new Option(b.getName().getString(), StorageEsp.colorOf(b), () -> true,
+                    () -> StorageEsp.toggleCustom(b), true));
+        }
+        List<Option> display = List.of(
                 new Option("Boxes", 0, StorageEsp::boxes, StorageEsp::toggleBoxes),
                 new Option("Tracers", 0, StorageEsp::tracers, StorageEsp::toggleTracers),
                 new Option("Markers", 0, StorageEsp::markers, StorageEsp::toggleMarkers));
+        List<Option> types = new ArrayList<>();
+        for (StorageEsp.Type t : StorageEsp.Type.values()) {
+            types.add(new Option(t.label, t.color, () -> StorageEsp.isEnabled(t), () -> StorageEsp.toggleType(t)));
+        }
+        return List.of(
+                new Section("DISPLAY", display, null),
+                new Section("BLOCK TYPES", types, null),
+                new Section("CUSTOM BLOCKS", custom,
+                        custom.isEmpty() ? "Type a block name in the search box above to add it." : null));
     }
 
-    private static List<Option> blockOptions() {
-        List<Option> out = new ArrayList<>();
-        for (StorageEsp.Type t : StorageEsp.Type.values()) {
-            out.add(new Option(t.label, t.color, () -> StorageEsp.isEnabled(t), () -> StorageEsp.toggleType(t)));
+    /** Blocks whose name or id contains the query; names starting with it come first. */
+    private List<Block> searchBlocks(String q) {
+        if (q.equals(cachedQuery)) return cachedResults;
+        String id = q.replace(' ', '_');
+        cachedQuery = q;
+        cachedResults = BuiltInRegistries.BLOCK.stream()
+                .filter(b -> !b.defaultBlockState().isAir())
+                .filter(b -> b.getName().getString().toLowerCase(Locale.ROOT).contains(q)
+                        || BuiltInRegistries.BLOCK.getKey(b).getPath().contains(id))
+                .sorted(Comparator.comparing((Block b) -> !b.getName().getString().toLowerCase(Locale.ROOT).startsWith(q))
+                        .thenComparing(b -> b.getName().getString().length()))
+                .limit(60)
+                .toList();
+        return cachedResults;
+    }
+
+    /** Positions every section title, option and hint; also updates contentHeight for scrolling. */
+    private List<Placed> layout() {
+        List<Placed> out = new ArrayList<>();
+        int top = settingsTop();
+        int y = top + 2 - scroll;
+        for (Section sec : sections()) {
+            out.add(new Placed(mainX(), y, null, sec.title(), Brand.FAINT));
+            y += 11;
+            List<Option> opts = sec.options();
+            for (int i = 0; i < opts.size(); i++) {
+                out.add(new Placed(optX(i), y + (i / 3) * (OPT_H + 3), opts.get(i), null, 0));
+            }
+            y += ((opts.size() + 2) / 3) * (OPT_H + 3);
+            if (sec.hint() != null) {
+                out.add(new Placed(mainX(), y + 1, null, sec.hint(), Brand.MUTED));
+                y += 13;
+            }
+            y += 6;
         }
+        contentHeight = y + scroll - top;
         return out;
+    }
+
+    private int maxScroll() {
+        return Math.max(0, contentHeight - (settingsBottom() - settingsTop()));
     }
 
     private String keyLabel(Module m) {
@@ -141,11 +230,13 @@ public class MenuScreen extends Screen {
 
         drawSidebar(g, mouseX, mouseY);
         drawHeader(g);
-        if (storageSettings && query.isBlank()) {
-            drawStorageSettings(g, mouseX, mouseY);
+        if (settingsPage != null) {
+            drawSettings(g, mouseX, mouseY);
         } else {
             drawCards(g, mouseX, mouseY);
         }
+        search.setHint(Component.literal(Module.STORAGE_ESP.equals(settingsPage) ? "Search blocks..." : "Search modules...")
+                .withColor(Brand.FAINT));
 
         super.extractRenderState(g, mouseX, mouseY, partialTick);
     }
@@ -280,28 +371,46 @@ public class MenuScreen extends Screen {
         }
     }
 
-    private void drawStorageSettings(GuiGraphicsExtractor g, int mouseX, int mouseY) {
+    private void drawSettings(GuiGraphicsExtractor g, int mouseX, int mouseY) {
+        Module module = settingsModule();
         int bx = mainX(), by = cardsY();
         boolean backHover = inside(mouseX, mouseY, bx, by, 44, 16);
         roundRect(g, bx, by, 44, 16, 4, backHover ? Brand.CARD_HOVER : Brand.CARD);
         g.text(font, "\u2190 Back", bx + 6, by + 4, backHover ? Brand.TEXT : Brand.MUTED, false);
-        g.text(font, Component.literal("Storage ESP").withStyle(ChatFormatting.BOLD), bx + 52, by + 4, Brand.TEXT, false);
-        drawSwitch(g, mainX() + mainW() - 24, by + 3, StorageEsp.isOn());
+        g.text(font, Component.literal(module.name()).withStyle(ChatFormatting.BOLD), bx + 52, by + 4, Brand.TEXT, false);
+        drawSwitch(g, mainX() + mainW() - 24, by + 3, module.isOn());
 
-        g.text(font, "DISPLAY", bx, by + 20, Brand.FAINT, false);
-        List<Option> display = displayOptions();
-        for (int i = 0; i < display.size(); i++) drawOption(g, display.get(i), optX(i), displayY(i), mouseX, mouseY);
+        List<Placed> placed = layout();
+        scroll = Math.clamp(scroll, 0, maxScroll());
+        int top = settingsTop(), bottom = settingsBottom();
+        boolean mouseIn = inside(mouseX, mouseY, mainX(), top, mainW(), bottom - top);
+        g.enableScissor(mainX() - 2, top, mainX() + mainW() + 2, bottom);
+        for (Placed p : placed) {
+            if (p.y() + OPT_H < top || p.y() > bottom) continue;
+            if (p.option() == null) {
+                g.text(font, p.text(), p.x(), p.y(), p.color(), false);
+            } else {
+                drawOption(g, p.option(), p.x(), p.y(), mouseIn ? mouseX : -1, mouseIn ? mouseY : -1);
+            }
+        }
+        g.disableScissor();
 
-        g.text(font, "BLOCKS", bx, by + 58, Brand.FAINT, false);
-        List<Option> blocks = blockOptions();
-        for (int i = 0; i < blocks.size(); i++) drawOption(g, blocks.get(i), optX(i), blockY(i), mouseX, mouseY);
+        // Scrollbar when the page is taller than the area.
+        int max = maxScroll();
+        if (max > 0) {
+            int trackH = bottom - top;
+            int thumbH = Math.max(12, trackH * trackH / contentHeight);
+            int thumbY = top + (trackH - thumbH) * scroll / max;
+            g.fill(mainX() + mainW() + 3, top, mainX() + mainW() + 5, bottom, Brand.TRACK_OFF);
+            g.fill(mainX() + mainW() + 3, thumbY, mainX() + mainW() + 5, thumbY + thumbH, Brand.ACCENT);
+        }
     }
 
     private void drawOption(GuiGraphicsExtractor g, Option o, int x, int y, int mouseX, int mouseY) {
         int ow = optW();
         boolean on = o.on().getAsBoolean();
         boolean hover = inside(mouseX, mouseY, x, y, ow, OPT_H);
-        if (on) {
+        if (on && !o.removable()) {
             roundRect(g, x - 1, y - 1, ow + 2, OPT_H + 2, 5, Brand.ACCENT);
             roundRect(g, x, y, ow, OPT_H, 4, Brand.CARD_ON);
         } else {
@@ -312,8 +421,25 @@ public class MenuScreen extends Screen {
             roundRect(g, tx, y + 6, 6, 6, 2, o.swatch());
             tx += 10;
         }
-        g.text(font, o.label(), tx, y + 5, on ? Brand.TEXT : Brand.MUTED, false);
-        drawSwitch(g, x + ow - 24, y + 4, on);
+        int right = o.removable() ? x + ow - 14 : x + ow - 28;
+        g.text(font, ellipsize(o.label(), right - tx), tx, y + 5, on ? Brand.TEXT : Brand.MUTED, false);
+        if (o.removable()) {
+            g.text(font, "\u00D7", x + ow - 11, y + 5, hover ? Brand.ACCENT : Brand.MUTED, false);
+            if (hover) g.setTooltipForNextFrame(font, Component.literal("Remove " + o.label()), mouseX, mouseY);
+        } else {
+            drawSwitch(g, x + ow - 24, y + 4, on);
+            if (hover && font.width(o.label()) > right - tx) {
+                g.setTooltipForNextFrame(font, Component.literal(o.label()), mouseX, mouseY);
+            }
+        }
+    }
+
+    private String ellipsize(String text, int maxWidth) {
+        if (font.width(text) <= maxWidth) return text;
+        String dots = "...";
+        int end = text.length();
+        while (end > 0 && font.width(text.substring(0, end) + dots) > maxWidth) end--;
+        return text.substring(0, end) + dots;
     }
 
     private void drawSwitch(GuiGraphicsExtractor g, int x, int y, boolean on) {
@@ -351,20 +477,22 @@ public class MenuScreen extends Screen {
         for (int i = 0; i < tabs.length; i++) {
             if (inside(mx, my, x0 + 10, tabY(i), SIDEBAR_W - 14, TAB_H)) {
                 selectedTab = tabs[i];
-                storageSettings = false;
+                settingsPage = null;
                 search.setValue("");
                 return true;
             }
         }
 
-        if (storageSettings && query.isBlank()) return clickStorageSettings(mx, my);
+        if (settingsPage != null) return clickSettings(mx, my);
 
         List<Module> modules = visibleModules();
         for (int i = 0; i < modules.size(); i++) {
             Module m = modules.get(i);
             int y = cardY(i);
             if (m.hasSettings() && inside(mx, my, gearX(i), y + 9, 12, 14)) {
-                storageSettings = true;
+                search.setValue("");
+                settingsPage = m.settings();
+                scroll = 0;
                 return true;
             }
             if (inside(mx, my, chipX(i), y + 18, chipW(m), 11)) {
@@ -380,30 +508,33 @@ public class MenuScreen extends Screen {
         return false;
     }
 
-    private boolean clickStorageSettings(double mx, double my) {
+    private boolean clickSettings(double mx, double my) {
         if (inside(mx, my, mainX(), cardsY(), 44, 16)) {
-            storageSettings = false;
+            settingsPage = null;
+            search.setValue("");
             return true;
         }
         if (inside(mx, my, mainX() + mainW() - 24, cardsY() + 3, 20, 10)) {
-            StorageEsp.toggle();
+            settingsModule().toggle().run();
             return true;
         }
-        List<Option> display = displayOptions();
-        for (int i = 0; i < display.size(); i++) {
-            if (inside(mx, my, optX(i), displayY(i), optW(), OPT_H)) {
-                display.get(i).toggle().run();
-                return true;
-            }
-        }
-        List<Option> blocks = blockOptions();
-        for (int i = 0; i < blocks.size(); i++) {
-            if (inside(mx, my, optX(i), blockY(i), optW(), OPT_H)) {
-                blocks.get(i).toggle().run();
+        if (!inside(mx, my, mainX(), settingsTop(), mainW(), settingsBottom() - settingsTop())) return false;
+        for (Placed p : layout()) {
+            if (p.option() != null && inside(mx, my, p.x(), p.y(), optW(), OPT_H)) {
+                p.option().toggle().run();
                 return true;
             }
         }
         return false;
+    }
+
+    @Override
+    public boolean mouseScrolled(double mx, double my, double scrollX, double scrollY) {
+        if (settingsPage != null) {
+            scroll = Math.clamp(scroll - Math.round(scrollY * 14), 0, maxScroll());
+            return true;
+        }
+        return super.mouseScrolled(mx, my, scrollX, scrollY);
     }
 
     @Override
