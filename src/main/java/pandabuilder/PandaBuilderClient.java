@@ -22,6 +22,7 @@ public class PandaBuilderClient implements ClientModInitializer {
     private static KeyMapping autoXpKey;
     private static KeyMapping autoCrystalKey;
     private static KeyMapping espKey;
+    private static KeyMapping storageEspKey;
     private static KeyMapping autoMineKey;
     private static KeyMapping freecamKey;
 
@@ -34,6 +35,7 @@ public class PandaBuilderClient implements ClientModInitializer {
         autoXpKey = register("key.pandabuilder.autoxp", InputConstants.UNKNOWN.getValue());
         autoCrystalKey = register("key.pandabuilder.autocrystal", InputConstants.UNKNOWN.getValue());
         espKey = register("key.pandabuilder.esp", InputConstants.UNKNOWN.getValue());
+        storageEspKey = register("key.pandabuilder.storageesp", InputConstants.UNKNOWN.getValue());
         autoMineKey = register("key.pandabuilder.automine", InputConstants.UNKNOWN.getValue());
         freecamKey = register("key.pandabuilder.freecam", InputConstants.UNKNOWN.getValue());
 
@@ -49,6 +51,7 @@ public class PandaBuilderClient implements ClientModInitializer {
     public static KeyMapping autoXpKey() { return autoXpKey; }
     public static KeyMapping autoCrystalKey() { return autoCrystalKey; }
     public static KeyMapping espKey() { return espKey; }
+    public static KeyMapping storageEspKey() { return storageEspKey; }
     public static KeyMapping autoMineKey() { return autoMineKey; }
     public static KeyMapping freecamKey() { return freecamKey; }
 
@@ -58,12 +61,14 @@ public class PandaBuilderClient implements ClientModInitializer {
         if (autoXpKey.consumeClick()) AutoXP.toggle();
         if (autoCrystalKey.consumeClick()) AutoCrystal.toggle();
         if (espKey.consumeClick()) Esp.toggle();
+        if (storageEspKey.consumeClick()) StorageEsp.toggle();
         if (autoMineKey.consumeClick()) AutoMine.toggle();
         if (freecamKey.consumeClick()) Freecam.toggle();
 
         AutoTotem.tick(mc);
         AutoXP.tick(mc);
         AutoCrystal.tick(mc);
+        StorageEsp.tick(mc);
         AutoMine.tick(mc);
         Freecam.tick(mc);
     }

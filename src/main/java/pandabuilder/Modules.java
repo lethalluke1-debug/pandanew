@@ -14,6 +14,10 @@ public final class Modules {
                     AutoXP::isOn, AutoXP::toggle, PandaBuilderClient::autoXpKey),
             new Module("ESP", "Boxes, names, distance and health for players (red), hostile mobs (orange) and animals (green), through walls.", Module.Tab.CHEATING,
                     Esp::isOn, Esp::toggle, PandaBuilderClient::espKey),
+            new Module("Storage ESP", "Boxes base blocks through walls: chests (gold), trapped chests (red), ender chests "
+                    + "(purple), shulkers (pink), barrels (brown), dispensers/droppers (grey), hoppers, furnaces, "
+                    + "brewing stands, crafters and spawners (cyan).", Module.Tab.CHEATING,
+                    StorageEsp::isOn, StorageEsp::toggle, PandaBuilderClient::storageEspKey),
             new Module("Auto Mine", "Digs a straight 1x2 tunnel the way you're facing. Stops at lava, holes and bedrock.",
                     Module.Tab.CHEATING, AutoMine::isOn, AutoMine::toggle, PandaBuilderClient::autoMineKey),
             new Module("Freecam", "Fly the camera away from your body. WASD, Space and Shift move, Sprint is faster.",
