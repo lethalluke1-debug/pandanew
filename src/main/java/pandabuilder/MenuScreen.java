@@ -129,8 +129,13 @@ public class MenuScreen extends Screen {
             return List.of(
                     new Section("MODE", List.of(
                             new Option("3x3 Pickaxe", 0, AutoMine::pickaxe3x3, AutoMine::togglePickaxe3x3),
-                            new Option("Fill Holes", 0, AutoMine::fillHoles, AutoMine::toggleFillHoles)),
-                            "Fill Holes bridges cave gaps with stone or dirt so the tunnel stays straight and level."),
+                            new Option("Fill Holes", 0, AutoMine::fillHoles, AutoMine::toggleFillHoles),
+                            new Option("Hug Cave Walls", 0, AutoMine::hugWalls, AutoMine::toggleHugWalls)),
+                            "Fill Holes bridges gaps. Hug Cave Walls tunnels along a cave's wall instead of across it."),
+                    new Section("LAVA", List.of(
+                            new Option("Go Over", 0, AutoMine::goOver, AutoMine::toggleGoOver),
+                            new Option("Go Under", 0, AutoMine::goUnder, AutoMine::toggleGoUnder)),
+                            "Lets it stair up or down past lava. It picks the shortest safe way: up, down, left or right."),
                     new Section("FREECAM", List.of(new Option("Freeze in Freecam", 0, AutoMine::freezeInFreecam,
                             AutoMine::toggleFreezeInFreecam)), "No arm swing, and your clicks can't break blocks. Auto Mine keeps digging."));
         }

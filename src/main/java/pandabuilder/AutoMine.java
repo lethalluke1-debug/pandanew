@@ -37,6 +37,10 @@ import net.minecraft.world.phys.Vec3;
 public final class AutoMine {
     /** How many lanes it may wander from the original line while going around something. */
     private static final int MAX_LANE = 3;
+    /** How many blocks above or below the starting height it may go to get over or under lava. */
+    private static final int MAX_LEVEL = 4;
+    /** How far ahead lava is looked for, so stairs up or down start while still on solid ground. */
+    private static final int LOOKAHEAD = 3;
     /** Hotbar plus main inventory. */
     private static final int MAIN_INVENTORY_SIZE = 36;
 
@@ -45,6 +49,12 @@ public final class AutoMine {
     /** Where it was turned on; lane 0 runs through here. Lanes count to the right of {@link #direction}. */
     private static BlockPos origin = BlockPos.ZERO;
     private static int targetLane;
+    /** Height relative to where it was turned on that it's heading for (stairs up/down to get past lava). */
+    private static int targetLevel;
+    private static boolean goOver = true;
+    private static boolean goUnder;
+    /** In a cave, move to a lane with solid rock ahead and tunnel along the cave wall. */
+    private static boolean hugWalls = true;
     /** For pickaxes that break 3x3: only the head-height block ahead is mined, the pickaxe clears the rest. */
     private static boolean pickaxe3x3;
     /** While Freecam is on: no arm swing, and mouse clicks can't break or place blocks. */
@@ -80,6 +90,33 @@ public final class AutoMine {
 
     public static void togglePickaxe3x3() {
         pickaxe3x3 = !pickaxe3x3;
+        save();
+    }
+
+    public static boolean goOver() {
+        return goOver;
+    }
+
+    public static void toggleGoOver() {
+        goOver = !goOver;
+        save();
+    }
+
+    public static boolean hugWalls() {
+        return hugWalls;
+    }
+
+    public static void toggleHugWalls() {
+        hugWalls = !hugWalls;
+        save();
+    }
+
+    public static boolean goUnder() {
+        return goUnder;
+    }
+
+    public static void toggleGoUnder() {
+        goUnder = !goUnder;
         save();
     }
 
@@ -129,6 +166,7 @@ public final class AutoMine {
         direction = mc.player.getDirection();
         origin = mc.player.blockPosition();
         targetLane = 0;
+        targetLevel = 0;
         mc.player.setYRot(direction.toYRot());
         mc.player.setXRot(0);
         AutoTotem.message(Component.literal("Auto Mine: ON (heading " + direction.getName() + ")"));
@@ -163,7 +201,12 @@ public final class AutoMine {
         Direction right = direction.getClockWise();
         BlockPos pos = player.blockPosition();
         int lane = laneOf(pos, right);
+        int height = pos.getY() - origin.getY();
 
+        if (height != targetLevel) {
+            changeLevel(mc, player, level, pos, right, height);
+            return;
+        }
         if (lane != targetLane) {
             sidestep(mc, player, level, pos, right, lane);
             return;
@@ -178,38 +221,171 @@ public final class AutoMine {
         if (centering) strafe = (float) -Math.copySign(Math.clamp(Math.abs(off) * 2.5, 0.2, 1.0), off);
         lateralOff = off;
 
-        // Off the original line: step back towards it once both the lane beside and the block past it are safe.
-        if (lane != 0) {
-            Direction back = lane > 0 ? right.getOpposite() : right;
-            BlockPos side = pos.relative(back);
-            if (safe(level, player, side) && safe(level, player, side.relative(direction))) {
-                targetLane = lane + (lane > 0 ? -1 : 1);
-                return;
-            }
+        // Back towards the original line and height when the tunnel there is clear (and, hugging walls, not
+        // open cave).
+        if (lane != 0 && pathClear(level, player, pos, right, lane, lane - Integer.signum(lane), height)
+                && !(hugWalls && open(level, columnAt(pos, right, -Integer.signum(lane), height, 1)))) {
+            targetLane = lane - Integer.signum(lane);
+            return;
+        }
+        if (height != 0 && pathClear(level, player, pos, right, lane, lane, height - Integer.signum(height))
+                && !(hugWalls && open(level, columnAt(pos, right, 0, height - Integer.signum(height), 1)))) {
+            targetLevel = height - Integer.signum(height);
+            return;
         }
 
         BlockPos feet = pos.relative(direction);
-        if (!safe(level, player, feet)) {
-            goAround(mc, level, player, pos, right, lane, hazard(level, player, feet));
-            return;
+        String reason = hazard(level, player, feet);
+        boolean lavaSoon = lavaAhead(level, pos);
+        boolean cave = hugWalls && reason == null && open(level, feet);
+        if (reason != null || lavaSoon || cave) {
+            String why = reason != null ? reason : lavaSoon ? "lava" : "cave";
+            if (plan(level, player, pos, right, lane, height, why, cave)) return;
+            if (reason != null) {
+                stop(mc, reason + " ahead and no safe way past");
+                return;
+            }
+            // Lava further ahead or open cave, but nothing better yet: keep going and check again next block.
         }
         digForward(mc, player, level, feet);
     }
 
-    /** Picks a free lane to the side; the side nearer the original line first. */
-    private static void goAround(Minecraft mc, ClientLevel level, LocalPlayer player, BlockPos pos, Direction right, int lane,
-                                 String reason) {
-        int[] order = lane > 0 ? new int[] {-1, 1} : new int[] {1, -1};
-        for (int d : order) {
-            int next = lane + d;
-            if (Math.abs(next) > MAX_LANE) continue;
-            if (safe(level, player, pos.relative(d > 0 ? right : right.getOpposite()))) {
-                targetLane = next;
-                AutoTotem.message(Component.literal("Auto Mine: " + reason + " ahead, going around"));
-                return;
+    /**
+     * Picks the cheapest way past what's ahead: 1-3 lanes left or right, or (if allowed) up or down, or both. An
+     * option counts only if the next few blocks of tunnel there are safe; sidesteps cost less than stairs, and
+     * ties go to whatever stays closer to the original line and height. For a cave (hugging walls) the option
+     * must also have solid rock ahead, so the tunnel runs along the cave wall instead of across the open space.
+     */
+    private static boolean plan(ClientLevel level, LocalPlayer player, BlockPos pos, Direction right, int lane,
+                                int height, String why, boolean cave) {
+        int bestLane = 0, bestHeight = 0;
+        double bestCost = Double.MAX_VALUE;
+        int minH = goUnder ? -MAX_LEVEL : height, maxH = goOver ? MAX_LEVEL : height;
+        // Only lava is a reason to change height; holes are filled and caves are dealt with sideways.
+        if (!why.equals("lava")) minH = maxH = height;
+        for (int l = -MAX_LANE; l <= MAX_LANE; l++) {
+            for (int h = Math.min(minH, height); h <= Math.max(maxH, height); h++) {
+                if (l == lane && h == height) continue;
+                if (!pathClear(level, player, pos, right, lane, l, h)) continue;
+                if (cave && !blocks(level, columnAt(pos, right, l - lane, h, 1))) continue;
+                double cost = Math.abs(l - lane) + Math.abs(h - height) * 1.5 + (Math.abs(l) + Math.abs(h)) * 0.01;
+                if (cost < bestCost) {
+                    bestCost = cost;
+                    bestLane = l;
+                    bestHeight = h;
+                }
             }
         }
-        stop(mc, reason + " ahead and no safe way around");
+        if (bestCost == Double.MAX_VALUE) return false;
+        targetLane = bestLane;
+        targetLevel = bestHeight;
+        String move = cave ? "moving to the cave wall"
+                : bestHeight > height ? "going over it" : bestHeight < height ? "going under it" : "going around it";
+        AutoTotem.message(Component.literal("Auto Mine: " + (cave ? "cave" : why) + " ahead, " + move));
+        return true;
+    }
+
+    /**
+     * Whether the tunnel can move from {@code fromLane} to {@code toLane} at {@code height}: the blocks beside the
+     * player on the way are safe, and so are the next few blocks of tunnel there.
+     */
+    private static boolean pathClear(ClientLevel level, LocalPlayer player, BlockPos pos, Direction right, int fromLane,
+                                     int toLane, int height) {
+        int dl = toLane - fromLane;
+        for (int i = 1; i <= Math.abs(dl); i++) {
+            if (!safe(level, player, pos.relative(right, Integer.signum(dl) * i))) return false;
+        }
+        for (int d = 1; d <= LOOKAHEAD; d++) {
+            if (!safe(level, player, columnAt(pos, right, dl, height, d))) return false;
+        }
+        return true;
+    }
+
+    /** Feet position {@code d} blocks ahead, {@code dl} lanes to the right, at {@code height} from the start. */
+    private static BlockPos columnAt(BlockPos pos, Direction right, int dl, int height, int d) {
+        BlockPos c = pos.relative(direction, d).relative(right, dl);
+        return new BlockPos(c.getX(), origin.getY() + height, c.getZ());
+    }
+
+    /** Already-open space (both feet and head clear): the tunnel has run into a cave. */
+    private static boolean open(ClientLevel level, BlockPos feet) {
+        return !blocks(level, feet) && !blocks(level, feet.above());
+    }
+
+    private static boolean lavaAhead(ClientLevel level, BlockPos pos) {
+        for (int d = 1; d <= LOOKAHEAD; d++) {
+            if (touchesLava(level, pos.relative(direction, d))) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Stairs one block up or down towards {@link #targetLevel}. Blocks are mined top first and aimed at, so a
+     * 3x3 drill breaks in the right plane; floor it takes is filled back in.
+     */
+    private static void changeLevel(Minecraft mc, LocalPlayer player, ClientLevel level, BlockPos pos, Direction right,
+                                    int height) {
+        // Centre in the block first so the player fits the 1-wide step.
+        double off = (player.getX() - (pos.getX() + 0.5)) * right.getStepX()
+                + (player.getZ() - (pos.getZ() + 0.5)) * right.getStepZ();
+        if (Math.abs(off) > 0.15) {
+            strafe = (float) -Math.copySign(Math.clamp(Math.abs(off) * 2.5, 0.2, 1.0), off);
+            return;
+        }
+        BlockPos ahead = pos.relative(direction);
+        if (targetLevel > height) {
+            BlockPos newFeet = ahead.above();
+            if (!safe(level, player, newFeet) || touchesLava(level, pos.above(2))) {
+                targetLevel = height; // can't step up here; plan again
+                return;
+            }
+            // Room to jump (above the head), then the new head and feet ahead.
+            if (mineFirst(mc, player, level, Direction.UP, pos.above(2))) return;
+            if (mineFirst(mc, player, level, direction, newFeet.above(), newFeet)) return;
+            if (noFloor(level, ahead)) {
+                if (noFloor(level, ahead.below())) {
+                    targetLevel = height;
+                    return;
+                }
+                fill(mc, player, level, ahead, ahead.below(), Direction.UP);
+                return;
+            }
+            forward = 1.0f;
+            jump = true;
+        } else {
+            BlockPos newFeet = ahead.below();
+            if (!safe(level, player, newFeet)) {
+                targetLevel = height;
+                return;
+            }
+            // With a 3x3 drill, aiming at the middle block clears the whole step at once without digging the floor.
+            boolean mined = pickaxe3x3
+                    ? mineFirst(mc, player, level, direction, ahead, ahead.above(), newFeet)
+                    : mineFirst(mc, player, level, direction, ahead.above(), ahead, newFeet);
+            if (mined) return;
+            BlockPos floor = newFeet.below();
+            if (noFloor(level, floor)) {
+                if (noFloor(level, floor.below())) {
+                    targetLevel = height;
+                    return;
+                }
+                fill(mc, player, level, floor, floor.below(), Direction.UP);
+                return;
+            }
+            forward = 1.0f;
+        }
+    }
+
+    /** Mines the first of {@code targets} that's in the way, aiming at it. Returns false if none are. */
+    private static boolean mineFirst(Minecraft mc, LocalPlayer player, ClientLevel level, Direction towards,
+                                     BlockPos... targets) {
+        for (BlockPos t : targets) {
+            if (!blocks(level, t)) continue;
+            wantPitch = pitchTo(player, faceCenter(t, towards.getOpposite()));
+            mine(mc, player, level, t, towards);
+            return true;
+        }
+        return false;
     }
 
     /** Clears the column beside the player and strafes into it. */
@@ -315,7 +491,7 @@ public final class AutoMine {
 
     private static String hazard(ClientLevel level, LocalPlayer player, BlockPos feet) {
         BlockPos head = feet.above();
-        if (nearLava(level, feet) || nearLava(level, head)) return "lava";
+        if (touchesLava(level, feet)) return "lava";
         if (unbreakable(level, feet) || unbreakable(level, head)) return "unbreakable block";
         BlockPos floor = feet.below();
         if (noFloor(level, floor)) {
@@ -390,6 +566,21 @@ public final class AutoMine {
         return (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
     }
 
+    /**
+     * Whether mining the tunnel at {@code feet} would open into lava. Normally that's the feet and head blocks; a
+     * 3x3 drill also breaks the blocks beside them and the row above, so all nine are checked.
+     */
+    private static boolean touchesLava(ClientLevel level, BlockPos feet) {
+        if (!pickaxe3x3) return nearLava(level, feet) || nearLava(level, feet.above());
+        Direction right = direction.getClockWise();
+        for (int dy = 0; dy <= 2; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                if (nearLava(level, feet.above(dy).relative(right, dx))) return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean nearLava(ClientLevel level, BlockPos pos) {
         if (isLava(level, pos)) return true;
         for (Direction d : Direction.values()) {
@@ -443,6 +634,9 @@ public final class AutoMine {
             pickaxe3x3 = Boolean.parseBoolean(p.getProperty("pickaxe3x3", "false"));
             freezeInFreecam = Boolean.parseBoolean(p.getProperty("freezeInFreecam", "false"));
             fillHoles = Boolean.parseBoolean(p.getProperty("fillHoles", "true"));
+            goOver = Boolean.parseBoolean(p.getProperty("goOver", "true"));
+            goUnder = Boolean.parseBoolean(p.getProperty("goUnder", "false"));
+            hugWalls = Boolean.parseBoolean(p.getProperty("hugWalls", "true"));
         } catch (IOException e) {
             PandaBuilderClient.LOGGER.warn("Could not read Auto Mine settings", e);
         }
@@ -453,6 +647,9 @@ public final class AutoMine {
         p.setProperty("pickaxe3x3", Boolean.toString(pickaxe3x3));
         p.setProperty("freezeInFreecam", Boolean.toString(freezeInFreecam));
         p.setProperty("fillHoles", Boolean.toString(fillHoles));
+        p.setProperty("goOver", Boolean.toString(goOver));
+        p.setProperty("goUnder", Boolean.toString(goUnder));
+        p.setProperty("hugWalls", Boolean.toString(hugWalls));
         try (Writer w = Files.newBufferedWriter(file())) {
             p.store(w, Brand.NAME + " Auto Mine settings");
         } catch (IOException e) {
