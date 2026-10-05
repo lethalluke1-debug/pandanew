@@ -21,7 +21,6 @@ public class PandaBuilderClient implements ClientModInitializer {
     private static KeyMapping autoTotemKey;
     private static KeyMapping autoXpKey;
     private static KeyMapping autoCrystalKey;
-    private static KeyMapping espKey;
     private static KeyMapping storageEspKey;
     private static KeyMapping autoMineKey;
     private static KeyMapping freecamKey;
@@ -29,18 +28,18 @@ public class PandaBuilderClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         Settings.load();
+        StorageEsp.load();
 
         openKey = register("key.pandabuilder.open", InputConstants.KEY_RSHIFT);
         autoTotemKey = register("key.pandabuilder.autototem", InputConstants.UNKNOWN.getValue());
         autoXpKey = register("key.pandabuilder.autoxp", InputConstants.UNKNOWN.getValue());
         autoCrystalKey = register("key.pandabuilder.autocrystal", InputConstants.UNKNOWN.getValue());
-        espKey = register("key.pandabuilder.esp", InputConstants.UNKNOWN.getValue());
         storageEspKey = register("key.pandabuilder.storageesp", InputConstants.UNKNOWN.getValue());
         autoMineKey = register("key.pandabuilder.automine", InputConstants.UNKNOWN.getValue());
         freecamKey = register("key.pandabuilder.freecam", InputConstants.UNKNOWN.getValue());
 
         ClientTickEvents.END_CLIENT_TICK.register(PandaBuilderClient::tick);
-        HudElementRegistry.addFirst(Identifier.fromNamespaceAndPath("pandabuilder", "esp"), EspHud::extractRenderState);
+        HudElementRegistry.addFirst(Identifier.fromNamespaceAndPath("pandabuilder", "storage_esp"), EspHud::extractRenderState);
     }
 
     private static KeyMapping register(String name, int key) {
@@ -50,7 +49,6 @@ public class PandaBuilderClient implements ClientModInitializer {
     public static KeyMapping autoTotemKey() { return autoTotemKey; }
     public static KeyMapping autoXpKey() { return autoXpKey; }
     public static KeyMapping autoCrystalKey() { return autoCrystalKey; }
-    public static KeyMapping espKey() { return espKey; }
     public static KeyMapping storageEspKey() { return storageEspKey; }
     public static KeyMapping autoMineKey() { return autoMineKey; }
     public static KeyMapping freecamKey() { return freecamKey; }
@@ -60,7 +58,6 @@ public class PandaBuilderClient implements ClientModInitializer {
         if (autoTotemKey.consumeClick()) AutoTotem.toggle();
         if (autoXpKey.consumeClick()) AutoXP.toggle();
         if (autoCrystalKey.consumeClick()) AutoCrystal.toggle();
-        if (espKey.consumeClick()) Esp.toggle();
         if (storageEspKey.consumeClick()) StorageEsp.toggle();
         if (autoMineKey.consumeClick()) AutoMine.toggle();
         if (freecamKey.consumeClick()) Freecam.toggle();

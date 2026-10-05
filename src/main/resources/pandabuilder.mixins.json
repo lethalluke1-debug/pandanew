@@ -6,7 +6,6 @@
     "CameraMixin",
     "EntityMixin",
     "KeyboardInputMixin",
-    "LevelExtractorMixin",
     "MinecraftMixin"
   ],
   "injectors": {
