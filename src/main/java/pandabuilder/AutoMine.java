@@ -13,6 +13,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ServerboundSwingPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ContainerInput;
@@ -46,7 +47,8 @@ public final class AutoMine {
     // Movement for KeyboardInputMixin, worked out every tick. Not tied to the WASD keys, so Freecam can run too.
     private static boolean forward;
     private static boolean jump;
-    private static int strafe; // +1 right, -1 left
+    private static float strafe; // > 0 right, < 0 left; size is how hard
+    private static boolean centering;
 
     private AutoMine() {}
 
@@ -85,6 +87,7 @@ public final class AutoMine {
     public static boolean jump() { return on && jump; }
     public static boolean left() { return on && strafe < 0; }
     public static boolean right() { return on && strafe > 0; }
+    public static float strafeAmount() { return on ? Math.abs(strafe) : 0.0f; }
 
     public static void toggle() {
         Minecraft mc = Minecraft.getInstance();
@@ -129,10 +132,13 @@ public final class AutoMine {
             return;
         }
 
-        // Stay centred in the lane so the player doesn't catch on the tunnel walls.
+        // Stay centred in the lane so the player doesn't catch on the tunnel walls. Starts past 0.3 blocks off,
+        // stops within 0.08, and eases off near the centre so it doesn't overshoot and wobble side to side.
         double off = (player.getX() - (pos.getX() + 0.5)) * right.getStepX()
                 + (player.getZ() - (pos.getZ() + 0.5)) * right.getStepZ();
-        if (Math.abs(off) > 0.25) strafe = off > 0 ? -1 : 1;
+        if (Math.abs(off) > 0.3) centering = true;
+        if (Math.abs(off) < 0.08) centering = false;
+        if (centering) strafe = (float) -Math.copySign(Math.clamp(Math.abs(off) * 2.5, 0.2, 1.0), off);
 
         // Off the original line: step back towards it once both the lane beside and the block past it are safe.
         if (lane != 0) {
@@ -181,7 +187,7 @@ public final class AutoMine {
         } else if (!level.getBlockState(feet).isAir()) {
             mine(mc, player, level, feet, side);
         } else {
-            strafe = side == right ? 1 : -1;
+            strafe = side == right ? 1.0f : -1.0f;
         }
     }
 
@@ -202,7 +208,7 @@ public final class AutoMine {
 
         BlockPos target = headSolid ? head : feetSolid ? feet : null;
         if (target == null) {
-            if (!pickaxe3x3) player.setXRot(0);
+            if (!pickaxe3x3) player.setXRot(player.getXRot() + Math.clamp(-player.getXRot(), -15.0f, 15.0f));
             forward = true;
             return;
         }
@@ -213,7 +219,13 @@ public final class AutoMine {
     private static void mine(Minecraft mc, LocalPlayer player, ClientLevel level, BlockPos target, Direction towards) {
         selectBestTool(mc, player, level.getBlockState(target));
         mc.gameMode.continueDestroyBlock(target, towards.getOpposite());
-        if (!blockClicks()) player.swing(InteractionHand.MAIN_HAND);
+        if (blockClicks()) {
+            // Frozen in Freecam: no swing animation, but the server still gets the swing. Anti-cheat plugins reject
+            // block breaks without one, which made the player rubber-band.
+            mc.getConnection().send(new ServerboundSwingPacket(InteractionHand.MAIN_HAND));
+        } else {
+            player.swing(InteractionHand.MAIN_HAND);
+        }
     }
 
     /** Lane number of a block: how many blocks right of the original line it is (negative = left). */
@@ -246,7 +258,9 @@ public final class AutoMine {
         double dx = target.getX() + 0.5 - direction.getStepX() * 0.5 - eye.x;
         double dy = target.getY() + 0.5 - eye.y;
         double dz = target.getZ() + 0.5 - direction.getStepZ() * 0.5 - eye.z;
-        player.setXRot((float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz))));
+        float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
+        // Turn at most 15 degrees a tick so the head moves smoothly instead of snapping.
+        player.setXRot(player.getXRot() + Math.clamp(pitch - player.getXRot(), -15.0f, 15.0f));
     }
 
     private static boolean nearLava(ClientLevel level, BlockPos pos) {
@@ -322,6 +336,7 @@ public final class AutoMine {
         forward = false;
         jump = false;
         strafe = 0;
+        centering = false;
         if (mc.gameMode != null) mc.gameMode.stopDestroyBlock();
         AutoTotem.message(Component.literal(reason == null ? "Auto Mine: OFF" : "Auto Mine stopped: " + reason));
     }

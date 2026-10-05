@@ -24,7 +24,9 @@ public abstract class KeyboardInputMixin extends ClientInput {
         if (AutoMine.isMoving() || AutoMine.jump()) {
             boolean left = AutoMine.left(), right = AutoMine.right();
             keyPresses = new Input(AutoMine.forward(), false, left, right, AutoMine.jump(), false, false);
-            moveVector = new Vec2(left ? 1.0f : right ? -1.0f : 0.0f, AutoMine.forward() ? 1.0f : 0.0f).normalized();
+            float side = left ? AutoMine.strafeAmount() : right ? -AutoMine.strafeAmount() : 0.0f;
+            moveVector = new Vec2(side, AutoMine.forward() ? 1.0f : 0.0f);
+            if (moveVector.length() > 1.0f) moveVector = moveVector.normalized();
         }
     }
 }
