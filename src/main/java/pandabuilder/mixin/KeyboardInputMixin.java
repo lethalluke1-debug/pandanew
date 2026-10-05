@@ -23,9 +23,9 @@ public abstract class KeyboardInputMixin extends ClientInput {
         // ...except Auto Mine's own movement (forward, sidesteps, step-ups), which keeps going in Freecam.
         if (AutoMine.isMoving() || AutoMine.jump()) {
             boolean left = AutoMine.left(), right = AutoMine.right();
-            keyPresses = new Input(AutoMine.forward(), false, left, right, AutoMine.jump(), false, false);
+            keyPresses = new Input(AutoMine.forward(), AutoMine.back(), left, right, AutoMine.jump(), false, false);
             float side = left ? AutoMine.strafeAmount() : right ? -AutoMine.strafeAmount() : 0.0f;
-            moveVector = new Vec2(side, AutoMine.forward() ? 1.0f : 0.0f);
+            moveVector = new Vec2(side, AutoMine.forwardAmount());
             if (moveVector.length() > 1.0f) moveVector = moveVector.normalized();
         }
     }

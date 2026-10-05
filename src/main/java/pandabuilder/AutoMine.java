@@ -62,10 +62,11 @@ public final class AutoMine {
             Blocks.TUFF, Blocks.BLACKSTONE, Blocks.END_STONE);
 
     // Movement for KeyboardInputMixin, worked out every tick. Not tied to the WASD keys, so Freecam can run too.
-    private static boolean forward;
+    private static float forward; // > 0 forward, < 0 back; size is how hard
     private static boolean jump;
     private static float strafe; // > 0 right, < 0 left; size is how hard
     private static boolean centering;
+    private static double lateralOff;
 
     private AutoMine() {}
 
@@ -106,10 +107,12 @@ public final class AutoMine {
     }
 
     public static boolean isMoving() {
-        return on && (forward || strafe != 0);
+        return on && (forward != 0 || strafe != 0);
     }
 
-    public static boolean forward() { return on && forward; }
+    public static boolean forward() { return on && forward > 0; }
+    public static boolean back() { return on && forward < 0; }
+    public static float forwardAmount() { return on ? forward : 0.0f; }
     public static boolean jump() { return on && jump; }
     public static boolean left() { return on && strafe < 0; }
     public static boolean right() { return on && strafe > 0; }
@@ -132,7 +135,7 @@ public final class AutoMine {
     }
 
     public static void tick(Minecraft mc) {
-        forward = false;
+        forward = 0;
         jump = false;
         strafe = 0;
         if (swapCooldown > 0) swapCooldown--;
@@ -173,6 +176,7 @@ public final class AutoMine {
         if (Math.abs(off) > 0.3) centering = true;
         if (Math.abs(off) < 0.08) centering = false;
         if (centering) strafe = (float) -Math.copySign(Math.clamp(Math.abs(off) * 2.5, 0.2, 1.0), off);
+        lateralOff = off;
 
         // Off the original line: step back towards it once both the lane beside and the block past it are safe.
         if (lane != 0) {
@@ -217,6 +221,9 @@ public final class AutoMine {
             return;
         }
         BlockPos head = feet.above();
+        // Line up with the hole first: the player is 0.6 wide and the hole 1 wide, so if momentum carried them
+        // towards the next block, strafing just pushes against the corner of the wall.
+        if (!alignAlong(player, pos, direction, 0.1)) return;
         if (blocks(level, head)) {
             mine(mc, player, level, head, side);
         } else if (blocks(level, feet)) {
@@ -240,7 +247,7 @@ public final class AutoMine {
         // so the tunnel keeps its height instead of climbing over every bump in a cave.
         if (pickaxe3x3 && !fillHoles && !headSolid && feetSolid
                 && !blocks(level, head.above()) && !blocks(level, player.blockPosition().above(2))) {
-            forward = true;
+            forward = 1.0f;
             jump = true;
             return;
         }
@@ -252,7 +259,8 @@ public final class AutoMine {
                 fill(mc, player, level, feet.below(), player.blockPosition().below(), direction);
                 return;
             }
-            forward = true;
+            // Just stepped into a new lane: centre in it before walking, or the hole edges catch the player.
+            forward = Math.abs(lateralOff) > 0.2 ? 0.0f : 1.0f;
             return;
         }
         // In 3x3 mode the view stays level: that already points at the head-height block it mines.
@@ -278,6 +286,18 @@ public final class AutoMine {
         } else {
             player.swing(InteractionHand.MAIN_HAND);
         }
+    }
+
+    /**
+     * Moves forward/back until the player's centre is within {@code tolerance} of the block centre along
+     * {@code axis}. Returns true once aligned.
+     */
+    private static boolean alignAlong(LocalPlayer player, BlockPos pos, Direction axis, double tolerance) {
+        double off = (player.getX() - (pos.getX() + 0.5)) * axis.getStepX()
+                + (player.getZ() - (pos.getZ() + 0.5)) * axis.getStepZ();
+        if (Math.abs(off) <= tolerance) return true;
+        forward = (float) -Math.copySign(Math.clamp(Math.abs(off) * 2.5, 0.2, 1.0), off);
+        return false;
     }
 
     /** Lane number of a block: how many blocks right of the original line it is (negative = left). */
@@ -442,7 +462,7 @@ public final class AutoMine {
 
     private static void stop(Minecraft mc, String reason) {
         on = false;
-        forward = false;
+        forward = 0;
         jump = false;
         strafe = 0;
         centering = false;
