@@ -47,6 +47,8 @@ public final class AutoMine {
      * zig-zag. Nothing this far ahead is ever dug by Auto Mine itself.
      */
     private static final int CAVE_DISTANCE = 2;
+    /** Open blocks (out of 60 in the box ahead) needed before it counts as a cave. */
+    private static final int CAVE_MIN_OPEN = 24;
     /** Hotbar plus main inventory. */
     private static final int MAIN_INVENTORY_SIZE = 36;
 
@@ -230,12 +232,12 @@ public final class AutoMine {
         // Back towards the original line and height when the tunnel there is clear (and, hugging walls, not
         // open cave).
         if (lane != 0 && pathClear(level, player, pos, right, lane, lane - Integer.signum(lane), height)
-                && !(hugWalls && open(level, columnAt(pos, right, -Integer.signum(lane), height, CAVE_DISTANCE)))) {
+                && !(hugWalls && caveAt(level, pos, right, -Integer.signum(lane), height))) {
             targetLane = lane - Integer.signum(lane);
             return;
         }
         if (height != 0 && pathClear(level, player, pos, right, lane, lane, height - Integer.signum(height))
-                && !(hugWalls && open(level, columnAt(pos, right, 0, height - Integer.signum(height), CAVE_DISTANCE)))) {
+                && !(hugWalls && caveAt(level, pos, right, 0, height - Integer.signum(height)))) {
             targetLevel = height - Integer.signum(height);
             return;
         }
@@ -243,7 +245,7 @@ public final class AutoMine {
         BlockPos feet = pos.relative(direction);
         String reason = hazard(level, player, feet);
         boolean lavaSoon = lavaAhead(level, pos);
-        boolean cave = hugWalls && reason == null && open(level, pos.relative(direction, CAVE_DISTANCE));
+        boolean cave = hugWalls && reason == null && caveAt(level, pos, right, 0, height);
         if (reason != null || lavaSoon || cave) {
             String why = reason != null ? reason : lavaSoon ? "lava" : "cave";
             if (plan(level, player, pos, right, lane, height, why, cave)) return;
@@ -313,7 +315,25 @@ public final class AutoMine {
         return new BlockPos(c.getX(), origin.getY() + height, c.getZ());
     }
 
-    /** Already-open space (both feet and head clear): the tunnel has run into a cave. */
+    /**
+     * Whether there's a real cave ahead of the tunnel at lane offset {@code dl} and {@code height}: at least
+     * {@link #CAVE_MIN_OPEN} open blocks in the box 2-4 blocks ahead, 2 lanes either side, from the feet up 4
+     * blocks. Air pockets, 1-wide gaps and the bit of tunnel just dug are well under that.
+     */
+    private static boolean caveAt(ClientLevel level, BlockPos pos, Direction right, int dl, int height) {
+        int open = 0;
+        for (int d = CAVE_DISTANCE; d <= CAVE_DISTANCE + 2; d++) {
+            for (int x = -2; x <= 2; x++) {
+                BlockPos col = columnAt(pos, right, dl + x, height, d);
+                for (int y = 0; y < 4; y++) {
+                    if (!blocks(level, col.above(y)) && ++open >= CAVE_MIN_OPEN) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** Already-open space (both feet and head clear). */
     private static boolean open(ClientLevel level, BlockPos feet) {
         return !blocks(level, feet) && !blocks(level, feet.above());
     }
