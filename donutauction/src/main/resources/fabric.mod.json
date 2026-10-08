@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "donutauction",
+  "version": "1.0.0",
+  "name": "Donut Auction",
+  "description": "Run auctions on DonutSMP: pick an item, set a minimum and timer, get its worth from the auction house, and take bids from /pay. Live HUD at the top of the screen. Press J.",
+  "authors": [
+    "Lethal"
+  ],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "donutauction.DonutAuctionClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.0",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
