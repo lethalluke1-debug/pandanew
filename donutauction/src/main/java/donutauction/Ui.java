@@ -112,19 +112,38 @@ public final class Ui {
    }
 
    public static int card() {
-      return glass(-15132122, 0.1F, 205);
+      return glass(0xFF121219, 0.03F, 238);
    }
 
    public static int cardHover() {
-      return glass(-14671569, 0.16F, 225);
+      return glass(0xFF1A1A24, 0.06F, 245);
    }
 
    public static int field() {
-      return glass(-15855849, 0.06F, 215);
+      return glass(0xFF0D0D12, 0.03F, 240);
    }
 
    public static int border() {
-      return glass(-14013637, 0.22F, 170);
+      return glass(0xFF272732, 0.08F, 220);
+   }
+
+   public static int trackOff() {
+      return 0xFF2C2C36;
+   }
+
+   public static int sidebarTop() {
+      return glass(0xFF15121B, 0.12F, 235);
+   }
+
+   public static int sidebarBottom() {
+      return glass(0xFF15121B, 0.34F, 235);
+   }
+
+   public static void roundGradient(GuiGraphicsExtractor var0, int var1, int var2, int var3, int var4, int var5, int var6, int var7) {
+      var5 = Math.min(var5, Math.min(var3, var4) / 2);
+      round(var0, var1, var2, var3, var5 * 2, var5, var6);
+      round(var0, var1, var2 + var4 - var5 * 2, var3, var5 * 2, var5, var7);
+      var0.fillGradient(var1, var2 + var5, var1 + var3, var2 + var4 - var5, var6, var7);
    }
 
    public static int accent() {
@@ -132,16 +151,16 @@ public final class Ui {
    }
 
    public static int windowBg() {
-      return glass(-233959657, 0.14F, 185);
+      return glass(0xFF0A0A0F, 0.05F, 228);
    }
 
    public static int panelBg() {
-      return glass(-15526882, 0.1F, 190);
+      return glass(0xFF111117, 0.03F, 240);
    }
 
    public static void bigToggle(GuiGraphicsExtractor var0, int var1, int var2, boolean var3) {
-      round(var0, var1, var2, 24, 12, 6, var3 ? accent() : border());
-      round(var0, var3 ? var1 + 14 : var1 + 2, var2 + 2, 8, 8, 4, var3 ? -1 : -9210484);
+      round(var0, var1, var2, 22, 11, 6, var3 ? accent() : trackOff());
+      round(var0, var3 ? var1 + 13 : var1 + 2, var2 + 2, 7, 7, 4, var3 ? -1 : 0xFF8A8A96);
    }
 
    public static int alpha(int var0, int var1) {
@@ -217,8 +236,8 @@ public final class Ui {
    }
 
    public static void toggle(GuiGraphicsExtractor var0, int var1, int var2, boolean var3) {
-      round(var0, var1, var2, 18, 9, 4, var3 ? accent() : border());
-      round(var0, var3 ? var1 + 10 : var1 + 1, var2 + 1, 7, 7, 4, var3 ? -1 : -9210484);
+      round(var0, var1, var2, 18, 9, 5, var3 ? accent() : trackOff());
+      round(var0, var3 ? var1 + 10 : var1 + 1, var2 + 1, 7, 7, 4, var3 ? -1 : 0xFF8A8A96);
    }
 
    public static void button(
