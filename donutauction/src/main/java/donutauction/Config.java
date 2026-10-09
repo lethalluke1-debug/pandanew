@@ -32,6 +32,9 @@ public final class Config {
    public boolean smallText = true;
    public boolean showHud = true;
    public boolean hudTop = true;
+   public boolean seeThroughGui = true;
+   public boolean frostedBlur = true;
+   public boolean ambientBackground = true;
    public List<donutauction.Preset> presets = new ArrayList<>();
    public List<donutauction.HistoryEntry> history = new ArrayList<>();
 

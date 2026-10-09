@@ -22,20 +22,6 @@ import net.minecraft.world.item.Items;
 
 public class AuctionScreen extends Screen {
    private static final DateTimeFormatter CLOCK = DateTimeFormatter.ofPattern("HH:mm");
-   private static final String[] DONUT = new String[]{
-      "....PPPP....",
-      "..PPsPPyPP..",
-      ".PPPPPPPbPP.",
-      ".PyPP..PPPp.",
-      "PPPP....PsPp",
-      "PbP......PPp",
-      "DPp......pPd",
-      "DDPP....PPdd",
-      ".DDpPbPPpdd.",
-      ".DDDDDDDDdd.",
-      "..DDDDDDdd..",
-      "....dddd...."
-   };
    private static final int SIDEBAR_W = 100;
    private static final int CELL = 18;
    private static final int RIGHT_W = 128;
@@ -173,9 +159,41 @@ public class AuctionScreen extends Screen {
       this.statusAt = System.currentTimeMillis();
    }
 
+   public void extractBackground(GuiGraphicsExtractor var1, int var2, int var3, float var4) {
+      donutauction.Config var5 = donutauction.Config.get();
+      if (this.minecraft.level == null) {
+         this.extractPanorama(var1, var4);
+      }
+
+      if (var5.frostedBlur) {
+         this.extractBlurredBackground(var1);
+      }
+
+      if (var5.seeThroughGui) {
+         var1.fill(0, 0, this.width, this.height, 0x40000000);
+      } else {
+         var1.fill(0, 0, this.width, this.height, -1072689136);
+      }
+
+      if (var5.ambientBackground) {
+         int var6 = donutauction.Ui.accent();
+         var1.fillGradient(0, 0, this.width, this.height / 2, donutauction.Ui.alpha(var6, 72), donutauction.Ui.alpha(var6, 0));
+         var1.fillGradient(0, this.height / 2, this.width, this.height, 0, donutauction.Ui.alpha(darker(var6), 96));
+      }
+
+      this.minecraft.gui.hud.extractDeferredSubtitles();
+   }
+
+   private static int darker(int var0) {
+      int var1 = (var0 >> 16 & 0xFF) / 2;
+      int var2 = (var0 >> 8 & 0xFF) / 2;
+      int var3 = (var0 & 0xFF) / 2;
+      return 0xFF000000 | var1 << 16 | var2 << 8 | var3;
+   }
+
    public void extractRenderState(GuiGraphicsExtractor var1, int var2, int var3, float var4) {
       donutauction.Ui.round(var1, this.x0 - 1, this.y0 - 1, this.w + 2, this.h + 2, 8, donutauction.Ui.alpha(donutauction.Ui.accent(), 85));
-      donutauction.Ui.round(var1, this.x0, this.y0, this.w, this.h, 7, -233959657);
+      donutauction.Ui.round(var1, this.x0, this.y0, this.w, this.h, 7, donutauction.Ui.windowBg());
       this.drawSidebar(var1, var2, var3);
       this.drawHeader(var1);
       switch (page) {
@@ -210,11 +228,10 @@ public class AuctionScreen extends Screen {
       int var5 = this.y0 + 5;
       byte var6 = 96;
       int var7 = this.h - 10;
-      donutauction.Ui.round(var1, var4, var5, var6, var7, 6, -15526882);
-      this.drawDonut(var1, var4 + 7, var5 + 7);
-      donutauction.Ui.text(var1, this.font, Component.literal("DONUT").withStyle(ChatFormatting.BOLD), var4 + 35, var5 + 8, -723720, 0.85F);
-      donutauction.Ui.text(var1, this.font, Component.literal("AUCTION").withStyle(ChatFormatting.BOLD), var4 + 35, var5 + 17, donutauction.Ui.accent(), 0.85F);
-      donutauction.Ui.text(var1, this.font, Component.literal("by Lethal"), var4 + 35, var5 + 26, -10526344, 0.6F);
+      donutauction.Ui.round(var1, var4, var5, var6, var7, 6, donutauction.Ui.panelBg());
+      donutauction.Ui.text(var1, this.font, Component.literal("DONUT").withStyle(ChatFormatting.BOLD), var4 + 9, var5 + 8, -723720, 0.85F);
+      donutauction.Ui.text(var1, this.font, Component.literal("AUCTION").withStyle(ChatFormatting.BOLD), var4 + 9, var5 + 17, donutauction.Ui.accent(), 0.85F);
+      donutauction.Ui.text(var1, this.font, Component.literal("by Lethal"), var4 + 9, var5 + 26, -10526344, 0.6F);
       var1.fill(var4 + 7, var5 + 38, var4 + var6 - 7, var5 + 39, -14013637);
       donutauction.Ui.text(var1, this.font, Component.literal("AUCTION"), var4 + 7, var5 + 44, -10526344, 0.6F);
       donutauction.Ui.text(var1, this.font, Component.literal("GENERAL"), var4 + 7, this.navY(3) - 10, -10526344, 0.6F);
@@ -254,38 +271,11 @@ public class AuctionScreen extends Screen {
       donutauction.Ui.round(var1, var4 + var6 - 13, var14 + 9, 5, 5, 2, donutauction.Auction.running() ? donutauction.Ui.accent() : -11870592);
    }
 
-   private void drawDonut(GuiGraphicsExtractor var1, int var2, int var3) {
-      for (int var4 = 0; var4 < DONUT.length; var4++) {
-         for (int var5 = 0; var5 < DONUT[var4].length(); var5++) {
-            int var6 = switch (DONUT[var4].charAt(var5)) {
-               case 'D' -> -2514842;
-               case 'P' -> donutauction.Ui.accent();
-               case 'b' -> -10443270;
-               case 'd' -> -5211579;
-               case 'p' -> donutauction.Ui.alpha(darker(donutauction.Ui.accent()), 255);
-               case 's' -> -1;
-               case 'y' -> -139193;
-               default -> 0;
-            };
-            if (var6 != 0) {
-               var1.fill(var2 + var5 * 2, var3 + var4 * 2, var2 + var5 * 2 + 2, var3 + var4 * 2 + 2, var6);
-            }
-         }
-      }
-   }
-
-   private static int darker(int var0) {
-      int var1 = (var0 >> 16 & 0xFF) * 3 / 4;
-      int var2 = (var0 >> 8 & 0xFF) * 3 / 4;
-      int var3 = (var0 & 0xFF) * 3 / 4;
-      return 0xFF000000 | var1 << 16 | var2 << 8 | var3;
-   }
-
    private void drawHeader(GuiGraphicsExtractor var1) {
       int var2 = this.mainX();
       int var3 = this.y0 + 6;
       int var4 = this.mainW();
-      donutauction.Ui.round(var1, var2, var3, var4, 20, 5, -15526882);
+      donutauction.Ui.round(var1, var2, var3, var4, 20, 5, donutauction.Ui.panelBg());
       String var5 = this.minecraft.getUser().getName();
       donutauction.Ui.text(var1, this.font, "Hello, ", var2 + 8, var3 + 7, -6513229);
       donutauction.Ui.bold(var1, this.font, var5, var2 + 8 + donutauction.Ui.width(this.font, "Hello, "), var3 + 7, -723720);
@@ -816,15 +806,23 @@ public class AuctionScreen extends Screen {
    }
 
    private int panelY() {
-      return this.cardY(4) + 40;
+      return this.cardY(4) + 36;
    }
 
    private int panelW() {
-      return (this.mainW() - 6) * 3 / 5;
+      return Math.min(this.mainW(), 300);
+   }
+
+   private int panelX() {
+      return this.mainX() + (this.mainW() - this.panelW()) / 2;
    }
 
    private int rowY(int var1) {
-      return this.panelY() + 18 + var1 * 24;
+      return this.panelY() + 19 + var1 * 26;
+   }
+
+   private int resetX() {
+      return this.panelX() + this.panelW() - 16;
    }
 
    private void drawTheme(GuiGraphicsExtractor var1, int var2, int var3) {
@@ -874,58 +872,38 @@ public class AuctionScreen extends Screen {
          var1.fill(var18 + var21 + var22, var19, var18 + var21 + var22 + 1, var19 + 8, donutauction.Ui.alpha(var12[3], 120));
       }
 
-      int var23 = this.panelY();
-      int var24 = this.panelW();
-      int var25 = Math.min(this.bottom() - var23, 100);
-      this.panel(var1, this.mainX(), var23, var24, var25, "INTERFACE");
-      String[][] var26 = new String[][]{
-         {"Compact Text", "Smaller fonts across the menu."},
-         {"Auction HUD", "Show the live overlay while bidding."},
-         {"Pin HUD to Top", "Turn off to dock it at the bottom."}
+      int var23 = this.panelX();
+      int var24 = this.panelY();
+      int var25 = this.panelW();
+      int var26 = Math.min(this.bottom() - var24, 99);
+      donutauction.Ui.box(var1, var23, var24, var25, var26, 7, donutauction.Ui.alpha(-15132122, var4.seeThroughGui ? 210 : 255), -14013637);
+      donutauction.Ui.round(var1, var23 + 9, var24 + 6, 6, 6, 2, donutauction.Ui.accent());
+      donutauction.Ui.round(var1, var23 + 12, var24 + 9, 4, 4, 1, donutauction.Ui.alpha(darker(donutauction.Ui.accent()), 255));
+      donutauction.Ui.text(var1, this.font, Component.literal("EFFECTS").withStyle(ChatFormatting.BOLD), var23 + 21, var24 + 6, -6513229, 0.85F);
+      String[][] var27 = new String[][]{
+         {"See-Through GUI", "Lets the game show through the menu."},
+         {"Frosted Blur", "Blurs the world behind the menu."},
+         {"Ambient Background", "Soft glow in your palette color."}
       };
-      boolean[] var27 = new boolean[]{var4.smallText, var4.showHud, var4.hudTop};
+      boolean[] var28 = new boolean[]{var4.seeThroughGui, var4.frostedBlur, var4.ambientBackground};
 
-      for (int var28 = 0; var28 < var26.length; var28++) {
-         int var29 = this.rowY(var28);
-         boolean var30 = donutauction.Ui.inside(var2, var3, this.mainX() + 2, var29 - 2, var24 - 4, 22);
-         if (var30) {
-            donutauction.Ui.round(var1, this.mainX() + 3, var29 - 2, var24 - 6, 22, 4, donutauction.Ui.alpha(donutauction.Ui.accent(), 28));
+      for (int var29 = 0; var29 < var27.length; var29++) {
+         int var30 = this.rowY(var29);
+         if (donutauction.Ui.inside(var2, var3, var23 + 3, var30, var25 - 22, 24)) {
+            donutauction.Ui.round(var1, var23 + 4, var30, var25 - 8, 24, 5, donutauction.Ui.alpha(donutauction.Ui.accent(), 30));
          }
 
-         donutauction.Ui.text(var1, this.font, var26[var28][0], this.mainX() + 8, var29 + 2, -723720);
-         donutauction.Ui.text(var1, this.font, donutauction.Ui.ellipsize(this.font, var26[var28][1], var24 - 42), this.mainX() + 8, var29 + 11, -10526344);
-         donutauction.Ui.toggle(var1, this.mainX() + var24 - 26, var29 + 6, var27[var28]);
-         if (var28 < var26.length - 1) {
-            var1.fill(this.mainX() + 8, var29 + 21, this.mainX() + var24 - 8, var29 + 22, -14013637);
+         donutauction.Ui.text(var1, this.font, Component.literal(var27[var29][0]).withStyle(ChatFormatting.BOLD), var23 + 12, var30 + 4, -1, 0.9F);
+         donutauction.Ui.text(
+            var1, this.font, Component.literal(donutauction.Ui.ellipsize(this.font, var27[var29][1], var25 - 60)), var23 + 12, var30 + 14, -6513229, 0.7F
+         );
+         donutauction.Ui.bigToggle(var1, var23 + var25 - 46, var30 + 6, var28[var29]);
+         boolean var31 = donutauction.Ui.inside(var2, var3, this.resetX() - 2, var30 + 5, 12, 14);
+         donutauction.Ui.text(var1, this.font, Component.literal("↻"), this.resetX(), var30 + 8, var31 ? -723720 : -10526344, 0.8F);
+         if (var31) {
+            var1.setTooltipForNextFrame(this.font, Component.literal("Reset to default"), var2, var3);
          }
       }
-
-      int var31 = this.mainX() + var24 + 6;
-      int var32 = this.mainW() - var24 - 6;
-      this.panel(var1, var31, var23, var32, var25, "PREVIEW");
-      int var33 = var23 + 20;
-      donutauction.Ui.box(var1, var31 + 6, var33, var32 - 12, 14, 4, donutauction.Ui.alpha(donutauction.Ui.accent(), 208), donutauction.Ui.accent());
-      String var34 = "Start Auction";
-      donutauction.Ui.text(var1, this.font, var34, var31 + 6 + (var32 - 12 - donutauction.Ui.width(this.font, var34)) / 2.0F, var33 + 3.5F, -723720);
-      var33 += 20;
-      donutauction.Ui.box(var1, var31 + 6, var33, var32 - 12, 14, 4, -15132122, -14013637);
-      donutauction.Ui.text(var1, this.font, "Cancel", var31 + 6 + (var32 - 12 - donutauction.Ui.width(this.font, "Cancel")) / 2.0F, var33 + 3.5F, -6513229);
-      var33 += 22;
-      donutauction.Ui.toggle(var1, var31 + 8, var33, true);
-      donutauction.Ui.toggle(var1, var31 + 30, var33, false);
-      var33 += 14;
-      donutauction.Ui.bold(var1, this.font, "Worth 377M", var31 + 8, var33, -670639);
-      var33 += donutauction.Ui.lineH(this.font) + 4;
-      if (var33 + 3 < var23 + var25 - 4) {
-         donutauction.Ui.round(var1, var31 + 8, var33, var32 - 16, 3, 1, -13882051);
-         donutauction.Ui.round(var1, var31 + 8, var33, (var32 - 16) * 2 / 3, 3, 1, donutauction.Ui.accent());
-      }
-   }
-
-   private void panel(GuiGraphicsExtractor var1, int var2, int var3, int var4, int var5, String var6) {
-      donutauction.Ui.box(var1, var2, var3, var4, var5, 6, -15132122, -14013637);
-      donutauction.Ui.round(var1, var2 + 6, var3 + 6, 3, 7, 1, donutauction.Ui.accent());
-      donutauction.Ui.text(var1, this.font, var6, var2 + 13, var3 + 6, -6513229);
    }
 
    private boolean clickTheme(double var1, double var3) {
@@ -940,11 +918,13 @@ public class AuctionScreen extends Screen {
       }
 
       for (int var7 = 0; var7 < 3; var7++) {
-         if (donutauction.Ui.inside(var1, var3, this.mainX() + 2, this.rowY(var7) - 2, this.panelW() - 4, 22)) {
+         int var8 = this.rowY(var7);
+         boolean var9 = donutauction.Ui.inside(var1, var3, this.resetX() - 2, var8 + 5, 12, 14);
+         if (var9 || donutauction.Ui.inside(var1, var3, this.panelX() + 3, var8, this.panelW() - 22, 24)) {
             switch (var7) {
-               case 0 -> var5.smallText = !var5.smallText;
-               case 1 -> var5.showHud = !var5.showHud;
-               default -> var5.hudTop = !var5.hudTop;
+               case 0 -> var5.seeThroughGui = var9 || !var5.seeThroughGui;
+               case 1 -> var5.frostedBlur = var9 || !var5.frostedBlur;
+               default -> var5.ambientBackground = var9 || !var5.ambientBackground;
             }
 
             donutauction.Config.save();

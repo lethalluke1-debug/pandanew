@@ -51,6 +51,19 @@ public final class Ui {
       return donutauction.Config.get().accent | 0xFF000000;
    }
 
+   public static int windowBg() {
+      return donutauction.Config.get().seeThroughGui ? -871493865 : -233959657;
+   }
+
+   public static int panelBg() {
+      return donutauction.Config.get().seeThroughGui ? alpha(-15526882, 200) : -15526882;
+   }
+
+   public static void bigToggle(GuiGraphicsExtractor var0, int var1, int var2, boolean var3) {
+      round(var0, var1, var2, 24, 12, 6, var3 ? accent() : -13882051);
+      round(var0, var3 ? var1 + 13 : var1 + 2, var2 + 2, 9, 8, 4, var3 ? -1 : -9210484);
+   }
+
    public static int alpha(int var0, int var1) {
       return var0 & 16777215 | var1 << 24;
    }
