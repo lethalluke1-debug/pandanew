@@ -820,7 +820,9 @@ public class AuctionScreen extends Screen {
          boolean var10 = var6.get().getAsBoolean();
          boolean var11 = donutauction.Ui.inside(var2, var3, var7, var8, var9, 28);
          donutauction.Ui.round(var1, var7, var8, var9, 28, 8, var11 ? donutauction.Ui.cardHover() : donutauction.Ui.card());
-         donutauction.Ui.text(var1, this.font, Component.literal(var6.label()).withStyle(ChatFormatting.BOLD), var7 + 9, var8 + 5, -1, 0.85F);
+         Component var12x = Component.literal(var6.label()).withStyle(ChatFormatting.BOLD);
+         float var13x = Math.min(0.85F, (var9 - 46) / (float)Math.max(1, donutauction.Ui.fw(this.font, var12x)));
+         donutauction.Ui.text(var1, this.font, var12x, var7 + 9, var8 + 5 + (0.85F - var13x) * 4.0F, -1, var13x);
          donutauction.Ui.text(
             var1, this.font, Component.literal(donutauction.Ui.ellipsize(this.font, var6.hint(), var9 - 50)), var7 + 9, var8 + 16, 0xFF8A8A96, 0.65F
          );
@@ -829,9 +831,9 @@ public class AuctionScreen extends Screen {
 
       int var12 = this.settingsFieldY(0);
       int var13 = this.settingsFieldY(1);
-      this.label(var1, "DonutSMP API key (for worth)", this.mainX() + 6, var12 - 9);
+      this.label(var1, "DonutSMP API key (for worth)", this.mainX() + 6, var12 - 11);
       this.frame(var1, this.mainX() + 6, var12, this.mainW() - 12, this.apiBox);
-      this.label(var1, "Rule text", this.mainX() + 6, var13 - 9);
+      this.label(var1, "Rule text", this.mainX() + 6, var13 - 11);
       this.frame(var1, this.mainX() + 6, var13, this.mainW() - 12, this.ruleBox);
       donutauction.Ui.text(var1, this.font, "Bids are read from \"Name paid you $X\" messages.", this.mainX() + 8, var13 + 20, -10526344);
    }
