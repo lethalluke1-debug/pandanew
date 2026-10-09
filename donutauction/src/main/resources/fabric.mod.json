@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "donutauction",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "name": "Donut Auction",
   "description": "Run auctions on DonutSMP: pick an item, set a minimum and timer, get its worth from the auction house, and take bids from /pay. Live HUD at the top of the screen. Press Right Shift.",
   "authors": [

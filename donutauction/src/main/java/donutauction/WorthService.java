@@ -5,25 +5,30 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Worth of one item = the cheapest current listing on the DonutSMP auction house, per item, from the public API
- * (GET https://api.donutsmp.net/v1/auction/list/{page}, key from /api in game). Results are cached for 10 minutes.
+ * Worth of one item from donut.auction, the public DonutSMP price tracker. It needs no API key:
+ * GET https://api.donut.auction/v2/items/search?q=netherite_block returns matching items with a market value.
+ * Results are cached for 10 minutes.
  */
 public final class WorthService {
-    private static final String BASE = "https://api.donutsmp.net/v1/auction/list/";
+    private static final String SEARCH = "https://api.donut.auction/v2/items/search?q=";
     private static final long CACHE_MS = 10 * 60 * 1000;
-    private static final int PAGES = 3;
-    private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build();
+    private static final HttpClient HTTP = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(8))
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build();
 
-    public enum Status { LOADING, OK, NOT_FOUND, NO_KEY, ERROR }
+    public enum Status { LOADING, OK, NOT_FOUND, ERROR }
 
     public record Result(Status status, double each, String detail, long at) {}
 
@@ -33,76 +38,67 @@ public final class WorthService {
 
     /** Current result for an item id like "minecraft:elytra", starting a lookup if needed. */
     public static Result get(String itemId) {
-        String key = Config.get().apiKey.trim();
-        if (key.isEmpty()) return new Result(Status.NO_KEY, 0, "Add your /api key in Settings", 0);
         Result r = CACHE.get(itemId);
         long now = System.currentTimeMillis();
         if (r != null && (r.status() == Status.LOADING || now - r.at() < CACHE_MS)) return r;
-        Result loading = new Result(Status.LOADING, 0, "Checking auction house...", now);
+        // Failed lookups are retried after 30 seconds rather than 10 minutes.
+        if (r != null && r.status() == Status.ERROR && now - r.at() < 30_000) return r;
+        Result loading = new Result(Status.LOADING, 0, "Checking prices...", now);
         CACHE.put(itemId, loading);
-        Thread.ofVirtual().start(() -> CACHE.put(itemId, fetch(itemId, key)));
+        Thread.ofVirtual().start(() -> CACHE.put(itemId, fetch(itemId)));
         return loading;
     }
 
-    public static void clear() {
-        CACHE.clear();
-    }
-
-    private static Result fetch(String itemId, String key) {
+    private static Result fetch(String itemId) {
         long now = System.currentTimeMillis();
-        String path = itemId.contains(":") ? itemId.substring(itemId.indexOf(':') + 1) : itemId;
-        String search = path.replace('_', ' ');
-        double best = Double.MAX_VALUE;
+        String name = itemId.contains(":") ? itemId.substring(itemId.indexOf(':') + 1) : itemId;
         try {
-            for (int page = 1; page <= PAGES; page++) {
-                String body = "{\"search\":\"" + search.replace("\"", "") + "\",\"sort\":\"lowest_price\"}";
-                HttpRequest req = HttpRequest.newBuilder(URI.create(BASE + page))
-                        .timeout(Duration.ofSeconds(10))
-                        .header("Authorization", "Bearer " + key)
-                        .header("Content-Type", "application/json")
-                        .method("GET", HttpRequest.BodyPublishers.ofString(body))
-                        .build();
-                HttpResponse<String> resp = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
-                if (resp.statusCode() == 401 || resp.statusCode() == 403) {
-                    return new Result(Status.ERROR, 0, "API key rejected (" + resp.statusCode() + ")", now);
-                }
-                if (resp.statusCode() == 429) return new Result(Status.ERROR, 0, "Rate limited, try again soon", now);
-                if (resp.statusCode() / 100 != 2) {
-                    if (page == 1) return new Result(Status.ERROR, 0, "Auction API error " + resp.statusCode(), now);
-                    break;
-                }
-                JsonArray list = results(JsonParser.parseString(resp.body()));
-                if (list == null || list.isEmpty()) break;
-                int real = 0;
-                for (JsonElement el : list) {
-                    if (el == null || !el.isJsonObject()) continue; // pages are padded with nulls
-                    real++;
-                    JsonObject entry = el.getAsJsonObject();
-                    JsonObject item = entry.has("item") && entry.get("item").isJsonObject() ? entry.getAsJsonObject("item") : null;
-                    if (item == null || !item.has("id")) continue;
-                    String id = item.get("id").getAsString().toLowerCase(Locale.ROOT);
-                    if (!id.equals(itemId) && !id.equals(path)) continue;
-                    if (!entry.has("price")) continue;
-                    double price = entry.get("price").getAsDouble();
-                    int count = item.has("count") ? Math.max(1, item.get("count").getAsInt()) : 1;
-                    best = Math.min(best, price / count);
-                }
-                if (best != Double.MAX_VALUE || real == 0) break;
-            }
+            HttpRequest req = HttpRequest.newBuilder(URI.create(SEARCH + URLEncoder.encode(name, StandardCharsets.UTF_8)))
+                    .timeout(Duration.ofSeconds(10))
+                    .header("Accept", "application/json")
+                    .header("User-Agent", "DonutAuction/1.0 (Fabric mod by Lethal)")
+                    .GET()
+                    .build();
+            HttpResponse<String> resp = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() == 429) return new Result(Status.ERROR, 0, "Price site busy, retrying", now);
+            if (resp.statusCode() / 100 != 2) return new Result(Status.ERROR, 0, "Price site error " + resp.statusCode(), now);
+
+            return parse(name, resp.body(), now);
         } catch (Exception e) {
-            return new Result(Status.ERROR, 0, "Couldn't reach the auction API", now);
+            return new Result(Status.ERROR, 0, "Couldn't reach price site", now);
         }
-        if (best == Double.MAX_VALUE) return new Result(Status.NOT_FOUND, 0, "Not listed on /ah right now", now);
-        return new Result(Status.OK, best, "Lowest on /ah", now);
     }
 
-    private static JsonArray results(JsonElement root) {
-        if (root.isJsonArray()) return root.getAsJsonArray();
-        if (!root.isJsonObject()) return null;
-        JsonObject o = root.getAsJsonObject();
-        for (String k : new String[] {"result", "auctions", "data"}) {
-            if (o.has(k) && o.get(k).isJsonArray()) return o.getAsJsonArray(k);
+    /** Picks the market value of {@code name} (e.g. "elytra") out of a /v2/items/search response. */
+    static Result parse(String name, String json, long now) {
+        JsonElement root = JsonParser.parseString(json);
+        JsonArray items = root.isJsonObject() && root.getAsJsonObject().has("items")
+                && root.getAsJsonObject().get("items").isJsonArray() ? root.getAsJsonObject().getAsJsonArray("items") : null;
+        if (items == null) return new Result(Status.NOT_FOUND, 0, "No price data", now);
+
+        // Exact item, preferably the plain (unenchanted) one.
+        double plain = -1, any = -1;
+        for (JsonElement el : items) {
+            if (!el.isJsonObject()) continue;
+            JsonObject entry = el.getAsJsonObject();
+            JsonObject item = obj(entry, "item");
+            if (item == null || !item.has("itemName")) continue;
+            if (!item.get("itemName").getAsString().toLowerCase(Locale.ROOT).equals(name)) continue;
+            JsonObject price = obj(entry, "price");
+            if (price == null || !price.has("value") || price.get("value").isJsonNull()) continue;
+            double value = price.get("value").getAsDouble();
+            if (value <= 0) continue;
+            boolean enchanted = item.has("enchantments") && item.get("enchantments").isJsonArray()
+                    && !item.getAsJsonArray("enchantments").isEmpty();
+            if (!enchanted && plain < 0) plain = value;
+            if (any < 0) any = value;
         }
-        return null;
+        double value = plain > 0 ? plain : any;
+        if (value <= 0) return new Result(Status.NOT_FOUND, 0, "No recent sales tracked", now);
+        return new Result(Status.OK, value, "Market value", now);
+    }
+
+    private static JsonObject obj(JsonObject o, String key) {
+        return o.has(key) && o.get(key).isJsonObject() ? o.getAsJsonObject(key) : null;
     }
 }

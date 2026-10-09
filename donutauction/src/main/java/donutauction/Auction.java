@@ -41,6 +41,8 @@ public final class Auction {
     private boolean warned;
     private long lastBidAnnounce;
     private boolean cancelled;
+    private long lastBidAt;
+    private int lastTickSecond = -1;
 
     private Auction(String itemId, int quantity, double minBid, double worthEach, int durationSec, String seller) {
         this.itemId = itemId;
@@ -74,6 +76,7 @@ public final class Auction {
         current = new Auction(itemId, Math.max(1, quantity), Math.max(0, minBid), Math.max(0, worthEach),
                 Math.max(5, durationSec), mc.getUser().getName());
         current.say(Config.get().msgStart);
+        Sounds.start();
     }
 
     // ---- getters for the HUD and menu ----
@@ -113,6 +116,23 @@ public final class Auction {
 
     public boolean wasCancelled() {
         return cancelled;
+    }
+
+    public long startedAt() {
+        return startedAt;
+    }
+
+    /** When the top bid last changed (0 = never), for the HUD's flash. */
+    public long lastBidAt() {
+        return lastBidAt;
+    }
+
+    public static long lastEndedAt() {
+        return lastEndedAt;
+    }
+
+    public static long resultShowMs() {
+        return RESULT_SHOW_MS;
     }
 
     public static ItemStack stackOf(String itemId) {
@@ -159,6 +179,8 @@ public final class Auction {
             endsAt = System.currentTimeMillis() + ANTI_SNIPE_SEC * 1000L;
             warned = true;
         }
+        lastBidAt = System.currentTimeMillis();
+        Sounds.bid();
         if (previous != null && !previous.equals(topBidder) && c.autoRefund) refund(previous);
         if (c.announceBids && System.currentTimeMillis() - lastBidAnnounce > 2500) {
             lastBidAnnounce = System.currentTimeMillis();
@@ -195,6 +217,9 @@ public final class Auction {
             a.warned = true;
             a.say(c.msgWarn);
         }
+        int secondsLeft = (int) ((a.remainingMs() + 999) / 1000);
+        if (secondsLeft <= 5 && secondsLeft >= 1 && secondsLeft != a.lastTickSecond) Sounds.tick(secondsLeft);
+        a.lastTickSecond = secondsLeft;
         if (a.remainingMs() <= 0) a.finish(false);
     }
 
@@ -214,8 +239,10 @@ public final class Auction {
         if (cancel) {
             topBidder = null;
             say(c.msgCancel);
+            Sounds.noSale();
         } else {
             say(topBidder != null ? c.msgSold : c.msgNone);
+            if (topBidder != null) Sounds.sold(); else Sounds.noSale();
         }
         if (c.autoRefund) {
             for (String p : new ArrayList<>(totals.keySet())) {

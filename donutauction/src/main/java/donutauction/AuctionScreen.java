@@ -10,9 +10,10 @@ import java.util.Set;
 import java.util.function.Consumer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -65,8 +66,11 @@ public class AuctionScreen extends Screen {
     private static int gridScroll, listScroll;
 
     private int x0, y0, w, h;
-    private EditBox searchBox, minBox, qtyBox, timerBox, worthBox, apiBox, ruleBox;
-    private boolean settingWorth;
+    private SmallField searchBox, minBox, qtyBox, timerBox, worthBox, ruleBox;
+    private final List<SmallField> fields = new ArrayList<>();
+    private final long openedAt = System.currentTimeMillis();
+    private static long pageAt;
+    private float navMarkerY = -1;
     private List<Item> gridItems = List.of();
     private String gridQuery;
     private String status = "";
@@ -86,7 +90,7 @@ public class AuctionScreen extends Screen {
     private int rightX() { return mainX() + mainW() - RIGHT_W; }
     private int gridTop() { return top() + 20; }
     private int cols() { return Math.max(1, (gridW() - 6) / CELL); }
-    private int visibleRows() { return Math.max(1, (bottom() - gridTop() - 4) / CELL); }
+    private int visibleRows() { return Math.max(1, (bottom() - gridTop() - 12) / CELL); }
     private int navY(int i) { return y0 + 62 + i * 16 + (i >= 3 ? 14 : 0); }
 
     @Override
@@ -95,33 +99,28 @@ public class AuctionScreen extends Screen {
         h = Math.clamp(this.height - 20, 220, 280);
         x0 = (this.width - w) / 2;
         y0 = (this.height - h) / 2;
-        searchBox = minBox = qtyBox = timerBox = worthBox = apiBox = ruleBox = null;
+        searchBox = minBox = qtyBox = timerBox = worthBox = ruleBox = null;
+        fields.clear();
 
         switch (page) {
             case NEW -> {
-                searchBox = field(mainX() + 14, top() + 3, gridW() - 20, search, "Search items...", 40, s -> {
+                searchBox = field(mainX() + 4, top(), gridW() - 8, search, "\u2315  Search items...", 40, s -> {
                     search = s;
                     gridScroll = 0;
                 });
                 int rx = rightX();
                 int fy = top() + 50;
-                minBox = field(rx + 4, fy + 2, RIGHT_W - 8, fMin, "none", 16, s -> fMin = s);
-                qtyBox = field(rx + 4, fy + 28, RIGHT_W / 2 - 10, fQty, "1", 4, s -> fQty = s);
-                timerBox = field(rx + RIGHT_W / 2 + 4, fy + 28, RIGHT_W / 2 - 8, fTimer, "60", 4, s -> fTimer = s);
-                worthBox = field(rx + 4, fy + 54, RIGHT_W - 8, fWorth, "auto", 16, s -> {
+                minBox = field(rx, fy, RIGHT_W, fMin, "none", 16, s -> fMin = s);
+                qtyBox = field(rx, fy + 26, RIGHT_W / 2 - 4, fQty, "1", 4, s -> fQty = s);
+                timerBox = field(rx + RIGHT_W / 2, fy + 26, RIGHT_W / 2, fTimer, "60", 4, s -> fTimer = s);
+                worthBox = field(rx, fy + 52, RIGHT_W, fWorth, "auto", 16, s -> {
                     fWorth = s;
-                    if (!settingWorth) worthEdited = true;
+                    worthEdited = !s.isBlank();
                 });
             }
             case SETTINGS -> {
                 Config c = Config.get();
-                int fx = mainX() + 6;
-                apiBox = field(fx + 4, settingsFieldY(0) + 2, mainW() - 20, c.apiKey, "Run /api in game, paste the key", 200, s -> {
-                    c.apiKey = s.trim();
-                    WorthService.clear();
-                    Config.save();
-                });
-                ruleBox = field(fx + 4, settingsFieldY(1) + 2, mainW() - 20, c.ruleText, "Shown on the HUD", 60, s -> {
+                ruleBox = field(mainX() + 6, settingsFieldY(0), mainW() - 12, c.ruleText, "Shown on the HUD", 60, s -> {
                     c.ruleText = s;
                     Config.save();
                 });
@@ -130,20 +129,17 @@ public class AuctionScreen extends Screen {
         }
     }
 
-    /** A borderless text box; its frame is drawn by the page. */
-    private EditBox field(int x, int y, int fw, String value, String hint, int max, Consumer<String> onChange) {
-        EditBox box = new EditBox(font, x, y, fw, 10, Component.empty());
-        box.setBordered(false);
-        box.setMaxLength(max);
-        box.setTextColor(Ui.TEXT);
-        box.setValue(value);
-        box.setHint(Component.literal(hint).withColor(Ui.FAINT));
-        box.setResponder(onChange);
-        addRenderableWidget(box);
-        return box;
+    private SmallField field(int x, int y, int fw, String value, String hint, int max, Consumer<String> onChange) {
+        SmallField f = new SmallField(x, y, fw, value, hint, max, onChange);
+        fields.add(f);
+        return f;
     }
 
     private void setPage(Page p) {
+        if (p != page) {
+            pageAt = System.currentTimeMillis();
+            Sounds.click();
+        }
         page = p;
         listScroll = 0;
         rebuildWidgets();
@@ -154,14 +150,33 @@ public class AuctionScreen extends Screen {
         statusAt = System.currentTimeMillis();
     }
 
+    private void fail(String message) {
+        flash(message);
+        Sounds.error();
+    }
+
     // ---- drawing ----
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+        // Window pops in: grows from 92% and rises a little.
+        float open = Ui.easeOutBack(Ui.anim(openedAt, 280));
+        float s = 0.92f + 0.08f * open;
+        g.pose().pushMatrix();
+        g.pose().translate(x0 + w / 2f, y0 + h / 2f + (1 - open) * 10);
+        g.pose().scale(s, s);
+        g.pose().translate(-(x0 + w / 2f), -(y0 + h / 2f));
+
+        Ui.round(g, x0 - 3, y0 - 3, w + 6, h + 6, 10, Ui.alpha(Ui.accent(), 0x18));
         Ui.round(g, x0 - 1, y0 - 1, w + 2, h + 2, 8, Ui.alpha(Ui.accent(), 0x55));
         Ui.round(g, x0, y0, w, h, 7, Ui.WINDOW);
         drawSidebar(g, mouseX, mouseY);
         drawHeader(g);
+
+        // Pages slide in from the right.
+        float slide = 1 - Ui.easeOut(Ui.anim(pageAt, 220));
+        g.pose().pushMatrix();
+        g.pose().translate(slide * 14, 0);
         switch (page) {
             case NEW -> drawNew(g, mouseX, mouseY);
             case PRESETS -> drawPresets(g, mouseX, mouseY);
@@ -169,6 +184,9 @@ public class AuctionScreen extends Screen {
             case SETTINGS -> drawSettings(g, mouseX, mouseY);
             case THEME -> drawTheme(g, mouseX, mouseY);
         }
+        for (SmallField f : fields) f.render(g, font, mouseX, mouseY);
+        g.pose().popMatrix();
+        g.pose().popMatrix();
         super.extractRenderState(g, mouseX, mouseY, partialTick);
         if (!status.isEmpty() && System.currentTimeMillis() - statusAt < 3000) {
             int sw = Ui.width(font, status) + 12;
@@ -195,8 +213,12 @@ public class AuctionScreen extends Screen {
             boolean active = pages[i] == page;
             boolean hover = Ui.inside(mx, my, sx + 3, ny, sw - 6, 14);
             if (active) {
-                Ui.round(g, sx + 3, ny, sw - 6, 14, 4, Ui.alpha(Ui.accent(), 0x38));
-                g.fill(sx, ny + 3, sx + 2, ny + 11, Ui.accent());
+                // The highlight glides to the selected page.
+                if (navMarkerY < 0 || !Config.get().animations) navMarkerY = ny;
+                navMarkerY += (ny - navMarkerY) * 0.25f;
+                int my2 = Math.round(navMarkerY);
+                Ui.round(g, sx + 3, my2, sw - 6, 14, 4, Ui.alpha(Ui.accent(), 0x38));
+                g.fill(sx, my2 + 3, sx + 2, my2 + 11, Ui.accent());
             } else if (hover) {
                 Ui.round(g, sx + 3, ny, sw - 6, 14, 4, Ui.CARD_HOVER);
             }
@@ -287,11 +309,9 @@ public class AuctionScreen extends Screen {
         int gx = mainX(), gw = gridW();
         // Search + grid panel.
         Ui.round(g, gx, top(), gw, bottom() - top(), 6, Ui.SIDEBAR);
-        Ui.box(g, gx + 4, top() + 1, gw - 8, 13, 4, Ui.FIELD, searchBox != null && searchBox.isFocused() ? Ui.accent() : Ui.BORDER);
-        Ui.text(g, font, "⌕", gx + 7, top() + 4, Ui.MUTED);
         List<Item> items = items();
         String count = items.size() + " items";
-        Ui.text(g, font, count, gx + gw - 8 - Ui.width(font, count), top() + 4, Ui.FAINT);
+        Ui.text(g, font, count, gx + gw - 6 - Ui.width(font, count), bottom() - 9, Ui.FAINT);
 
         int cols = cols(), rows = visibleRows();
         int maxScroll = Math.max(0, (items.size() + cols - 1) / cols - rows);
@@ -307,8 +327,18 @@ public class AuctionScreen extends Screen {
                 String id = BuiltInRegistries.ITEM.getKey(item).toString();
                 boolean sel = id.equals(selectedItem);
                 boolean hov = Ui.inside(mx, my, cx, cy, CELL - 1, CELL - 1);
+                if (sel) Ui.round(g, cx - 1, cy - 1, CELL + 1, CELL + 1, 4, Ui.accent());
                 Ui.round(g, cx, cy, CELL - 1, CELL - 1, 3, sel ? Ui.alpha(Ui.accent(), 0x60) : hov ? Ui.CARD_HOVER : Ui.CARD);
-                g.item(new ItemStack(item), cx + 1, cy + 1);
+                if (hov && Config.get().animations) {
+                    // Hovered items lift and grow a little.
+                    g.pose().pushMatrix();
+                    g.pose().translate(cx + 9, cy + 8);
+                    g.pose().scale(1.15f, 1.15f);
+                    g.item(new ItemStack(item), -8, -8);
+                    g.pose().popMatrix();
+                } else {
+                    g.item(new ItemStack(item), cx + 1, cy + 1);
+                }
                 if (hov) hovered = item;
             }
         }
@@ -351,13 +381,9 @@ public class AuctionScreen extends Screen {
 
         int fy = y + 50;
         label(g, "Minimum bid", rx, fy - 8);
-        frame(g, rx, fy, rw, minBox);
         label(g, "Quantity", rx, fy + 18);
-        frame(g, rx, fy + 26, rw / 2 - 4, qtyBox);
         label(g, "Timer (sec)", rx + rw / 2, fy + 18);
-        frame(g, rx + rw / 2, fy + 26, rw / 2, timerBox);
         label(g, "Worth of one item", rx, fy + 44);
-        frame(g, rx, fy + 52, rw, worthBox);
 
         // Total worth = worth of one item x quantity.
         double each = Money.parse(fWorth);
@@ -383,21 +409,12 @@ public class AuctionScreen extends Screen {
 
     private void autoFillWorth(double each) {
         String v = Money.format(each);
-        if (worthBox != null && !v.equals(worthBox.getValue())) {
-            settingWorth = true;
-            worthBox.setValue(v);
-            settingWorth = false;
-        }
+        if (worthBox != null && !worthBox.focused() && !v.equals(worthBox.value())) worthBox.setSilently(v);
         fWorth = v;
     }
 
     private void label(GuiGraphicsExtractor g, String s, int x, int y) {
         Ui.text(g, font, s, x + 2, y, Ui.MUTED);
-    }
-
-    private void frame(GuiGraphicsExtractor g, int x, int y, int fw, EditBox box) {
-        boolean focused = box != null && box.isFocused();
-        Ui.box(g, x, y, fw, 14, 4, Ui.FIELD, focused ? Ui.accent() : Ui.BORDER);
     }
 
     private static int parseInt(String s, int fallback) {
@@ -412,9 +429,9 @@ public class AuctionScreen extends Screen {
         if (selectedItem == null || Auction.running()) return;
         double min = Money.parse(fMin), worth = Money.parse(fWorth);
         int qty = parseInt(fQty, -1), timer = parseInt(fTimer, -1);
-        if (min < 0) { flash("Minimum bid isn't a number"); return; }
-        if (qty < 1 || qty > 2304) { flash("Quantity must be 1-2304"); return; }
-        if (timer < 5 || timer > 3600) { flash("Timer must be 5-3600 seconds"); return; }
+        if (min < 0) { fail("Minimum bid isn't a number"); return; }
+        if (qty < 1 || qty > 2304) { fail("Quantity must be 1-2304"); return; }
+        if (timer < 5 || timer > 3600) { fail("Timer must be 5-3600 seconds"); return; }
         Auction.start(selectedItem, qty, min, Math.max(0, worth), timer);
         onClose();
     }
@@ -425,6 +442,7 @@ public class AuctionScreen extends Screen {
         Config.get().presets.add(new Preset(name, selectedItem, Math.max(1, parseInt(fQty, 1)),
                 Math.max(0, Money.parse(fMin)), Math.clamp(parseInt(fTimer, 60), 5, 3600), Math.max(0, Money.parse(fWorth))));
         Config.save();
+        Sounds.select();
         flash("Saved preset \"" + name + "\"");
     }
 
@@ -487,6 +505,7 @@ public class AuctionScreen extends Screen {
             int bw = (pw - 16 - 14) / 2;
             if (Ui.inside(mx, my, x + 4, y + 35, bw, 11)) {
                 loadPreset(p);
+                Sounds.select();
                 return true;
             }
             if (Ui.inside(mx, my, x + 8 + bw, y + 35, bw, 11)) {
@@ -503,6 +522,7 @@ public class AuctionScreen extends Screen {
             if (Ui.inside(mx, my, x + pw - 18, y + 35, 14, 11)) {
                 presets.remove(i);
                 Config.save();
+                Sounds.click();
                 flash("Deleted preset \"" + p.name + "\"");
                 return true;
             }
@@ -556,7 +576,8 @@ public class AuctionScreen extends Screen {
                 new Toggle("Announce new top bids", "At most every 2.5s", () -> c.announceBids, () -> c.announceBids = !c.announceBids),
                 new Toggle("10 second warning", "Chat message near the end", () -> c.timeWarnings, () -> c.timeWarnings = !c.timeWarnings),
                 new Toggle("Anti-snipe", "A late top bid resets the timer to 10s", () -> c.antiSnipe, () -> c.antiSnipe = !c.antiSnipe),
-                new Toggle("Auto refund", "/pay back outbid and losing bids", () -> c.autoRefund, () -> c.autoRefund = !c.autoRefund));
+                new Toggle("Auto refund", "/pay back outbid and losing bids", () -> c.autoRefund, () -> c.autoRefund = !c.autoRefund),
+                new Toggle("Sounds", "Clicks, bids, countdown and sold", () -> c.sounds, () -> c.sounds = !c.sounds));
     }
 
     private int toggleY(int i) { return top() + 14 + (i / 2) * 26; }
@@ -577,12 +598,10 @@ public class AuctionScreen extends Screen {
             Ui.text(g, font, Ui.ellipsize(font, t.hint(), tw - 34), x + 6, y + 13, Ui.FAINT);
             Ui.toggle(g, x + tw - 24, y + 7, on);
         }
-        int fy0 = settingsFieldY(0), fy1 = settingsFieldY(1);
-        label(g, "DonutSMP API key (for worth)", mainX() + 6, fy0 - 9);
-        frame(g, mainX() + 6, fy0, mainW() - 12, apiBox);
-        label(g, "Rule text", mainX() + 6, fy1 - 9);
-        frame(g, mainX() + 6, fy1, mainW() - 12, ruleBox);
-        Ui.text(g, font, "Bids are read from \"Name paid you $X\" messages.", mainX() + 8, fy1 + 20, Ui.FAINT);
+        int fy0 = settingsFieldY(0);
+        label(g, "Rule text (shown on the HUD)", mainX() + 6, fy0 - 9);
+        Ui.text(g, font, "Bids are read from \"Name paid you $X\" messages.", mainX() + 8, fy0 + 20, Ui.FAINT);
+        Ui.text(g, font, "Worth comes from donut.auction market prices. No API key needed.", mainX() + 8, fy0 + 29, Ui.FAINT);
     }
 
     // ---- Theme ----
@@ -602,8 +621,8 @@ public class AuctionScreen extends Screen {
         }
 
         y += 44;
-        Ui.text(g, font, "TEXT SIZE", mainX() + 2, y, Ui.FAINT);
-        segment(g, mx, my, mainX() + 6, y + 10, "Small", "Normal", c.smallText);
+        Ui.text(g, font, "ANIMATIONS", mainX() + 2, y, Ui.FAINT);
+        segment(g, mx, my, mainX() + 6, y + 10, "On", "Off", c.animations);
 
         y += 36;
         Ui.text(g, font, "AUCTION HUD", mainX() + 2, y, Ui.FAINT);
@@ -640,17 +659,18 @@ public class AuctionScreen extends Screen {
             if (Ui.inside(mx, my, swatchX(i), y + 12, 20, 20)) {
                 c.accent = Ui.ACCENTS[i];
                 Config.save();
+                Sounds.select();
                 return true;
             }
         }
         y += 44;
-        if (Ui.inside(mx, my, mainX() + 6, y + 10, 58, 14)) { c.smallText = true; Config.save(); return true; }
-        if (Ui.inside(mx, my, mainX() + 66, y + 10, 58, 14)) { c.smallText = false; Config.save(); return true; }
+        if (Ui.inside(mx, my, mainX() + 6, y + 10, 58, 14)) { c.animations = true; Config.save(); Sounds.toggle(true); return true; }
+        if (Ui.inside(mx, my, mainX() + 66, y + 10, 58, 14)) { c.animations = false; Config.save(); Sounds.toggle(false); return true; }
         y += 36;
-        if (Ui.inside(mx, my, mainX() + 6, y + 10, 58, 14)) { c.hudTop = true; Config.save(); return true; }
-        if (Ui.inside(mx, my, mainX() + 66, y + 10, 58, 14)) { c.hudTop = false; Config.save(); return true; }
+        if (Ui.inside(mx, my, mainX() + 6, y + 10, 58, 14)) { c.hudTop = true; Config.save(); Sounds.click(); return true; }
+        if (Ui.inside(mx, my, mainX() + 66, y + 10, 58, 14)) { c.hudTop = false; Config.save(); Sounds.click(); return true; }
         int tx = mainX() + 6 + 2 * 60 + 12;
-        if (Ui.inside(mx, my, tx, y + 10, 80, 14)) { c.showHud = !c.showHud; Config.save(); return true; }
+        if (Ui.inside(mx, my, tx, y + 10, 80, 14)) { c.showHud = !c.showHud; Config.save(); Sounds.toggle(c.showHud); return true; }
         return false;
     }
 
@@ -658,9 +678,11 @@ public class AuctionScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (super.mouseClicked(event, doubleClick)) return true;
-        if (event.button() != 0) return false;
+        if (event.button() != 0) return super.mouseClicked(event, doubleClick);
         double mx = event.x(), my = event.y();
+        boolean inField = false;
+        for (SmallField f : fields) inField |= f.click(mx, my);
+        if (inField) return true;
 
         Page[] pages = Page.values();
         for (int i = 0; i < pages.length; i++) {
@@ -676,8 +698,19 @@ public class AuctionScreen extends Screen {
             case SETTINGS -> clickSettings(mx, my);
             case THEME -> clickTheme(mx, my);
         };
-        if (!handled) setFocused(null);
         return handled;
+    }
+
+    @Override
+    public boolean charTyped(CharacterEvent event) {
+        for (SmallField f : fields) if (f.charTyped(event)) return true;
+        return super.charTyped(event);
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        for (SmallField f : fields) if (f.focused()) return f.keyPressed(event);
+        return super.keyPressed(event);
     }
 
     private boolean clickNew(double mx, double my) {
@@ -694,11 +727,8 @@ public class AuctionScreen extends Screen {
                         selectedItem = id;
                         worthEdited = false;
                         fWorth = "";
-                        if (worthBox != null) {
-                            settingWorth = true;
-                            worthBox.setValue("");
-                            settingWorth = false;
-                        }
+                        if (worthBox != null) worthBox.setSilently("");
+                        Sounds.select();
                     }
                     return true;
                 }
@@ -709,6 +739,8 @@ public class AuctionScreen extends Screen {
             if (Auction.running()) {
                 Auction.endNow();
                 flash("Auction ended");
+            } else if (selectedItem == null) {
+                fail("Pick an item first");
             } else {
                 startFromForm();
             }
@@ -718,6 +750,8 @@ public class AuctionScreen extends Screen {
             if (Auction.running()) {
                 Auction.cancel();
                 flash("Auction cancelled");
+            } else if (selectedItem == null) {
+                fail("Pick an item first");
             } else {
                 saveFromForm();
             }
@@ -742,6 +776,7 @@ public class AuctionScreen extends Screen {
             if (Ui.inside(mx, my, toggleX(i), toggleY(i), toggleW(), 22)) {
                 ts.get(i).flip().run();
                 Config.save();
+                Sounds.toggle(ts.get(i).get().getAsBoolean());
                 return true;
             }
         }

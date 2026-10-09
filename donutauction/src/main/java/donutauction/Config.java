@@ -20,8 +20,8 @@ public final class Config {
             "^([A-Za-z0-9_.]{2,16}) paid you \\$([0-9][0-9.,]*\\s*[KkMmBbTt]?)\\.?$";
 
     // General
-    public String apiKey = "";
     public boolean announce = true;
+    public boolean sounds = true;
     public boolean announceBids = true;
     public boolean timeWarnings = true;
     public boolean antiSnipe = true;
@@ -37,7 +37,7 @@ public final class Config {
 
     // Theme
     public int accent = 0xFF8B5CF6;
-    public boolean smallText = true;
+    public boolean animations = true;
     public boolean showHud = true;
     public boolean hudTop = true;
 

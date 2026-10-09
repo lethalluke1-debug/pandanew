@@ -37,8 +37,26 @@ public final class Ui {
         return (color & 0x00FFFFFF) | (a << 24);
     }
 
+    /** Every piece of text in the mod is drawn at this size. */
     public static float scale() {
-        return Config.get().smallText ? 0.75f : 1.0f;
+        return 0.75f;
+    }
+
+    /** 0..1 progress of an animation that started at {@code startMs} and lasts {@code durationMs}. */
+    public static float anim(long startMs, long durationMs) {
+        if (!Config.get().animations) return 1f;
+        return Math.clamp((System.currentTimeMillis() - startMs) / (float) durationMs, 0f, 1f);
+    }
+
+    public static float easeOut(float t) {
+        float u = 1 - t;
+        return 1 - u * u * u;
+    }
+
+    /** Ease-out with a small overshoot, for things that pop in. */
+    public static float easeOutBack(float t) {
+        float c1 = 1.70158f, c3 = c1 + 1;
+        return 1 + c3 * (float) Math.pow(t - 1, 3) + c1 * (float) Math.pow(t - 1, 2);
     }
 
     // ---- text ----
