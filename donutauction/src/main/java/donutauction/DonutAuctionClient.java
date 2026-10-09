@@ -26,7 +26,7 @@ public class DonutAuctionClient implements ClientModInitializer {
    public void onInitializeClient() {
       donutauction.Config.load();
       Category var1 = Category.register(Identifier.fromNamespaceAndPath("donutauction", "main"));
-      openKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.donutauction.open", Type.KEYSYM, 74, var1));
+      openKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.donutauction.open", Type.KEYSYM, 344, var1));
       ClientTickEvents.END_CLIENT_TICK.register(donutauction.DonutAuctionClient::tick);
       ClientReceiveMessageEvents.GAME.register((Game)(var0, var1x) -> {
          if (!var1x) {

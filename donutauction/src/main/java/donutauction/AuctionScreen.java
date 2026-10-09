@@ -192,8 +192,8 @@ public class AuctionScreen extends Screen {
    }
 
    public void extractRenderState(GuiGraphicsExtractor var1, int var2, int var3, float var4) {
-      donutauction.Ui.round(var1, this.x0 - 1, this.y0 - 1, this.w + 2, this.h + 2, 8, donutauction.Ui.alpha(donutauction.Ui.accent(), 85));
-      donutauction.Ui.round(var1, this.x0, this.y0, this.w, this.h, 7, donutauction.Ui.windowBg());
+      donutauction.Ui.round(var1, this.x0 - 1, this.y0 - 1, this.w + 2, this.h + 2, 11, donutauction.Ui.alpha(donutauction.Ui.accent(), 110));
+      donutauction.Ui.round(var1, this.x0, this.y0, this.w, this.h, 10, donutauction.Ui.windowBg());
       this.drawSidebar(var1, var2, var3);
       this.drawHeader(var1);
       switch (page) {
@@ -217,7 +217,7 @@ public class AuctionScreen extends Screen {
       if (!this.status.isEmpty() && System.currentTimeMillis() - this.statusAt < 3000L) {
          int var5 = donutauction.Ui.width(this.font, this.status) + 12;
          donutauction.Ui.box(
-            var1, this.x0 + (this.w - var5) / 2, this.y0 + this.h - 18, var5, 12, 5, -15132122, donutauction.Ui.alpha(donutauction.Ui.accent(), 160)
+            var1, this.x0 + (this.w - var5) / 2, this.y0 + this.h - 18, var5, 12, 5, donutauction.Ui.card(), donutauction.Ui.alpha(donutauction.Ui.accent(), 160)
          );
          donutauction.Ui.text(var1, this.font, this.status, this.x0 + (this.w - var5) / 2.0F + 6.0F, this.y0 + this.h - 15, -723720);
       }
@@ -228,11 +228,11 @@ public class AuctionScreen extends Screen {
       int var5 = this.y0 + 5;
       byte var6 = 96;
       int var7 = this.h - 10;
-      donutauction.Ui.round(var1, var4, var5, var6, var7, 6, donutauction.Ui.panelBg());
+      donutauction.Ui.round(var1, var4, var5, var6, var7, 8, donutauction.Ui.panelBg());
       donutauction.Ui.text(var1, this.font, Component.literal("DONUT").withStyle(ChatFormatting.BOLD), var4 + 9, var5 + 8, -723720, 0.85F);
       donutauction.Ui.text(var1, this.font, Component.literal("AUCTION").withStyle(ChatFormatting.BOLD), var4 + 9, var5 + 17, donutauction.Ui.accent(), 0.85F);
       donutauction.Ui.text(var1, this.font, Component.literal("by Lethal"), var4 + 9, var5 + 26, -10526344, 0.6F);
-      var1.fill(var4 + 7, var5 + 38, var4 + var6 - 7, var5 + 39, -14013637);
+      var1.fill(var4 + 7, var5 + 38, var4 + var6 - 7, var5 + 39, donutauction.Ui.border());
       donutauction.Ui.text(var1, this.font, Component.literal("AUCTION"), var4 + 7, var5 + 44, -10526344, 0.6F);
       donutauction.Ui.text(var1, this.font, Component.literal("GENERAL"), var4 + 7, this.navY(3) - 10, -10526344, 0.6F);
       donutauction.AuctionScreen.Page[] var8 = donutauction.AuctionScreen.Page.values();
@@ -245,7 +245,7 @@ public class AuctionScreen extends Screen {
             donutauction.Ui.round(var1, var4 + 3, var10, var6 - 6, 14, 4, donutauction.Ui.alpha(donutauction.Ui.accent(), 56));
             var1.fill(var4, var10 + 3, var4 + 2, var10 + 11, donutauction.Ui.accent());
          } else if (var12) {
-            donutauction.Ui.round(var1, var4 + 3, var10, var6 - 6, 14, 4, -14671569);
+            donutauction.Ui.round(var1, var4 + 3, var10, var6 - 6, 14, 4, donutauction.Ui.cardHover());
          }
 
          int var13 = var11 ? donutauction.Ui.accent() : (var12 ? -723720 : -6513229);
@@ -254,7 +254,7 @@ public class AuctionScreen extends Screen {
       }
 
       int var14 = var5 + var7 - 28;
-      donutauction.Ui.round(var1, var4 + 3, var14, var6 - 6, 24, 5, -15132122);
+      donutauction.Ui.round(var1, var4 + 3, var14, var6 - 6, 24, 5, donutauction.Ui.card());
       if (this.minecraft.player != null) {
          PlayerFaceExtractor.extractRenderState(var1, this.minecraft.player.getSkin(), var4 + 8, var14 + 4, 16);
       }
@@ -275,7 +275,7 @@ public class AuctionScreen extends Screen {
       int var2 = this.mainX();
       int var3 = this.y0 + 6;
       int var4 = this.mainW();
-      donutauction.Ui.round(var1, var2, var3, var4, 20, 5, donutauction.Ui.panelBg());
+      donutauction.Ui.round(var1, var2, var3, var4, 20, 7, donutauction.Ui.panelBg());
       String var5 = this.minecraft.getUser().getName();
       donutauction.Ui.text(var1, this.font, "Hello, ", var2 + 8, var3 + 7, -6513229);
       donutauction.Ui.bold(var1, this.font, var5, var2 + 8 + donutauction.Ui.width(this.font, "Hello, "), var3 + 7, -723720);
@@ -291,8 +291,8 @@ public class AuctionScreen extends Screen {
          var9,
          12,
          6,
-         var7 != null ? donutauction.Ui.alpha(donutauction.Ui.accent(), 64) : -15855849,
-         var7 != null ? donutauction.Ui.accent() : -14013637
+         var7 != null ? donutauction.Ui.alpha(donutauction.Ui.accent(), 64) : donutauction.Ui.field(),
+         var7 != null ? donutauction.Ui.accent() : donutauction.Ui.border()
       );
       donutauction.Ui.text(var1, this.font, var8, var2 + var4 - var9, var3 + 7, var7 != null ? -723720 : -6513229);
       var1.fill(var2 + 4, var3 + 21, var2 + var4 - 4, var3 + 22, donutauction.Ui.alpha(donutauction.Ui.accent(), 192));
@@ -343,8 +343,8 @@ public class AuctionScreen extends Screen {
          var5 - 8,
          13,
          4,
-         -15855849,
-         this.searchBox != null && this.searchBox.isFocused() ? donutauction.Ui.accent() : -14013637
+         donutauction.Ui.field(),
+         this.searchBox != null && this.searchBox.isFocused() ? donutauction.Ui.accent() : donutauction.Ui.border()
       );
       donutauction.Ui.text(var1, this.font, "⌕", var4 + 7, this.top() + 4, -6513229);
       List var6 = this.items();
@@ -370,7 +370,7 @@ public class AuctionScreen extends Screen {
             String var19 = BuiltInRegistries.ITEM.getKey(var16).toString();
             boolean var20 = var19.equals(selectedItem);
             boolean var21 = donutauction.Ui.inside(var2, var3, var17, var18, 17, 17);
-            donutauction.Ui.round(var1, var17, var18, 17, 17, 3, var20 ? donutauction.Ui.alpha(donutauction.Ui.accent(), 96) : (var21 ? -14671569 : -15132122));
+            donutauction.Ui.round(var1, var17, var18, 17, 17, 3, var20 ? donutauction.Ui.alpha(donutauction.Ui.accent(), 96) : (var21 ? donutauction.Ui.cardHover() : donutauction.Ui.card()));
             var1.item(new ItemStack(var16), var17 + 1, var18 + 1);
             if (var21) {
                var12 = var16;
@@ -382,7 +382,7 @@ public class AuctionScreen extends Screen {
          int var22 = var9 * 18;
          int var23 = Math.max(10, var22 * var9 / (var9 + var10));
          int var24 = this.gridTop() + (var22 - var23) * gridScroll / var10;
-         var1.fill(var4 + var5 - 4, this.gridTop(), var4 + var5 - 2, this.gridTop() + var22, -13882051);
+         var1.fill(var4 + var5 - 4, this.gridTop(), var4 + var5 - 2, this.gridTop() + var22, donutauction.Ui.border());
          var1.fill(var4 + var5 - 4, var24, var4 + var5 - 2, var24 + var23, donutauction.Ui.accent());
       }
 
@@ -397,8 +397,8 @@ public class AuctionScreen extends Screen {
       int var4 = this.rightX();
       short var5 = 128;
       int var6 = this.top();
-      donutauction.Ui.box(var1, var4, var6, var5, 40, 6, -15526882, -14013637);
-      donutauction.Ui.box(var1, var4 + 6, var6 + 8, 24, 24, 5, -15855849, -14013637);
+      donutauction.Ui.box(var1, var4, var6, var5, 40, 6, -15526882, donutauction.Ui.border());
+      donutauction.Ui.box(var1, var4 + 6, var6 + 8, 24, 24, 5, donutauction.Ui.field(), donutauction.Ui.border());
       if (selectedItem == null) {
          donutauction.Ui.text(var1, this.font, "No item yet", var4 + 36, var6 + 11, -723720);
          donutauction.Ui.text(var1, this.font, "Pick one on the left", var4 + 36, var6 + 21, -10526344);
@@ -489,7 +489,7 @@ public class AuctionScreen extends Screen {
 
    private void frame(GuiGraphicsExtractor var1, int var2, int var3, int var4, EditBox var5) {
       boolean var6 = var5 != null && var5.isFocused();
-      donutauction.Ui.box(var1, var2, var3, var4, 14, 4, -15855849, var6 ? donutauction.Ui.accent() : -14013637);
+      donutauction.Ui.box(var1, var2, var3, var4, 14, 4, donutauction.Ui.field(), var6 ? donutauction.Ui.accent() : donutauction.Ui.border());
    }
 
    private static int parseInt(String var0, int var1) {
@@ -581,7 +581,7 @@ public class AuctionScreen extends Screen {
             if (var8 + 50 >= this.top() && var8 <= this.bottom()) {
                boolean var10 = donutauction.Ui.inside(var2, var3, var7, var8, var9, 50);
                donutauction.Ui.box(
-                  var1, var7, var8, var9, 50, 6, var10 ? -14671569 : -15132122, var10 ? donutauction.Ui.alpha(donutauction.Ui.accent(), 160) : -14013637
+                  var1, var7, var8, var9, 50, 6, var10 ? donutauction.Ui.cardHover() : donutauction.Ui.card(), var10 ? donutauction.Ui.alpha(donutauction.Ui.accent(), 160) : donutauction.Ui.border()
                );
                donutauction.Ui.round(var1, var7 + 6, var8 + 6, 4, 4, 2, donutauction.Ui.accent());
                donutauction.Ui.bold(var1, this.font, donutauction.Ui.ellipsize(this.font, var6.name, var9 - 24), var7 + 13, var8 + 5, -723720);
@@ -695,7 +695,7 @@ public class AuctionScreen extends Screen {
             donutauction.HistoryEntry var7 = (donutauction.HistoryEntry)var4.get(var6);
             int var8 = this.top() + 16 + var6 * 24 - listScroll;
             if (var8 + 22 >= this.top() && var8 <= this.bottom()) {
-               donutauction.Ui.box(var1, this.mainX(), var8, this.mainW(), 21, 5, -15132122, -14013637);
+               donutauction.Ui.box(var1, this.mainX(), var8, this.mainW(), 21, 5, donutauction.Ui.card(), donutauction.Ui.border());
                ItemStack var9 = donutauction.Auction.stackOf(var7.itemId);
                var1.item(var9, this.mainX() + 4, var8 + 2);
                donutauction.Ui.text(
@@ -777,7 +777,7 @@ public class AuctionScreen extends Screen {
          boolean var10 = var6.get().getAsBoolean();
          boolean var11 = donutauction.Ui.inside(var2, var3, var7, var8, var9, 22);
          donutauction.Ui.box(
-            var1, var7, var8, var9, 22, 5, var11 ? -14671569 : -15132122, var10 ? donutauction.Ui.alpha(donutauction.Ui.accent(), 160) : -14013637
+            var1, var7, var8, var9, 22, 5, var11 ? donutauction.Ui.cardHover() : donutauction.Ui.card(), var10 ? donutauction.Ui.alpha(donutauction.Ui.accent(), 160) : donutauction.Ui.border()
          );
          donutauction.Ui.text(var1, this.font, var6.label(), var7 + 6, var8 + 4, -723720);
          donutauction.Ui.text(var1, this.font, donutauction.Ui.ellipsize(this.font, var6.hint(), var9 - 34), var7 + 6, var8 + 13, -10526344);
@@ -843,8 +843,8 @@ public class AuctionScreen extends Screen {
          int var14 = this.cardY(var11);
          boolean var15 = var11 == var5;
          boolean var16 = donutauction.Ui.inside(var2, var3, var13, var14, var10, 30);
-         int var17 = var15 ? donutauction.Ui.alpha(var12[0], 46) : (var16 ? -14671569 : -15132122);
-         donutauction.Ui.box(var1, var13, var14, var10, 30, 5, var17, var15 ? var12[0] : (var16 ? donutauction.Ui.alpha(var12[0], 120) : -14013637));
+         int var17 = var15 ? donutauction.Ui.alpha(var12[0], 46) : (var16 ? donutauction.Ui.cardHover() : donutauction.Ui.card());
+         donutauction.Ui.box(var1, var13, var14, var10, 30, 5, var17, var15 ? var12[0] : (var16 ? donutauction.Ui.alpha(var12[0], 120) : donutauction.Ui.border()));
          if (var15) {
             donutauction.Ui.round(var1, var13 + 2, var14 + 2, var10 - 4, 30 - 4, 4, donutauction.Ui.alpha(var12[3], 140));
          }
@@ -855,7 +855,7 @@ public class AuctionScreen extends Screen {
          if (var15) {
             donutauction.Ui.round(var1, var13 + var10 - 10, var14 + 5, 5, 5, 2, var12[0]);
          } else {
-            donutauction.Ui.round(var1, var13 + var10 - 10, var14 + 5, 5, 5, 2, -13882051);
+            donutauction.Ui.round(var1, var13 + var10 - 10, var14 + 5, 5, 5, 2, donutauction.Ui.border());
          }
 
          int var18 = var13 + 5;
@@ -876,7 +876,7 @@ public class AuctionScreen extends Screen {
       int var24 = this.panelY();
       int var25 = this.panelW();
       int var26 = Math.min(this.bottom() - var24, 99);
-      donutauction.Ui.box(var1, var23, var24, var25, var26, 7, donutauction.Ui.alpha(-15132122, var4.seeThroughGui ? 210 : 255), -14013637);
+      donutauction.Ui.box(var1, var23, var24, var25, var26, 7, donutauction.Ui.card(), donutauction.Ui.border());
       donutauction.Ui.round(var1, var23 + 9, var24 + 6, 6, 6, 2, donutauction.Ui.accent());
       donutauction.Ui.round(var1, var23 + 12, var24 + 9, 4, 4, 1, donutauction.Ui.alpha(darker(donutauction.Ui.accent()), 255));
       donutauction.Ui.text(var1, this.font, Component.literal("EFFECTS").withStyle(ChatFormatting.BOLD), var23 + 21, var24 + 6, -6513229, 0.85F);

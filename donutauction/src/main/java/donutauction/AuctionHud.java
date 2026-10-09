@@ -38,14 +38,14 @@ public final class AuctionHud {
             if (var6.quantity > 1) {
                String var15 = "x" + var6.quantity;
                donutauction.Ui.text(
-                  var0, var7, Component.literal(var15).withStyle(ChatFormatting.BOLD), var10 + 31 - var7.width(var15) * 0.6F, var11 + 23, -723720, 0.6F
+                  var0, var7, Component.literal(var15).withStyle(ChatFormatting.BOLD), var10 + 31 - donutauction.Ui.fw(var7, var15) * 0.6F, var11 + 23, -723720, 0.6F
                );
             }
 
             int var27 = var10 + 38;
             String var16 = var4 != null ? "LIVE AUCTION" : (var6.wasCancelled() ? "CANCELLED" : (var6.topBidder() != null ? "SOLD" : "ENDED"));
             donutauction.Ui.text(var0, var7, Component.literal(var16).withStyle(ChatFormatting.BOLD), var27, var11 + 5, var4 != null ? var14 : -6513229, 0.6F);
-            float var17 = var7.width(Component.literal(var16).withStyle(ChatFormatting.BOLD)) * 0.6F;
+            float var17 = donutauction.Ui.fw(var7, Component.literal(var16).withStyle(ChatFormatting.BOLD)) * 0.6F;
             donutauction.Ui.text(
                var0, var7, Component.literal(donutauction.Ui.ellipsize(var7, var6.itemName(), 90)), var27 + var17 + 4.0F, var11 + 5, -6513229, 0.6F
             );
@@ -53,7 +53,7 @@ public final class AuctionHud {
             donutauction.Ui.text(
                var0, var7, Component.literal(var18).withStyle(ChatFormatting.BOLD), var27, var11 + 12, var6.topBidder() != null ? -723720 : -6513229, 1.0F
             );
-            float var19 = var7.width(Component.literal(var18).withStyle(ChatFormatting.BOLD));
+            float var19 = donutauction.Ui.fw(var7, Component.literal(var18).withStyle(ChatFormatting.BOLD));
             if (var6.topBidder() != null) {
                donutauction.Ui.text(var0, var7, Component.literal("by " + var6.topBidder()), var27 + var19 + 4.0F, var11 + 13.5F, var12, 0.7F);
             }
@@ -63,7 +63,7 @@ public final class AuctionHud {
                + (var3.ruleText.isBlank() ? "" : "  •  " + var3.ruleText);
             donutauction.Ui.text(var0, var7, Component.literal(var20), var27, var11 + 24, -10526344, 0.6F);
             String var21 = var4 != null ? donutauction.Ui.clock(var6.remainingMs()) : "DONE";
-            int var22 = Math.round(var7.width(var21) * 0.75F) + 10;
+            int var22 = Math.round(donutauction.Ui.fw(var7, var21) * 0.75F) + 10;
             donutauction.Ui.box(
                var0,
                var10 + 230 - var22 - 8,
@@ -77,7 +77,7 @@ public final class AuctionHud {
             donutauction.Ui.text(var0, var7, Component.literal(var21).withStyle(ChatFormatting.BOLD), var10 + 230 - var22 - 3, var11 + 8.5F, -723720, 0.75F);
             if (var4 != null && var6.bidders() > 0) {
                String var23 = var6.bidders() + (var6.bidders() == 1 ? " bidder" : " bidders");
-               donutauction.Ui.text(var0, var7, Component.literal(var23), var10 + 230 - 8 - var7.width(var23) * 0.6F, var11 + 21, -10526344, 0.6F);
+               donutauction.Ui.text(var0, var7, Component.literal(var23), var10 + 230 - 8 - donutauction.Ui.fw(var7, var23) * 0.6F, var11 + 21, -10526344, 0.6F);
             }
 
             int var28 = var10 + 8;
@@ -93,7 +93,7 @@ public final class AuctionHud {
                var0,
                var7,
                Component.literal(var26),
-               var10 + (230.0F - var7.width(var26) * 0.5F) / 2.0F + 0.0F,
+               var10 + (230.0F - donutauction.Ui.fw(var7, var26) * 0.5F) / 2.0F + 0.0F,
                var11 + 34 + 3,
                donutauction.Ui.alpha(-6513229, 144),
                0.5F
