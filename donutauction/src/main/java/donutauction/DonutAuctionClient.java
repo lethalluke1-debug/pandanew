@@ -29,7 +29,7 @@ public class DonutAuctionClient implements ClientModInitializer {
         Config.load();
         KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("donutauction", "main"));
         openKey = KeyMappingHelper.registerKeyMapping(
-                new KeyMapping("key.donutauction.open", InputConstants.Type.KEYSYM, InputConstants.KEY_J, category));
+                new KeyMapping("key.donutauction.open", InputConstants.Type.KEYSYM, InputConstants.KEY_RSHIFT, category));
 
         ClientTickEvents.END_CLIENT_TICK.register(DonutAuctionClient::tick);
         // Game (system) messages only: player chat can't pose as a payment.
