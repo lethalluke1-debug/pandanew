@@ -2,12 +2,15 @@ package donutauction;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvent;
 
 public final class Ui {
    public static final int WINDOW = -233959657;
@@ -24,7 +27,9 @@ public final class Ui {
    public static final int RED = -1035969;
    public static final int TRACK_OFF = -13882051;
    public static final int KNOB_OFF = -9210484;
-   public static final String[] PALETTE_NAMES = new String[]{"Orchid", "Ember", "Glacier", "Lagoon", "Citrus", "Sakura", "Midnight", "Ruby"};
+   public static final String[] PALETTE_NAMES = new String[]{
+      "Orchid", "Ember", "Glacier", "Lagoon", "Citrus", "Sakura", "Midnight", "Ruby", "Neon", "Honey", "Mint", "Frost"
+   };
    public static final int[][] PALETTES = new int[][]{
       {0xFF8B5CF6, 0xFFC4A1FF, 0xFF6D28D9, 0xFF140E24},
       {0xFFFF5A36, 0xFFFF9A3C, 0xFFD6264A, 0xFF24100C},
@@ -33,8 +38,34 @@ public final class Ui {
       {0xFFC6F432, 0xFFF2E85C, 0xFF7BDB3A, 0xFF171F0A},
       {0xFFFF7AB6, 0xFFFFC1DC, 0xFFE0479A, 0xFF241019},
       {0xFF6C7BFF, 0xFF9AA6FF, 0xFF3D3FD1, 0xFF10122A},
-      {0xFFE8304A, 0xFFFF6B6B, 0xFFA3162E, 0xFF220A0E}
+      {0xFFE8304A, 0xFFFF6B6B, 0xFFA3162E, 0xFF220A0E},
+      {0xFFFF2BD6, 0xFF7B2BFF, 0xFF2BE0FF, 0xFF140A22},
+      {0xFFFFB020, 0xFFFFD66B, 0xFFFF8A00, 0xFF221706},
+      {0xFF3DFFA8, 0xFFB6FFD9, 0xFF18C47A, 0xFF0A1E14},
+      {0xFFE6ECFF, 0xFF9FB4FF, 0xFF6F86E8, 0xFF12141F}
    };
+   private static final Identifier CIRCLE = id("textures/gui/circle.png");
+   private static final Identifier GLOW = id("textures/gui/glow.png");
+
+   public static Identifier id(String var0) {
+      return Identifier.fromNamespaceAndPath("donutauction", var0);
+   }
+
+   public static void tex(GuiGraphicsExtractor var0, Identifier var1, int var2, int var3, int var4, int var5, int var6) {
+      var0.blit(RenderPipelines.GUI_TEXTURED, var1, var2, var3, 0.0F, 0.0F, var4, var5, 1, 1, 1, 1, var6);
+   }
+
+   public static void icon(GuiGraphicsExtractor var0, String var1, int var2, int var3, int var4, int var5) {
+      tex(var0, id("textures/gui/icon_" + var1 + ".png"), var2, var3, var4, var4, var5);
+   }
+
+   public static void glow(GuiGraphicsExtractor var0, int var1, int var2, int var3, int var4, int var5) {
+      tex(var0, GLOW, var1, var2, var3, var4, var5);
+   }
+
+   public static void sound(String var0, float var1) {
+      Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvent.createVariableRangeEvent(id(var0)), var1, 0.45F));
+   }
 
    public static int paletteIndex() {
       int var0 = accent();
@@ -166,36 +197,17 @@ public final class Ui {
    public static void round(GuiGraphicsExtractor var0, int var1, int var2, int var3, int var4, int var5, int var6) {
       if (var3 > 0 && var4 > 0) {
          var5 = Math.min(var5, Math.min(var3, var4) / 2);
-         int var7 = Math.max(1, Minecraft.getInstance().getWindow().getGuiScale());
-         int var8 = var1 * var7;
-         int var9 = var2 * var7;
-         int var10 = var3 * var7;
-         int var11 = var4 * var7;
-         int var12 = var5 * var7;
-         float var13 = (var6 >>> 24) / 255.0F;
-         var0.pose().pushMatrix();
-         var0.pose().scale(1.0F / var7, 1.0F / var7);
-         var0.fill(var8, var9 + var12, var8 + var10, var9 + var11 - var12, var6);
-
-         for (int var14 = 0; var14 < var12; var14++) {
-            double var15 = var12 - var14 - 0.5;
-            double var17 = var12 - Math.sqrt(Math.max(0.0, (double)var12 * var12 - var15 * var15));
-            int var19 = (int)Math.ceil(var17);
-            int var20 = (int)Math.round(var13 * (var19 - var17) * 255.0);
-            int var21 = var9 + var14;
-            int var22 = var9 + var11 - 1 - var14;
-            var0.fill(var8 + var19, var21, var8 + var10 - var19, var21 + 1, var6);
-            var0.fill(var8 + var19, var22, var8 + var10 - var19, var22 + 1, var6);
-            if (var19 > 0 && var20 > 0) {
-               int var23 = alpha(var6, var20);
-               var0.fill(var8 + var19 - 1, var21, var8 + var19, var21 + 1, var23);
-               var0.fill(var8 + var10 - var19, var21, var8 + var10 - var19 + 1, var21 + 1, var23);
-               var0.fill(var8 + var19 - 1, var22, var8 + var19, var22 + 1, var23);
-               var0.fill(var8 + var10 - var19, var22, var8 + var10 - var19 + 1, var22 + 1, var23);
-            }
+         if (var5 <= 0) {
+            var0.fill(var1, var2, var1 + var3, var2 + var4, var6);
+         } else {
+            var0.fill(var1 + var5, var2, var1 + var3 - var5, var2 + var4, var6);
+            var0.fill(var1, var2 + var5, var1 + var5, var2 + var4 - var5, var6);
+            var0.fill(var1 + var3 - var5, var2 + var5, var1 + var3, var2 + var4 - var5, var6);
+            var0.blit(RenderPipelines.GUI_TEXTURED, CIRCLE, var1, var2, 0.0F, 0.0F, var5, var5, 128, 128, 256, 256, var6);
+            var0.blit(RenderPipelines.GUI_TEXTURED, CIRCLE, var1 + var3 - var5, var2, 128.0F, 0.0F, var5, var5, 128, 128, 256, 256, var6);
+            var0.blit(RenderPipelines.GUI_TEXTURED, CIRCLE, var1, var2 + var4 - var5, 0.0F, 128.0F, var5, var5, 128, 128, 256, 256, var6);
+            var0.blit(RenderPipelines.GUI_TEXTURED, CIRCLE, var1 + var3 - var5, var2 + var4 - var5, 128.0F, 128.0F, var5, var5, 128, 128, 256, 256, var6);
          }
-
-         var0.pose().popMatrix();
       }
    }
 

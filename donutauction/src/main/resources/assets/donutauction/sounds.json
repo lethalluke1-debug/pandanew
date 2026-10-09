@@ -1,0 +1,27 @@
+{
+  "click": {
+    "sounds": [
+      "donutauction:ui/click"
+    ]
+  },
+  "toggle_on": {
+    "sounds": [
+      "donutauction:ui/toggle_on"
+    ]
+  },
+  "toggle_off": {
+    "sounds": [
+      "donutauction:ui/toggle_off"
+    ]
+  },
+  "open": {
+    "sounds": [
+      "donutauction:ui/open"
+    ]
+  },
+  "select": {
+    "sounds": [
+      "donutauction:ui/select"
+    ]
+  }
+}
