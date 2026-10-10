@@ -13,6 +13,7 @@ import org.joml.Matrix3x2fStack;
 public class AuctionHud implements HudElement {
     private static final int W = 300;
     private static final float SCALE = 0.62f;
+    private static final long INTRO_MILLIS = 550;
     private static final int LOW_TIME = 10;
     private static final int RED = 0xFFFF4D5E;
     private static final int GOLD = 0xFFFFD54A;
@@ -55,6 +56,17 @@ public class AuctionHud implements HudElement {
         float y = 5 + (float) (Math.cos(t * 47) * shake * 0.8f) * SCALE;
         float rot = (float) (Math.sin(t * 38) * shake * 0.006f);
         float alpha = 1;
+        float pop = 1;
+        if (!a.ended()) {
+            // Intro: drop in from above the screen, overshoot a little, settle, and fade in.
+            long since = now - a.startedAt();
+            if (since < INTRO_MILLIS) {
+                float k = Math.max(0, since / (float) INTRO_MILLIS);
+                y -= (1 - easeOutBack(k)) * 70 * SCALE;
+                alpha = Math.min(1, k * 2.2f);
+                pop = 0.85f + 0.15f * easeOutBack(k);
+            }
+        }
         if (a.ended()) {
             long since = now - a.endsAt();
             float k = Math.min(1, since / 250f);
@@ -65,6 +77,7 @@ public class AuctionHud implements HudElement {
         }
         p.translate(x + W * SCALE / 2f, y);
         p.rotate(rot);
+        p.scale(pop);
         p.translate(-W * SCALE / 2f, 0);
         p.scale(SCALE);
 
