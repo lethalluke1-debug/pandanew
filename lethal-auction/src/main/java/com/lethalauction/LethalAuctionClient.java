@@ -33,33 +33,15 @@ public class LethalAuctionClient implements ClientModInitializer {
 
     // Dev-only: -Dlethalauction.devcycle=true opens the menu on the title screen and steps through every page.
     private static final boolean DEV_CYCLE = Boolean.getBoolean("lethalauction.devcycle");
-    private static final String[] DEV_PAGES = {"auction:filled", "recent:one", "hud:bid", "hud:low", "hud:win"};
+    private static final String[] DEV_PAGES = {"hud:bid", "hud:low", "hud:win"};
     private int devTicks = -1;
     private boolean devWorldRequested;
 
-    private static final String CHAT_PREFIX = "[Lethal Auction] ";
-
-    /** Tells the player in chat what happened to a payment that arrived during an auction. */
-    private static void announce(Auctions.BidResult r, String original) {
-        String money = r.amount() > 0 ? Auctions.formatMoney(r.amount()) : "";
-        String text = switch (r.kind()) {
-            case ACCEPTED -> r.player() + " is now the top bidder with " + money;
-            case BELOW_MINIMUM -> r.player() + " paid " + money + ", which is below the "
-                    + Auctions.formatMoney(r.auction().minimumBid()) + " minimum";
-            case NOT_HIGHER -> r.player() + " paid " + money + ", which is not higher than the top bid of "
-                    + Auctions.formatMoney(r.auction().topBid());
-            case CLOSED -> r.player() + " paid " + money + " after bidding closed";
-            case UNREADABLE -> "Couldn't read this payment, send this line to the mod dev: " + original;
-        };
+    /** Plays a sound for an accepted bid and logs payments the mod could not read. */
+    private static void onBidResult(Auctions.BidResult r, String original) {
         if (r.kind() == Auctions.BidResult.Kind.UNREADABLE) {
             LOGGER.warn("Unrecognised payment message: {}", original);
-        }
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null) {
-            mc.player.sendSystemMessage(net.minecraft.network.chat.Component.literal(CHAT_PREFIX + text)
-                    .withStyle(r.kind() == Auctions.BidResult.Kind.ACCEPTED ? ChatFormatting.GREEN : ChatFormatting.YELLOW));
-        }
-        if (r.kind() == Auctions.BidResult.Kind.ACCEPTED) {
+        } else if (r.kind() == Auctions.BidResult.Kind.ACCEPTED) {
             playClick();
         }
     }
@@ -82,12 +64,12 @@ public class LethalAuctionClient implements ClientModInitializer {
         // so players cannot fake a payment by typing it in chat.
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             String plain = ChatFormatting.stripFormatting(message.getString());
-            if (plain == null || plain.startsWith(CHAT_PREFIX)) {
+            if (plain == null) {
                 return;
             }
             Auctions.BidResult result = Auctions.onServerMessage(plain);
             if (result != null) {
-                announce(result, plain);
+                onBidResult(result, plain);
             }
         });
 
@@ -134,7 +116,7 @@ public class LethalAuctionClient implements ClientModInitializer {
                     Auctions.onServerMessage("» 7SullV ᴘᴀɪᴅ ʏᴏᴜ $51.1ᴍ.");
                 } else if (parts.length > 1 && parts[1].equals("low")) {
                     Auctions.clear();
-                    Auctions.start(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ELYTRA), 1, 0, 0, 9);
+                    Auctions.start(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ELYTRA), 1, 0, 0, 7);
                 } else if (parts.length > 1 && parts[1].equals("win")) {
                     Auctions.clear();
                     Auctions.start(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ELYTRA), 1, 0, 0, 1);

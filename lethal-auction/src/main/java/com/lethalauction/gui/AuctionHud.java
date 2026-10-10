@@ -39,26 +39,42 @@ public class AuctionHud implements HudElement {
         p.pushMatrix();
         float x = (g.guiWidth() - W * SCALE) / 2f;
         long secs = a.secondsLeft();
+        long msLeft = a.ended() ? 0 : a.endsAt() - now;
         boolean low = !a.ended() && secs <= LOW_TIME;
-        if (low) {
-            float strength = 0.6f + 2.2f * (1 - (secs - 1) / (float) LOW_TIME);
-            x += (float) (Math.sin(t * 55) * strength * SCALE);
+        // One short shake when 10 seconds are left, then constant shaking for the last 5 seconds.
+        float shake = 0;
+        if (!a.ended()) {
+            if (msLeft <= 10_000 && msLeft > 9_000) {
+                shake = 2.2f * (msLeft - 9_000) / 1000f;
+            } else if (msLeft <= 5_000) {
+                shake = 1.6f + 2.4f * (1 - msLeft / 5000f);
+            }
         }
-        float y = 5;
+        x += (float) (Math.sin(t * 55) * shake) * SCALE * 1.4f;
+        float y = 5 + (float) (Math.cos(t * 47) * shake * 0.35f) * SCALE;
+        float alpha = 1;
         if (a.ended()) {
-            // pop the result card in
-            float k = Math.min(1, (now - a.endsAt()) / 250f);
+            long since = now - a.endsAt();
+            float k = Math.min(1, since / 250f);
             y += (1 - easeOutBack(k)) * -6;
+            // fade and slide away once the celebration is over
+            alpha = Math.max(0, Math.min(1, (Auctions.RESULT_MILLIS - since) / 900f));
+            y -= (1 - alpha) * 16;
         }
         p.translate(x, y);
         p.scale(SCALE);
 
-        if (a.ended()) {
-            drawResult(g, a, t, now, won);
-        } else {
-            drawLive(g, a, t, secs, low);
+        Draw.globalAlpha = alpha;
+        try {
+            if (a.ended()) {
+                drawResult(g, a, t, now, won, alpha);
+            } else {
+                drawLive(g, a, t, secs, low);
+            }
+        } finally {
+            Draw.globalAlpha = 1f;
+            p.popMatrix();
         }
-        p.popMatrix();
     }
 
     // ---------------------------------------------------------------- running auction
@@ -70,7 +86,7 @@ public class AuctionHud implements HudElement {
         Draw.round(g, -2, -2, W + 4, h + 4, 14, Draw.alpha(low ? RED : accent, low ? 0.22f + 0.12f * pulse(t, 4) : 0.18f));
         Draw.roundBordered(g, 0, 0, W, h, 12, 0xF00F0E15, border);
 
-        floatingItem(g, a, t);
+        floatingItem(g, a, t, 1f);
 
         String title = a.hasBid() ? a.topBidder() : "No bids";
         Draw.text(g, title, 72, 22, 15, 0xFFF3F3F5, Draw.SEMIBOLD);
@@ -108,7 +124,7 @@ public class AuctionHud implements HudElement {
 
     // ---------------------------------------------------------------- result
 
-    private void drawResult(GuiGraphicsExtractor g, Auction a, float t, long now, boolean won) {
+    private void drawResult(GuiGraphicsExtractor g, Auction a, float t, long now, boolean won, float alpha) {
         int accent = Theme.accent();
         int h = 72;
         if (won) {
@@ -118,32 +134,42 @@ public class AuctionHud implements HudElement {
         } else {
             Draw.roundBordered(g, 0, 0, W, h, 12, 0xF00F0E15, Draw.lerpColor(0xFF2A2633, accent, 0.3f));
         }
-        floatingItem(g, a, t);
+        floatingItem(g, a, t, alpha);
 
         if (won) {
-            animatedName(g, a.topBidder(), 74, 26, t, now - a.endsAt());
-            Draw.text(g, "won for " + compact(a.topBid()), 74, 50, 13, GREEN, Draw.SEMIBOLD);
+            long since = now - a.endsAt();
+            animatedName(g, a.topBidder(), 74, 26, t, since);
+            float subIn = Math.max(0, Math.min(1, (since - 250) / 300f));
+            float bounce = (float) Math.sin(t * 5) * 1.2f;
+            Draw.text(g, "won for " + compact(a.topBid()), 74 + (1 - subIn) * 12, 51 + bounce, 13,
+                    Draw.alpha(GREEN, subIn), Draw.SEMIBOLD);
         } else {
             Draw.text(g, "Auction ended", 74, 26, 15, 0xFFF3F3F5, Draw.SEMIBOLD);
             Draw.text(g, "No winner", 74, 50, 13, 0xFF9C9CA6, Draw.MEDIUM);
         }
     }
 
-    /** Winner name: letters pop in one by one, then wave and shimmer between gold and the theme colour. */
+    /** Winner name: letters pop in one by one, then keep waving, pulsing and shimmering gold / theme colour. */
     private void animatedName(GuiGraphicsExtractor g, String name, float x, float cy, float t, long sinceEnd) {
-        float size = 17;
+        float size = 18;
         int light = Theme.accentLight();
+        Matrix3x2fStack p = g.pose();
         float cx = x;
         for (int i = 0; i < name.length(); i++) {
             String ch = String.valueOf(name.charAt(i));
-            float appear = Math.max(0, Math.min(1, (sinceEnd - i * 45) / 220f));
             float charW = Draw.width(ch, size, Draw.SEMIBOLD);
+            float appear = Math.max(0, Math.min(1, (sinceEnd - i * 55) / 260f));
             if (appear > 0) {
-                float wave = (float) Math.sin(t * 6 - i * 0.55) * 2.2f;
-                float pop = (1 - easeOutBack(appear)) * 10;
-                float shimmer = 0.5f + 0.5f * (float) Math.sin(t * 4 - i * 0.45);
+                float wave = (float) Math.sin(t * 7 - i * 0.7) * 4.5f;
+                float pop = (1 - easeOutBack(appear)) * 14;
+                float scale = 1 + 0.18f * (float) Math.max(0, Math.sin(t * 7 - i * 0.7));
+                float shimmer = 0.5f + 0.5f * (float) Math.sin(t * 5 - i * 0.6);
                 int color = Draw.alpha(Draw.lerpColor(GOLD, light, shimmer), appear);
-                Draw.text(g, ch, cx, cy + wave + pop, size, color, Draw.SEMIBOLD);
+                p.pushMatrix();
+                p.translate(cx + charW / 2f, cy + wave + pop);
+                p.scale(scale);
+                Draw.text(g, ch, -charW / 2f, 0, size, color, Draw.SEMIBOLD);
+                p.popMatrix();
             }
             cx += charW;
         }
@@ -151,16 +177,21 @@ public class AuctionHud implements HudElement {
 
     // ---------------------------------------------------------------- shared pieces
 
-    /** The item gently floats up and down inside its box. */
-    private void floatingItem(GuiGraphicsExtractor g, Auction a, float t) {
+    /** The item floats up and down (with a little tilt) inside its box. */
+    private void floatingItem(GuiGraphicsExtractor g, Auction a, float t, float alpha) {
         Draw.roundBordered(g, 10, 10, 52, 52, 10, 0xFF0C0B11, 0xFF2A2633);
-        float bob = (float) Math.sin(t * 2.6) * 3f;
-        Draw.round(g, 22, 52, 28, 3, 1, Draw.alpha(0xFF000000, 0.35f - bob * 0.03f));
+        float bob = (float) Math.sin(t * 2.4) * 5.5f;
+        float tilt = (float) Math.sin(t * 1.7) * 0.12f;
+        float size = 2.1f * (0.55f + 0.45f * alpha);
+        Draw.round(g, 24 + Math.round(bob * 0.4f), 55, 24 - Math.round(bob * 0.8f), 3, 1, Draw.alpha(0xFF000000, 0.4f - bob * 0.03f));
         Matrix3x2fStack p = g.pose();
         p.pushMatrix();
-        p.translate(18, 16 + bob);
-        p.scale(2.25f);
-        g.item(a.item(), 0, 0);
+        p.translate(36, 34 + bob);
+        p.rotate(tilt);
+        p.scale(size);
+        if (alpha > 0.05f) {
+            g.item(a.item(), -8, -8);
+        }
         p.popMatrix();
         if (a.quantity() > 1) {
             Draw.textRight(g, "x" + a.quantity(), 58, 55, 10.5f, 0xFFFFFFFF, Draw.SEMIBOLD);

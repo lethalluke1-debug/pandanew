@@ -17,6 +17,9 @@ public final class Draw {
     public static final Identifier ICONS = id("icons");
     public static final Identifier ICONS_FILLED = id("icons_filled");
 
+    /** Opacity applied to everything drawn (used to fade the auction card out). */
+    public static float globalAlpha = 1f;
+
     /** Distance from the top of a line of text to its visual middle, in font units (font size 10). */
     static float textMid = 4.0f;
 
@@ -42,7 +45,7 @@ public final class Draw {
         p.translate(x, cy);
         p.scale(size / 10f);
         p.translate(0, -textMid);
-        g.text(Minecraft.getInstance().font, comp(s, font), 0, 0, color, false);
+        g.text(Minecraft.getInstance().font, comp(s, font), 0, 0, faded(color), false);
         p.popMatrix();
     }
 
@@ -70,7 +73,7 @@ public final class Draw {
 
     public static void rect(GuiGraphicsExtractor g, int x, int y, int w, int h, int color) {
         if (w > 0 && h > 0) {
-            g.fill(x, y, x + w, y + h, color);
+            g.fill(x, y, x + w, y + h, faded(color));
         }
     }
 
@@ -114,7 +117,11 @@ public final class Draw {
 
     private static void corner(GuiGraphicsExtractor g, int x, int y, int r, int u, int v, int color) {
         int q = r * ATLAS_SCALE;
-        g.blit(RenderPipelines.GUI_TEXTURED, CORNERS, x, y, u, v, r, r, q, q, ATLAS_W, ATLAS_H, color);
+        g.blit(RenderPipelines.GUI_TEXTURED, CORNERS, x, y, u, v, r, r, q, q, ATLAS_W, ATLAS_H, faded(color));
+    }
+
+    private static int faded(int color) {
+        return globalAlpha >= 1f ? color : alpha(color, globalAlpha);
     }
 
     /** Multiplies a colour's alpha by f. */
