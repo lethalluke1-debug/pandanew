@@ -24,6 +24,7 @@ public final class Auctions {
         private long topBid;
         private boolean finished;
         private long finishedAt;
+        private boolean cancelled;
 
         Auction(ItemStack item, int quantity, long minimumBid, long worthEach, int timerSeconds, long startedAt) {
             this.item = item;
@@ -75,19 +76,30 @@ public final class Auctions {
         }
 
         public long secondsLeft() {
+            if (cancelled) {
+                return 0;
+            }
             long ms = endsAt() - System.currentTimeMillis();
             return ms <= 0 ? 0 : (ms + 999) / 1000;
         }
 
-        /** True once the timer has run out. No more bids are accepted after this. */
+        /** True once the timer has run out or the auction was cancelled. No more bids are accepted after this. */
         public boolean ended() {
-            return System.currentTimeMillis() >= endsAt();
+            return cancelled || System.currentTimeMillis() >= endsAt();
+        }
+
+        public boolean cancelled() {
+            return cancelled;
+        }
+
+        public void cancel() {
+            cancelled = true;
         }
 
         /** Fraction of the timer still remaining, from 1 down to 0. */
         public float progressLeft() {
             float total = timerSeconds * 1000f;
-            return total <= 0 ? 0 : Math.max(0, (endsAt() - System.currentTimeMillis()) / total);
+            return total <= 0 || cancelled ? 0 : Math.max(0, (endsAt() - System.currentTimeMillis()) / total);
         }
 
         /** Set once the end has been processed (winner announced). */
@@ -99,25 +111,41 @@ public final class Auctions {
             return finishedAt;
         }
 
-        boolean offer(String player, long amount) {
-            if (ended() || amount < Math.max(1, minimumBid) || amount <= topBid) {
-                return false;
+        BidResult.Kind offer(String player, long amount) {
+            if (ended()) {
+                return BidResult.Kind.CLOSED;
+            }
+            if (amount < Math.max(1, minimumBid)) {
+                return BidResult.Kind.BELOW_MINIMUM;
+            }
+            if (amount <= topBid) {
+                return BidResult.Kind.NOT_HIGHER;
             }
             topBidder = player;
             topBid = amount;
-            return true;
+            return BidResult.Kind.ACCEPTED;
         }
+    }
+
+    /** What happened to a payment that arrived while an auction was running. */
+    public record BidResult(Kind kind, Auction auction, String player, long amount) {
+        public enum Kind { ACCEPTED, BELOW_MINIMUM, NOT_HIGHER, CLOSED, UNREADABLE }
     }
 
     private static final List<Auction> RECENT = new ArrayList<>();
 
-    /** DonutSMP-style payment messages. Group "name" is the payer, group "amount" the money. */
-    private static final String AMOUNT = "\\$?(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)";
-    private static final String NAME = "(?<name>[A-Za-z0-9_.]{2,16})";
+    /** Payment messages. Group "name" is the payer, group "amount" the money. */
+    private static final String AMOUNT = "\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b";
+    private static final String NAME = "(?<name>[A-Za-z0-9_]{2,16})";
     private static final List<Pattern> PAYMENT_PATTERNS = List.of(
-            Pattern.compile("^" + NAME + " (?:has )?(?:paid|sent) you " + AMOUNT, Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^you (?:have )?received " + AMOUNT + " from " + NAME, Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^\\+\\s*" + AMOUNT + " (?:from|by) " + NAME, Pattern.CASE_INSENSITIVE));
+            Pattern.compile("^" + NAME + " (?:has )?(?:just )?(?:paid|sent|gave|given) you " + AMOUNT, Pattern.CASE_INSENSITIVE),
+            Pattern.compile("^you (?:have )?(?:just )?(?:received|got|been paid|were paid|was paid) " + AMOUNT
+                    + "(?: dollars| coins| money)? (?:from|by) " + NAME, Pattern.CASE_INSENSITIVE),
+            Pattern.compile("^\\+\\s*" + AMOUNT + " (?:from|by) " + NAME, Pattern.CASE_INSENSITIVE),
+            Pattern.compile("^" + AMOUNT + " (?:has been |was )?(?:received|paid to you|sent to you) (?:from|by) " + NAME, Pattern.CASE_INSENSITIVE));
+    /** Leading decorations servers put before messages: [tags], (tags) and symbol runs like "»" or "$ |". */
+    private static final Pattern PREFIX = Pattern.compile("^(?:\\[[^\\]]{0,24}\\]|\\([^)]{0,24}\\)|[^A-Za-z0-9$+]+)\\s*");
+    private static final String SMALL_CAPS = "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ";
 
     private Auctions() {
     }
@@ -135,36 +163,75 @@ public final class Auctions {
         }
         if (!RECENT.isEmpty()) {
             Auction last = RECENT.get(0);
-            if (System.currentTimeMillis() - last.endsAt() < RESULT_MILLIS) {
+            if (!last.cancelled() && System.currentTimeMillis() - last.endsAt() < RESULT_MILLIS) {
                 return last;
             }
         }
         return null;
     }
 
+    /** Converts small-caps letters (used by many servers) to normal letters and tidies spaces. */
+    static String normalize(String text) {
+        StringBuilder sb = new StringBuilder(text.length());
+        text.codePoints().forEach(c -> {
+            int idx = SMALL_CAPS.indexOf(c);
+            if (idx >= 0 && c != 'x') {
+                sb.append((char) ('a' + idx));
+            } else if (Character.isSpaceChar(c)) {
+                sb.append(' ');
+            } else {
+                sb.appendCodePoint(c);
+            }
+        });
+        return sb.toString().replaceAll("\\s+", " ").trim();
+    }
+
     /**
-     * Handles a server (system) chat message. If it is a payment to us while an auction is running,
-     * it becomes a bid. Returns the auction that took the bid, or null.
+     * Handles a server (system) message. If it is a payment to us while an auction is running, it is
+     * offered as a bid. Returns what happened, or null if the message is not about a payment.
      */
-    public static Auction onServerMessage(String plain) {
-        String text = plain.trim();
+    public static BidResult onServerMessage(String plain) {
+        Auction live = running();
+        if (live == null) {
+            return null;
+        }
+        String text = normalize(plain);
+        for (int i = 0; i < 4; i++) {
+            Matcher pm = PREFIX.matcher(text);
+            if (!pm.find() || pm.end() == 0) {
+                break;
+            }
+            text = text.substring(pm.end());
+        }
         for (Pattern p : PAYMENT_PATTERNS) {
             Matcher m = p.matcher(text);
             if (m.find()) {
                 long amount = parseAmount(m.group("amount").replace(" ", ""));
                 if (amount > 0) {
-                    return bid(m.group("name"), amount);
+                    String name = m.group("name");
+                    return new BidResult(live.offer(name, amount), live, name, amount);
                 }
             }
         }
-        return null;
+        String lower = text.toLowerCase(Locale.ROOT);
+        String head = lower.substring(0, Math.min(24, lower.length()));
+        boolean looksLikePayment = (lower.contains("paid you") || lower.contains("received") || lower.contains("sent you")
+                || lower.contains("gave you")) && lower.contains("$") && lower.matches(".*[0-9].*")
+                && !head.contains(":") && !head.contains(">");
+        return looksLikePayment ? new BidResult(BidResult.Kind.UNREADABLE, live, null, 0) : null;
     }
 
-    /** Applies a payment as a bid on the running auction. Returns that auction if the bid was taken. */
-    public static Auction bid(String player, long amount) {
+    /** Offers a payment as a bid on the running auction. */
+    public static BidResult bid(String player, long amount) {
+        Auction live = running();
+        return live == null ? null : new BidResult(live.offer(player, amount), live, player, amount);
+    }
+
+    /** The auction currently taking bids, or null. */
+    public static Auction running() {
         for (Auction a : RECENT) {
             if (!a.ended()) {
-                return a.offer(player, amount) ? a : null;
+                return a;
             }
         }
         return null;
@@ -175,7 +242,7 @@ public final class Auctions {
         List<Auction> justFinished = new ArrayList<>();
         long now = System.currentTimeMillis();
         for (Auction a : RECENT) {
-            if (!a.finished && a.ended()) {
+            if (!a.finished && a.ended() && !a.cancelled) {
                 a.finished = true;
                 a.finishedAt = now;
                 justFinished.add(a);

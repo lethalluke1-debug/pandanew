@@ -37,6 +37,33 @@ public class LethalAuctionClient implements ClientModInitializer {
     private int devTicks = -1;
     private boolean devWorldRequested;
 
+    private static final String CHAT_PREFIX = "[Lethal Auction] ";
+
+    /** Tells the player in chat what happened to a payment that arrived during an auction. */
+    private static void announce(Auctions.BidResult r, String original) {
+        String money = r.amount() > 0 ? Auctions.formatMoney(r.amount()) : "";
+        String text = switch (r.kind()) {
+            case ACCEPTED -> r.player() + " is now the top bidder with " + money;
+            case BELOW_MINIMUM -> r.player() + " paid " + money + ", which is below the "
+                    + Auctions.formatMoney(r.auction().minimumBid()) + " minimum";
+            case NOT_HIGHER -> r.player() + " paid " + money + ", which is not higher than the top bid of "
+                    + Auctions.formatMoney(r.auction().topBid());
+            case CLOSED -> r.player() + " paid " + money + " after bidding closed";
+            case UNREADABLE -> "Couldn't read this payment, send this line to the mod dev: " + original;
+        };
+        if (r.kind() == Auctions.BidResult.Kind.UNREADABLE) {
+            LOGGER.warn("Unrecognised payment message: {}", original);
+        }
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null) {
+            mc.player.sendSystemMessage(net.minecraft.network.chat.Component.literal(CHAT_PREFIX + text)
+                    .withStyle(r.kind() == Auctions.BidResult.Kind.ACCEPTED ? ChatFormatting.GREEN : ChatFormatting.YELLOW));
+        }
+        if (r.kind() == Auctions.BidResult.Kind.ACCEPTED) {
+            playClick();
+        }
+    }
+
     /** Plays the menu click sound, if module sounds are enabled. */
     public static void playClick() {
         if (LethalConfig.moduleSound) {
@@ -54,8 +81,13 @@ public class LethalAuctionClient implements ClientModInitializer {
         // Payments from the server count as bids on the running auction. Only system messages are used,
         // so players cannot fake a payment by typing it in chat.
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-            if (!overlay && Auctions.onServerMessage(ChatFormatting.stripFormatting(message.getString())) != null) {
-                playClick();
+            String plain = ChatFormatting.stripFormatting(message.getString());
+            if (plain == null || plain.startsWith(CHAT_PREFIX)) {
+                return;
+            }
+            Auctions.BidResult result = Auctions.onServerMessage(plain);
+            if (result != null) {
+                announce(result, plain);
             }
         });
 
@@ -99,7 +131,7 @@ public class LethalAuctionClient implements ClientModInitializer {
                 } else if (parts.length > 1 && parts[1].equals("bid")) {
                     Auctions.clear();
                     Auctions.start(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ELYTRA), 1, 45_000_000, 377_000_000, 90);
-                    Auctions.onServerMessage("7SullV paid you $51.1M.");
+                    Auctions.onServerMessage("» 7SullV ᴘᴀɪᴅ ʏᴏᴜ $51.1ᴍ.");
                 } else if (parts.length > 1 && parts[1].equals("low")) {
                     Auctions.clear();
                     Auctions.start(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ELYTRA), 1, 0, 0, 9);

@@ -324,7 +324,7 @@ public class LethalScreen extends Screen {
     private float gridScroll, gridScrollTarget, gridMaxScroll;
     private float mouseDX, mouseDY;
     private int rawMouseX, rawMouseY;
-    private long startedMessageUntil;
+    private long startedMessageUntil, cancelledMessageUntil;
 
     private List<ItemStack> items() {
         if (allItems.isEmpty()) {
@@ -476,6 +476,9 @@ public class LethalScreen extends Screen {
         if (System.currentTimeMillis() < startedMessageUntil) {
             hint = "Auction started! See Recent Auctions.";
             hintColor = accentLight;
+        } else if (System.currentTimeMillis() < cancelledMessageUntil) {
+            hint = "Auction cancelled.";
+            hintColor = 0xFFFF8A95;
         } else if (!selected.isEmpty() && !minBid.value.isEmpty() && bid <= 0) {
             hint = "Enter a valid minimum bid (e.g. 2500 or 2.5k).";
         } else if (ready && each > 0) {
@@ -495,7 +498,16 @@ public class LethalScreen extends Screen {
             Draw.roundBordered(g, 652, 420, 361, 32, 6, surface(0xFF15141B), 0xFF23212A);
             Draw.textCentered(g, "Start Auction", 832.5f, 436.5f, 12.5f, 0xFF5E5C66, Draw.SEMIBOLD);
         }
-        button(g, 652, 462, 361, 32, "Cancel", surface(0xFF15141B), BUTTON_BORDER, WHITE, this::resetForm);
+        Auction running = Auctions.running();
+        if (running != null) {
+            button(g, 652, 462, 361, 32, "Cancel Auction", surface(0xFF2A0F14), 0xFF7A2230, 0xFFFF8A95, () -> {
+                running.cancel();
+                cancelledMessageUntil = System.currentTimeMillis() + 3000;
+                startedMessageUntil = 0;
+            });
+        } else {
+            button(g, 652, 462, 361, 32, "Cancel", surface(0xFF15141B), BUTTON_BORDER, WHITE, this::resetForm);
+        }
         return t + 452;
     }
 
@@ -692,6 +704,9 @@ public class LethalScreen extends Screen {
             if (live) {
                 Draw.round(g, 888, y + 15, 76, 24, 12, accentDark);
                 Draw.textCentered(g, Auctions.formatTime(a.secondsLeft()), 926, y + 27.5f, 12, accentLight, Draw.SEMIBOLD);
+            } else if (a.cancelled()) {
+                Draw.round(g, 888, y + 15, 76, 24, 12, 0xFF2A0F14);
+                Draw.textCentered(g, "Cancelled", 926, y + 27.5f, 11.5f, 0xFFFF8A95, Draw.SEMIBOLD);
             } else if (a.hasBid()) {
                 Draw.round(g, 888, y + 15, 76, 24, 12, 0xFF123524);
                 Draw.textCentered(g, "Sold", 926, y + 27.5f, 12, 0xFF45E08A, Draw.SEMIBOLD);
