@@ -46,9 +46,6 @@ public class LethalScreen extends Screen {
     static final int BUTTON_BORDER = 0xFF34323C;
     static final int RED = 0xFFC4141C;
 
-    static final int DEFAULT_ACCENT = 0xFFE000FD;
-    static final int DEFAULT_TINT = 0xFFA611FB;
-
     // Icon code points (Tabler Icons)
     static final int I_GAVEL = 0xef90, I_HISTORY = 0xebea, I_SETTINGS = 0xeb20, I_PALETTE = 0xeb01,
             I_SEARCH = 0xeb1c, I_LEFT = 0xea60, I_RIGHT = 0xea61, I_DOWN = 0xea5f, I_DESKTOP = 0xea89,
@@ -129,16 +126,10 @@ public class LethalScreen extends Screen {
     }
 
     private void refreshTheme() {
-        int p = LethalConfig.preset;
-        if (p >= 0 && p < PRESET_COLORS.length) {
-            accent = 0xFF000000 | PRESET_COLORS[p][0];
-            tint = accent;
-        } else {
-            accent = DEFAULT_ACCENT;
-            tint = DEFAULT_TINT;
-        }
-        accentDark = Draw.lerpColor(accent, 0xFF000000, 0.55f);
-        accentLight = Draw.lerpColor(accent, 0xFFFFFFFF, 0.65f);
+        accent = Theme.accent();
+        tint = Theme.tint();
+        accentDark = Theme.accentDark();
+        accentLight = Theme.accentLight();
         surfaceAlpha = LethalConfig.seeThrough ? 0.72f : 1f;
     }
 
@@ -462,8 +453,7 @@ public class LethalScreen extends Screen {
             pose.scale(2.5f);
             g.item(selected, 0, 0);
             pose.popMatrix();
-            Draw.text(g, fit(selected.getHoverName().getString(), 260, 13, Draw.SEMIBOLD), 738, 88, 13, WHITE, Draw.SEMIBOLD);
-            Draw.text(g, BuiltInRegistries.ITEM.getKey(selected.getItem()).toString(), 738, 108, 11.5f, SUBTLE, Draw.REGULAR);
+            Draw.text(g, fit(selected.getHoverName().getString(), 260, 14, Draw.SEMIBOLD), 738, 99, 14, WHITE, Draw.SEMIBOLD);
         }
 
         Draw.text(g, "Minimum bid", 664, 162, 12.5f, TEXT, Draw.MEDIUM);

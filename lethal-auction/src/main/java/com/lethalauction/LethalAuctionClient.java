@@ -1,10 +1,12 @@
 package com.lethalauction;
 
+import com.lethalauction.gui.AuctionHud;
 import com.lethalauction.gui.LethalScreen;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -27,7 +29,7 @@ public class LethalAuctionClient implements ClientModInitializer {
 
     // Dev-only: -Dlethalauction.devcycle=true opens the menu on the title screen and steps through every page.
     private static final boolean DEV_CYCLE = Boolean.getBoolean("lethalauction.devcycle");
-    private static final String[] DEV_PAGES = {"auction", "auction:filled", "recent", "recent:one", "settings", "theme"};
+    private static final String[] DEV_PAGES = {"auction", "auction:filled", "recent:one", "hud", "theme"};
     private int devTicks = -1;
     private boolean devWorldRequested;
 
@@ -41,6 +43,7 @@ public class LethalAuctionClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         LethalConfig.load();
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("lethalauction", "auction"), new AuctionHud());
         openMenu = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.lethalauction.open", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, CATEGORY));
 
@@ -77,7 +80,7 @@ public class LethalAuctionClient implements ClientModInitializer {
                     com.lethalauction.auction.Auctions.start(new net.minecraft.world.item.ItemStack(
                             net.minecraft.world.item.Items.DIAMOND), 64, 12_500, 300, 90);
                 }
-                mc.gui.setScreen(screen);
+                mc.gui.setScreen(parts[0].equals("hud") ? null : screen);
                 System.out.println("LA_PAGE " + DEV_PAGES[i].replace(':', '-'));
             } else if (i == DEV_PAGES.length) {
                 LethalConfig.resetTheme();

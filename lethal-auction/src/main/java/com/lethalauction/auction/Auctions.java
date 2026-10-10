@@ -17,6 +17,12 @@ public final class Auctions {
         public boolean ended() {
             return secondsLeft() == 0;
         }
+
+        /** Fraction of the timer still remaining, from 1 down to 0. */
+        public float progressLeft() {
+            float total = timerSeconds * 1000f;
+            return total <= 0 ? 0 : Math.max(0, 1 - (System.currentTimeMillis() - startedAt) / total);
+        }
     }
 
     private static final List<Auction> RECENT = new ArrayList<>();
@@ -26,6 +32,23 @@ public final class Auctions {
 
     public static void start(ItemStack item, int quantity, long minimumBid, long worthEach, int timerSeconds) {
         RECENT.add(0, new Auction(item.copy(), quantity, minimumBid, worthEach, timerSeconds, System.currentTimeMillis()));
+    }
+
+    /** The newest running auction, or the newest one if it ended less than 5 seconds ago. */
+    public static Auction current() {
+        for (Auction a : RECENT) {
+            if (!a.ended()) {
+                return a;
+            }
+        }
+        if (!RECENT.isEmpty()) {
+            Auction last = RECENT.get(0);
+            long endedAt = last.startedAt() + last.timerSeconds() * 1000L;
+            if (System.currentTimeMillis() - endedAt < 5000) {
+                return last;
+            }
+        }
+        return null;
     }
 
     public static List<Auction> recent() {

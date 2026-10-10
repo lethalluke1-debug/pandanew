@@ -74,63 +74,47 @@ public final class Draw {
         }
     }
 
-    /** Filled rounded rectangle with horizontally anti-aliased corners. */
+    private static final Identifier CORNERS = id("textures/gui/corners.png");
+    private static final int ATLAS_W = 400, ATLAS_H = 2500, ATLAS_SCALE = 4, MAX_RADIUS = 24;
+
+    /** Filled rounded rectangle: four anti-aliased corner sprites plus three rectangles. */
     public static void round(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int color) {
-        r = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+        r = Math.max(0, Math.min(Math.min(r, MAX_RADIUS), Math.min(w, h) / 2));
         if (r == 0) {
             rect(g, x, y, w, h, color);
             return;
         }
-        int alpha = color >>> 24;
-        int rgb = color & 0xFFFFFF;
-        rect(g, x, y + r, w, h - 2 * r, color);
-        for (int i = 0; i < r; i++) {
-            double dy = r - i - 0.5;
-            double inset = r - Math.sqrt(Math.max(0, (double) r * r - dy * dy));
-            int full = (int) Math.ceil(inset);
-            int edgeAlpha = (int) Math.round(alpha * (full - inset));
-            int yTop = y + i;
-            int yBot = y + h - 1 - i;
-            rect(g, x + full, yTop, w - 2 * full, 1, color);
-            rect(g, x + full, yBot, w - 2 * full, 1, color);
-            if (edgeAlpha > 0 && full > 0) {
-                int ec = (edgeAlpha << 24) | rgb;
-                rect(g, x + full - 1, yTop, 1, 1, ec);
-                rect(g, x + w - full, yTop, 1, 1, ec);
-                rect(g, x + full - 1, yBot, 1, 1, ec);
-                rect(g, x + w - full, yBot, 1, 1, ec);
-            }
-        }
+        corners(g, x, y, w, h, r, 2, color);
+        rect(g, x + r, y, w - 2 * r, h, color);
+        rect(g, x, y + r, r, h - 2 * r, color);
+        rect(g, x + w - r, y + r, r, h - 2 * r, color);
     }
 
     /** Rounded rectangle with a 1-unit border ring. Works with translucent colours. */
     public static void roundBordered(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int fill, int border) {
-        r = Math.max(1, Math.min(r, Math.min(w, h) / 2));
-        round(g, x + 1, y + 1, w - 2, h - 2, r - 1, fill);
+        r = Math.max(1, Math.min(Math.min(r, MAX_RADIUS), Math.min(w, h) / 2));
+        if ((fill >>> 24) != 0) {
+            round(g, x + 1, y + 1, w - 2, h - 2, r - 1, fill);
+        }
+        corners(g, x, y, w, h, r, 8 * r + 6, border);
         rect(g, x + r, y, w - 2 * r, 1, border);
         rect(g, x + r, y + h - 1, w - 2 * r, 1, border);
         rect(g, x, y + r, 1, h - 2 * r, border);
         rect(g, x + w - 1, y + r, 1, h - 2 * r, border);
-        for (int j = 0; j < r; j++) {
-            int outer = cornerInset(r, j);
-            int inner = j == 0 ? r : 1 + cornerInset(r - 1, j - 1);
-            int len = Math.max(1, inner - outer);
-            if (j == 0) {
-                len = r - outer;
-            }
-            rect(g, x + outer, y + j, len, 1, border);
-            rect(g, x + w - outer - len, y + j, len, 1, border);
-            rect(g, x + outer, y + h - 1 - j, len, 1, border);
-            rect(g, x + w - outer - len, y + h - 1 - j, len, 1, border);
-        }
     }
 
-    private static int cornerInset(int r, int row) {
-        if (r <= 0 || row >= r) {
-            return 0;
-        }
-        double dy = r - row - 0.5;
-        return (int) Math.ceil(r - Math.sqrt(Math.max(0, (double) r * r - dy * dy)));
+    private static void corners(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int cellX, int color) {
+        int cellY = 4 * r * r - 2;
+        int q = r * ATLAS_SCALE;
+        corner(g, x, y, r, cellX, cellY, color);
+        corner(g, x + w - r, y, r, cellX + q, cellY, color);
+        corner(g, x, y + h - r, r, cellX, cellY + q, color);
+        corner(g, x + w - r, y + h - r, r, cellX + q, cellY + q, color);
+    }
+
+    private static void corner(GuiGraphicsExtractor g, int x, int y, int r, int u, int v, int color) {
+        int q = r * ATLAS_SCALE;
+        g.blit(RenderPipelines.GUI_TEXTURED, CORNERS, x, y, u, v, r, r, q, q, ATLAS_W, ATLAS_H, color);
     }
 
     /** Multiplies a colour's alpha by f. */
