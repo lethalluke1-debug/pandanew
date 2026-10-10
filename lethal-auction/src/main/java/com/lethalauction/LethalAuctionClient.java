@@ -27,7 +27,7 @@ public class LethalAuctionClient implements ClientModInitializer {
 
     // Dev-only: -Dlethalauction.devcycle=true opens the menu on the title screen and steps through every page.
     private static final boolean DEV_CYCLE = Boolean.getBoolean("lethalauction.devcycle");
-    private static final String[] DEV_PAGES = {"auction", "settings", "recent", "theme", "theme:electric", "auction:flat"};
+    private static final String[] DEV_PAGES = {"auction", "auction:filled", "recent", "recent:one", "settings", "theme"};
     private int devTicks = -1;
 
     /** Plays the menu click sound, if module sounds are enabled. */
@@ -66,14 +66,14 @@ public class LethalAuctionClient implements ClientModInitializer {
             int i = devTicks / 120;
             if (i < DEV_PAGES.length) {
                 String[] parts = DEV_PAGES[i].split(":");
-                if (parts.length > 1 && parts[1].equals("electric")) {
-                    LethalConfig.preset = 2;
-                    LethalConfig.seeThrough = true;
-                } else if (parts.length > 1 && parts[1].equals("flat")) {
-                    LethalConfig.ambientBackground = false;
-                    LethalConfig.frostedBlur = false;
+                LethalScreen screen = new LethalScreen().showPage(parts[0]);
+                if (parts.length > 1 && parts[1].equals("filled")) {
+                    screen.devFillForm();
+                } else if (parts.length > 1 && parts[1].equals("one")) {
+                    com.lethalauction.auction.Auctions.start(new net.minecraft.world.item.ItemStack(
+                            net.minecraft.world.item.Items.DIAMOND), 64, 12_500, 300, 90);
                 }
-                mc.gui.setScreen(new LethalScreen().showPage(parts[0]));
+                mc.gui.setScreen(screen);
                 System.out.println("LA_PAGE " + DEV_PAGES[i].replace(':', '-'));
             } else if (i == DEV_PAGES.length) {
                 LethalConfig.resetTheme();

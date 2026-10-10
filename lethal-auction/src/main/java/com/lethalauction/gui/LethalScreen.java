@@ -2,27 +2,33 @@ package com.lethalauction.gui;
 
 import com.lethalauction.LethalAuctionClient;
 import com.lethalauction.LethalConfig;
-import com.lethalauction.gui.Modules.Module;
-import com.lethalauction.gui.Modules.Setting;
+import com.lethalauction.auction.Auctions;
+import com.lethalauction.auction.Auctions.Auction;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.resources.DefaultPlayerSkin;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.PlayerSkin;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
 /**
  * The Lethal Auction menu. Everything is laid out in a fixed 1036x518 "design space" that is scaled to
  * the window, so it keeps the same proportions at every GUI scale. The sidebar tabs, theme presets, theme
- * effects and the module sound toggle work; the other buttons only play the click sound.
+ * effects, the module sound toggle and the auction pages work; other buttons only play the click sound.
  */
 public class LethalScreen extends Screen {
     static final int DW = 1036;
@@ -47,7 +53,6 @@ public class LethalScreen extends Screen {
     static final int I_GAVEL = 0xef90, I_HISTORY = 0xebea, I_SETTINGS = 0xeb20, I_PALETTE = 0xeb01,
             I_SEARCH = 0xeb1c, I_LEFT = 0xea60, I_RIGHT = 0xea61, I_DOWN = 0xea5f, I_DESKTOP = 0xea89,
             I_MUSIC = 0xeafc, I_X = 0xeb55, I_RESET = 0xeb15, I_SPARKLES = 0xf6d7, I_COMMAND = 0xea78;
-    static final int IF_INFO = 0xf6d8;
 
     static final Identifier TEX_FRAME = Draw.id("textures/gui/frame.png");
     static final Identifier TEX_SIDEBAR = Draw.id("textures/gui/sidebar.png");
@@ -91,7 +96,6 @@ public class LethalScreen extends Screen {
     private final float[] scrollTarget = new float[Page.values().length];
     private final float[] scroll = new float[Page.values().length];
     private final float[] maxScroll = new float[Page.values().length];
-    private final List<Module> auctionLeft = Modules.auctionLeft(), auctionRight = Modules.auctionRight();
     private final List<Hotspot> hotspots = new ArrayList<>();
     private boolean clipping;
 
@@ -174,6 +178,10 @@ public class LethalScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         layout();
+        rawMouseX = mouseX;
+        rawMouseY = mouseY;
+        mouseDX = toDesignX(mouseX);
+        mouseDY = toDesignY(mouseY);
         refreshTheme();
         hotspots.clear();
 
@@ -202,7 +210,7 @@ public class LethalScreen extends Screen {
         clipping = true;
         int top = Math.round(-scroll[pi]);
         int contentBottom = switch (page) {
-            case AUCTION -> drawModules(g, top);
+            case AUCTION -> drawNewAuction(g, top);
             case SETTINGS -> drawSettings(g, top);
             case RECENT -> drawRecent(g, top);
             case THEME -> drawTheme(g, top);
@@ -307,95 +315,241 @@ public class LethalScreen extends Screen {
         Draw.round(g, 1021, y, 3, Math.round(thumbH), 1, 0xFF4E4A56);
     }
 
-    // ---------------------------------------------------------------- auction (module) page
+    // ---------------------------------------------------------------- new auction page
 
-    private int drawModules(GuiGraphicsExtractor g, int top) {
-        return Math.max(drawColumn(g, auctionLeft, 233, top), drawColumn(g, auctionRight, 632, top));
+    private static final int GRID_X = 247, GRID_Y = 128, GRID_W = 381, GRID_H = 369;
+    private static final int CELL = 38, PITCH = 41, COLS = 9;
+
+    private final TextBox search = TextBox.any(40);
+    private final TextBox minBid = TextBox.amount(12);
+    private final TextBox quantity = TextBox.digits("1", 5);
+    private final TextBox timer = TextBox.digits("60", 5);
+    private final TextBox worth = TextBox.amount(12);
+    private final List<TextBox> fieldOrder = List.of(search, minBid, quantity, timer, worth);
+    private TextBox focused;
+    private List<ItemStack> allItems = List.of(), filtered = List.of();
+    private String filteredFor;
+    private ItemStack selected = ItemStack.EMPTY;
+    private float gridScroll, gridScrollTarget, gridMaxScroll;
+    private float mouseDX, mouseDY;
+    private int rawMouseX, rawMouseY;
+    private long startedMessageUntil;
+
+    private List<ItemStack> items() {
+        if (allItems.isEmpty()) {
+            List<ItemStack> list = new ArrayList<>();
+            for (Item item : BuiltInRegistries.ITEM) {
+                if (item != Items.AIR) {
+                    list.add(new ItemStack(item));
+                }
+            }
+            allItems = list;
+        }
+        String q = search.value.trim().toLowerCase(Locale.ROOT);
+        if (!q.equals(filteredFor)) {
+            filteredFor = q;
+            if (q.isEmpty()) {
+                filtered = allItems;
+            } else {
+                String idQuery = q.replace(' ', '_');
+                List<ItemStack> list = new ArrayList<>();
+                for (ItemStack stack : allItems) {
+                    if (stack.getHoverName().getString().toLowerCase(Locale.ROOT).contains(q)
+                            || BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath().contains(idQuery)) {
+                        list.add(stack);
+                    }
+                }
+                filtered = list;
+            }
+            gridScroll = gridScrollTarget = 0;
+        }
+        return filtered;
     }
 
-    private int drawColumn(GuiGraphicsExtractor g, List<Module> mods, int x, int top) {
-        int y = top + 62;
-        for (Module m : mods) {
-            y += drawModule(g, m, x, y, 381) + 9;
-        }
-        return y;
+    private boolean overGrid(float x, float y) {
+        return x >= GRID_X && x < GRID_X + GRID_W && y >= GRID_Y && y < GRID_Y + GRID_H;
     }
 
-    private int drawModule(GuiGraphicsExtractor g, Module m, int x, int y, int w) {
-        int h = moduleHeight(m);
-        if (m.on) {
-            Draw.round(g, x - 2, y - 2, w + 4, h + 4, 12, Draw.alpha(accent, 0.25f));
-            Draw.roundBordered(g, x, y, w, h, 10, surface(tinted(CARD, 0.08f)), Draw.lerpColor(accent, 0xFF000000, 0.25f));
-        } else {
-            Draw.roundBordered(g, x, y, w, h, 10, surface(CARD), CARD_BORDER);
+    private int drawNewAuction(GuiGraphicsExtractor g, int t) {
+        int cardFill = surface(tinted(0xFF141119, 0.07f)), cardBorder = tinted(0xFF1E1A24, 0.12f);
+        List<ItemStack> list = items();
+
+        // ---- left: item picker
+        Draw.roundBordered(g, 235, 58, 405, 447, 12, cardFill, cardBorder);
+        Draw.circle(g, 254, 76, 3.5f, accent);
+        Draw.text(g, "New Auction", 263, 76, 13.5f, WHITE, Draw.SEMIBOLD);
+        Draw.textRight(g, list.size() + " items", 627, 76, 12, SUBTLE, Draw.REGULAR);
+        field(g, search, 247, 92, 381, 28, "Search items...");
+
+        Draw.roundBordered(g, GRID_X, GRID_Y, GRID_W, GRID_H, 10, surface(0xFF0C0B11), 0xFF221E2A);
+        int x0 = GRID_X + 8, y0 = GRID_Y + 8, viewH = GRID_H - 16;
+        int rows = (list.size() + COLS - 1) / COLS;
+        int contentH = Math.max(0, rows * PITCH - (PITCH - CELL));
+        gridMaxScroll = Math.max(0, contentH - viewH);
+        gridScrollTarget = Math.max(0, Math.min(gridMaxScroll, gridScrollTarget));
+        gridScroll += (gridScrollTarget - gridScroll) * 0.35f;
+        if (Math.abs(gridScrollTarget - gridScroll) < 0.3f) {
+            gridScroll = gridScrollTarget;
         }
+        int scrollPx = Math.round(gridScroll);
+        int gridTop = GRID_Y + 2, gridBottom = GRID_Y + GRID_H - 2;
 
-        Draw.text(g, m.name, x + 13, y + 18, 12.5f, WHITE, Draw.SEMIBOLD);
-        float infoX = x + 13 + Draw.width(m.name, 12.5f, Draw.SEMIBOLD) + 11;
-        Draw.iconFilled(g, IF_INFO, infoX, y + 17, 13.5f, 0xFFE6E6EA);
-        if (m.diamond) {
-            Draw.diamond(g, infoX + 17, y + 16, 10, RED);
-        }
+        g.enableScissor(GRID_X + 1, gridTop, GRID_X + GRID_W - 1, gridBottom);
+        int firstRow = Math.max(0, (scrollPx - 8) / PITCH);
+        int lastRow = Math.min(rows - 1, (scrollPx + viewH + 8) / PITCH + 1);
+        ItemStack hovered = ItemStack.EMPTY;
+        for (int row = firstRow; row <= lastRow; row++) {
+            for (int col = 0; col < COLS; col++) {
+                int i = row * COLS + col;
+                if (i >= list.size()) {
+                    break;
+                }
+                ItemStack stack = list.get(i);
+                int cx = x0 + col * PITCH, cy = y0 + row * PITCH - scrollPx;
+                boolean isSelected = !selected.isEmpty() && selected.getItem() == stack.getItem();
+                boolean hover = overGrid(mouseDX, mouseDY) && mouseDX >= cx && mouseDX < cx + CELL
+                        && mouseDY >= cy && mouseDY < cy + CELL && mouseDY >= gridTop && mouseDY < gridBottom;
+                if (isSelected) {
+                    Draw.roundBordered(g, cx, cy, CELL, CELL, 7, tinted(0xFF16151C, 0.25f), accent);
+                } else {
+                    Draw.round(g, cx, cy, CELL, CELL, 7, hover ? 0xFF24222C : 0xFF16151C);
+                }
+                if (hover) {
+                    hovered = stack;
+                }
+                Matrix3x2fStack pose = g.pose();
+                pose.pushMatrix();
+                pose.translate(cx + 7, cy + 7);
+                pose.scale(1.5f);
+                g.item(stack, 0, 0);
+                pose.popMatrix();
 
-        Draw.text(g, "KeyBind:", x + 13, y + 38, 12, GRAY, Draw.MEDIUM);
-        float kx = x + 13 + Draw.width("KeyBind:", 12, Draw.MEDIUM) + 5;
-        if (m.key != null) {
-            Draw.text(g, m.key, kx, y + 38, 12, WHITE, Draw.SEMIBOLD);
-        } else {
-            keyIcon(g, Math.round(kx) + 3, y + 38);
-        }
-
-        toggle(g, x + w - 47, y + 27, m.on, null);
-
-        if (m.expanded()) {
-            Draw.rect(g, x + 12, y + 50, w - 24, 1, 0xFF2B2135);
-            int cy = y + 72;
-            for (Setting s : m.settings) {
-                switch (s.kind()) {
-                    case TOGGLE -> {
-                        Draw.text(g, s.label(), x + 19, cy, 12.5f, TEXT, Draw.MEDIUM);
-                        toggle(g, x + w - 47, cy, s.on(), null);
-                        cy += 29;
-                    }
-                    case MODE -> {
-                        Draw.text(g, s.label(), x + 19, cy, 12.5f, TEXT, Draw.MEDIUM);
-                        modeBox(g, x + w - 150, cy, 131, s.value());
-                        cy += 32;
-                    }
-                    case SLIDER -> {
-                        Draw.text(g, s.label(), x + 18, cy, 12.5f, TEXT, Draw.MEDIUM);
-                        int ty = cy + 17;
-                        slider(g, x + 16, ty, w - 34, s.frac());
-                        cy = ty + 29;
-                    }
-                    case SUBHEADER -> {
-                        Draw.rect(g, x + 12, cy - 9, w - 24, 1, 0xFF2B2135);
-                        Draw.text(g, s.label(), x + 16, cy - 1, 12, 0xFF8F8F98, Draw.REGULAR);
-                        cy += 26;
-                    }
-                    case RESET -> Draw.textRight(g, "Reset", x + w - 17, cy - 5, 12, 0xFFA8AAB0, Draw.REGULAR);
+                int top = Math.max(cy, gridTop), bottom = Math.min(cy + CELL, gridBottom);
+                if (bottom > top) {
+                    hotspot(cx, top, CELL, bottom - top, () -> selected = stack);
                 }
             }
         }
-        return h;
+        g.disableScissor();
+        if (list.isEmpty()) {
+            Draw.textCentered(g, "No items match your search", GRID_X + GRID_W / 2f, GRID_Y + 40, 12.5f, SUBTLE, Draw.REGULAR);
+        }
+        if (gridMaxScroll > 0) {
+            float thumbH = Math.max(24, viewH * (float) viewH / contentH);
+            int ty = Math.round(GRID_Y + 8 + (viewH - thumbH) * (gridScroll / gridMaxScroll));
+            Draw.round(g, GRID_X + GRID_W - 6, ty, 3, Math.round(thumbH), 1, Draw.alpha(accent, 0.75f));
+        }
+        if (!hovered.isEmpty()) {
+            g.setTooltipForNextFrame(font, hovered.getHoverName(), rawMouseX, rawMouseY);
+        }
+
+        // ---- right: auction details
+        Draw.roundBordered(g, 652, 58, 361, 82, 12, cardFill, cardBorder);
+        Draw.round(g, 664, 69, 60, 60, 10, surface(0xFF0C0B11));
+        if (selected.isEmpty()) {
+            Draw.text(g, "No item yet", 738, 88, 13, WHITE, Draw.SEMIBOLD);
+            Draw.text(g, "Pick one on the left", 738, 108, 12, SUBTLE, Draw.REGULAR);
+        } else {
+            Matrix3x2fStack pose = g.pose();
+            pose.pushMatrix();
+            pose.translate(674, 79);
+            pose.scale(2.5f);
+            g.item(selected, 0, 0);
+            pose.popMatrix();
+            Draw.text(g, fit(selected.getHoverName().getString(), 260, 13, Draw.SEMIBOLD), 738, 88, 13, WHITE, Draw.SEMIBOLD);
+            Draw.text(g, BuiltInRegistries.ITEM.getKey(selected.getItem()).toString(), 738, 108, 11.5f, SUBTLE, Draw.REGULAR);
+        }
+
+        Draw.text(g, "Minimum bid", 664, 162, 12.5f, TEXT, Draw.MEDIUM);
+        field(g, minBid, 652, 172, 361, 32, "e.g. 10k");
+        Draw.text(g, "Quantity", 664, 222, 12.5f, TEXT, Draw.MEDIUM);
+        field(g, quantity, 652, 232, 174, 32, "1");
+        Draw.text(g, "Timer (sec)", 851, 222, 12.5f, TEXT, Draw.MEDIUM);
+        field(g, timer, 839, 232, 174, 32, "60");
+        Draw.text(g, "Worth of one item", 664, 282, 12.5f, TEXT, Draw.MEDIUM);
+        field(g, worth, 652, 292, 361, 32, "Optional");
+
+        long bid = Auctions.parseAmount(minBid.value);
+        int qty = parseInt(quantity.value);
+        int secs = parseInt(timer.value);
+        long each = worth.value.isBlank() ? 0 : Auctions.parseAmount(worth.value);
+        boolean ready = !selected.isEmpty() && bid > 0 && qty > 0 && secs > 0 && each >= 0;
+
+        String hint = null;
+        int hintColor = SUBTLE;
+        if (System.currentTimeMillis() < startedMessageUntil) {
+            hint = "Auction started! See Recent Auctions.";
+            hintColor = accentLight;
+        } else if (!selected.isEmpty() && !minBid.value.isEmpty() && bid <= 0) {
+            hint = "Enter a valid minimum bid (e.g. 2500 or 2.5k).";
+        } else if (ready && each > 0) {
+            hint = "Total worth: " + Auctions.formatMoney(each * qty);
+        }
+        if (hint != null) {
+            Draw.textCentered(g, hint, 832.5f, 400, 12, hintColor, Draw.MEDIUM);
+        }
+
+        if (ready) {
+            button(g, 652, 420, 361, 32, "Start Auction", accentDark, Draw.lerpColor(accent, 0xFF000000, 0.15f), accentLight, () -> {
+                Auctions.start(selected, qty, bid, each, secs);
+                startedMessageUntil = System.currentTimeMillis() + 3000;
+                resetForm();
+            });
+        } else {
+            Draw.roundBordered(g, 652, 420, 361, 32, 6, surface(0xFF15141B), 0xFF23212A);
+            Draw.textCentered(g, "Start Auction", 832.5f, 436.5f, 12.5f, 0xFF5E5C66, Draw.SEMIBOLD);
+        }
+        button(g, 652, 462, 361, 32, "Cancel", surface(0xFF15141B), BUTTON_BORDER, WHITE, this::resetForm);
+        return t + 452;
     }
 
-    private static int moduleHeight(Module m) {
-        if (!m.expanded()) {
-            return 54;
+    private void resetForm() {
+        selected = ItemStack.EMPTY;
+        minBid.value = "";
+        quantity.value = "1";
+        timer.value = "60";
+        worth.value = "";
+        focused = null;
+    }
+
+    private static int parseInt(String s) {
+        try {
+            return s.isEmpty() ? 0 : Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return 0;
         }
-        int cy = 72;
-        boolean endsWithReset = false;
-        for (Setting s : m.settings) {
-            switch (s.kind()) {
-                case TOGGLE -> cy += 29;
-                case MODE -> cy += 32;
-                case SLIDER -> cy += 46;
-                case SUBHEADER -> cy += 26;
-                case RESET -> endsWithReset = true;
+    }
+
+    /** Shortens text with "..." so it fits in maxWidth. */
+    private static String fit(String s, float maxWidth, float size, Identifier font) {
+        if (Draw.width(s, size, font) <= maxWidth) {
+            return s;
+        }
+        while (s.length() > 1 && Draw.width(s + "...", size, font) > maxWidth) {
+            s = s.substring(0, s.length() - 1);
+        }
+        return s + "...";
+    }
+
+    private void field(GuiGraphicsExtractor g, TextBox box, int x, int y, int w, int h, String placeholder) {
+        boolean isFocused = focused == box;
+        Draw.roundBordered(g, x, y, w, h, 8, surface(0xFF0C0B11), isFocused ? accent : 0xFF2A2633);
+        float cy = y + h / 2f;
+        float maxW = w - 26;
+        if (box.value.isEmpty() && !isFocused) {
+            Draw.text(g, placeholder, x + 12, cy, 13, 0xFF5E5C66, Draw.MEDIUM);
+        } else {
+            String shown = box.value;
+            while (!shown.isEmpty() && Draw.width(shown, 13, Draw.MEDIUM) > maxW) {
+                shown = shown.substring(1);
+            }
+            Draw.text(g, shown, x + 12, cy, 13, WHITE, Draw.MEDIUM);
+            if (isFocused && (System.currentTimeMillis() / 500) % 2 == 0) {
+                int cx = Math.round(x + 13 + Draw.width(shown, 13, Draw.MEDIUM));
+                Draw.rect(g, cx, Math.round(cy - 7), 1, 14, WHITE);
             }
         }
-        return endsWithReset ? cy - 5 + 24 : cy - 12;
+        hotspot(x, y, w, h, () -> focused = box);
     }
 
     // ---------------------------------------------------------------- widgets
@@ -426,11 +580,6 @@ public class LethalScreen extends Screen {
         Draw.icon(g, I_RIGHT, x + w - 11, cy, 12, 0xFF9C9CA6);
         Draw.textCentered(g, value, x + w / 2f, cy, 12.5f, WHITE, Draw.MEDIUM);
         hotspot(x, cy - 12, w, 25, null);
-    }
-
-    private static void keyIcon(GuiGraphicsExtractor g, int cx, int cy) {
-        Draw.roundBordered(g, cx - 4, cy - 5, 9, 10, 2, 0x00000000, GRAY);
-        Draw.rect(g, cx - 1, cy - 2, 3, 4, GRAY);
     }
 
     private void button(GuiGraphicsExtractor g, int x, int y, int w, int h, String label, int fill, int border, int color, Runnable action) {
@@ -493,34 +642,74 @@ public class LethalScreen extends Screen {
     // ---------------------------------------------------------------- recent auctions
 
     private int drawRecent(GuiGraphicsExtractor g, int t) {
-        Draw.round(g, 246, t + 66, 754, 26, 7, surface(0xFF0D0F13));
-        Draw.round(g, 248, t + 67, 249, 24, 6, accentDark);
-        Draw.round(g, 248, t + 67, 249, 12, 6, Draw.lerpColor(accent, 0xFF000000, 0.45f));
-        Draw.textCentered(g, "My Configs", 372.5f, t + 79.5f, 12.5f, accentLight, Draw.SEMIBOLD);
-        Draw.textCentered(g, "Community", 624, t + 79.5f, 12.5f, 0xFFC9CAD0, Draw.MEDIUM);
-        Draw.textCentered(g, "Downloads", 875, t + 79.5f, 12.5f, 0xFFC9CAD0, Draw.MEDIUM);
-        hotspot(248, t + 67, 249, 24, null);
-        hotspot(500, t + 67, 249, 24, null);
-        hotspot(751, t + 67, 249, 24, null);
+        List<Auction> recent = Auctions.recent();
+        int head = Draw.lerpColor(accent, 0xFFFFFFFF, 0.05f);
+        Draw.icon(g, I_HISTORY, 253, t + 80, 17, head);
+        Draw.text(g, "Recent Auctions", 272, t + 77, 13, WHITE, Draw.SEMIBOLD);
+        int bx = Math.round(272 + Draw.width("Recent Auctions", 13, Draw.SEMIBOLD) + 10);
+        String count = Integer.toString(recent.size());
+        int bw = Math.max(26, Math.round(Draw.width(count, 11.5f, Draw.SEMIBOLD) + 16));
+        Draw.round(g, bx, t + 66, bw, 18, 9, accentDark);
+        Draw.textCentered(g, count, bx + bw / 2f, t + 75, 11.5f, WHITE, Draw.SEMIBOLD);
+        Draw.text(g, "Auctions you started this session", 272, t + 94, 10.5f, SUBTLE, Draw.REGULAR);
+        if (!recent.isEmpty()) {
+            button(g, 912, t + 69, 88, 26, "Clear", BUTTON, BUTTON_BORDER, WHITE, Auctions::clear);
+        }
 
-        button(g, 247, t + 103, 88, 23, "Autosave", BUTTON, 0xFF3A3344, WHITE, null);
-        Draw.text(g, "Active", 348, t + 115, 12.5f, SUBTLE, Draw.REGULAR);
-        Draw.text(g, "test", 348 + Draw.width("Active ", 12.5f, Draw.REGULAR), t + 115, 12.5f, WHITE, Draw.SEMIBOLD);
-        accentButton(g, 770, t + 103, 72, 23, "Create");
-        button(g, 849, t + 103, 72, 23, "Import", BUTTON, BUTTON_BORDER, WHITE, null);
-        button(g, 928, t + 103, 72, 23, "Redeem", BUTTON, BUTTON_BORDER, WHITE, null);
+        if (recent.isEmpty()) {
+            Draw.roundBordered(g, 241, t + 105, 765, 135, 8, surface(0xFF0F1319), 0xFF201A2C);
+            Draw.icon(g, I_GAVEL, 623, t + 132, 22, 0xFF3A3E46);
+            Draw.textCentered(g, "No auctions yet", 623, t + 162, 12.5f, WHITE, Draw.SEMIBOLD);
+            Draw.textCentered(g, "Pick an item on the Auction tab and press Start Auction.", 623, t + 179, 12.5f, 0xFFC3C5CB, Draw.REGULAR);
+            button(g, 568, t + 199, 111, 27, "New Auction", 0xFF14151B, 0xFF2C2E35, WHITE, () -> {
+                page = Page.AUCTION;
+                lastPage = Page.AUCTION;
+            });
+            return t + 250;
+        }
 
-        Draw.roundBordered(g, 242, t + 135, 763, 47, 8, surface(tinted(0xFF26242C, 0.12f)), tinted(0xFF34303C, 0.2f));
-        Draw.round(g, 243, t + 142, 3, 32, 1, accent);
-        Draw.text(g, "test", 258, t + 154, 13, WHITE, Draw.SEMIBOLD);
-        Draw.text(g, "114 modules", 258, t + 171, 12, SUBTLE, Draw.REGULAR);
-        button(g, 736, t + 148, 73, 23, "Publish", BUTTON, 0xFF44424E, WHITE, null);
-        button(g, 816, t + 148, 68, 23, "Share", 0xFF2E2B35, 0xFF4A4654, Draw.lerpColor(accentLight, 0xFF808080, 0.4f), null);
-        accentButton(g, 891, t + 148, 74, 23, "Apply");
-        Draw.roundBordered(g, 972, t + 148, 26, 23, 6, BUTTON, 0xFF44424E);
-        Draw.icon(g, I_X, 985, t + 159.5f, 11, WHITE);
-        hotspot(972, t + 148, 26, 23, null);
-        return t + 190;
+        int y = t + 108;
+        for (Auction a : recent) {
+            boolean live = !a.ended();
+            Draw.roundBordered(g, 241, y, 765, 54, 10, surface(CARD), CARD_BORDER);
+            if (live) {
+                Draw.round(g, 242, y + 11, 3, 32, 1, accent);
+            }
+            Draw.round(g, 253, y + 9, 36, 36, 8, surface(0xFF0C0B11));
+            Matrix3x2fStack pose = g.pose();
+            pose.pushMatrix();
+            pose.translate(259, y + 15);
+            pose.scale(1.5f);
+            g.item(a.item(), 0, 0);
+            pose.popMatrix();
+
+            String name = fit(a.item().getHoverName().getString(), 230, 13, Draw.SEMIBOLD);
+            Draw.text(g, name, 301, y + 20, 13, WHITE, Draw.SEMIBOLD);
+            Draw.text(g, "x" + a.quantity() + "  ·  " + a.timerSeconds() + "s timer", 301, y + 37, 11.5f, SUBTLE, Draw.REGULAR);
+
+            stat(g, 560, y, "MIN BID", Auctions.formatMoney(a.minimumBid()));
+            stat(g, 670, y, "WORTH EACH", a.worthEach() > 0 ? Auctions.formatMoney(a.worthEach()) : "-");
+            stat(g, 780, y, "TOTAL WORTH", a.worthEach() > 0 ? Auctions.formatMoney(a.worthEach() * a.quantity()) : "-");
+
+            if (live) {
+                Draw.round(g, 888, y + 15, 76, 24, 12, accentDark);
+                Draw.textCentered(g, Auctions.formatTime(a.secondsLeft()), 926, y + 27.5f, 12, accentLight, Draw.SEMIBOLD);
+            } else {
+                Draw.round(g, 888, y + 15, 76, 24, 12, 0xFF24222C);
+                Draw.textCentered(g, "Ended", 926, y + 27.5f, 12, 0xFF9C9CA6, Draw.SEMIBOLD);
+            }
+            Draw.roundBordered(g, 972, y + 15, 24, 24, 6, BUTTON, 0xFF44424E);
+            Draw.icon(g, I_X, 984, y + 27, 11, WHITE);
+            Auction target = a;
+            hotspot(972, y + 15, 24, 24, () -> Auctions.remove(target));
+            y += 62;
+        }
+        return y;
+    }
+
+    private void stat(GuiGraphicsExtractor g, int x, int y, String label, String value) {
+        Draw.text(g, label, x, y + 19, 9.5f, 0xFF8C8495, Draw.MEDIUM);
+        Draw.text(g, value, x, y + 36, 13, WHITE, Draw.SEMIBOLD);
     }
 
     // ---------------------------------------------------------------- theme
@@ -607,6 +796,7 @@ public class LethalScreen extends Screen {
         }
         layout();
         float x = toDesignX(event.x()), y = toDesignY(event.y());
+        focused = null;
         for (Hotspot h : List.copyOf(hotspots)) {
             if (h.contains(x, y)) {
                 if (h.action() != null) {
@@ -621,18 +811,61 @@ public class LethalScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        layout();
+        if (page == Page.AUCTION && overGrid(toDesignX(mouseX), toDesignY(mouseY))) {
+            gridScrollTarget = (float) Math.max(0, Math.min(gridMaxScroll, gridScrollTarget - scrollY * PITCH));
+            return true;
+        }
         int pi = page.ordinal();
         scrollTarget[pi] = (float) Math.max(0, Math.min(maxScroll[pi], scrollTarget[pi] - scrollY * 32));
         return true;
     }
 
     @Override
+    public boolean charTyped(CharacterEvent event) {
+        if (focused != null && page == Page.AUCTION) {
+            focused.type(event.codepointAsString());
+            return true;
+        }
+        return super.charTyped(event);
+    }
+
+    @Override
     public boolean keyPressed(KeyEvent event) {
+        if (focused != null && page == Page.AUCTION) {
+            int key = event.key();
+            if (key == GLFW.GLFW_KEY_BACKSPACE) {
+                focused.backspace(event.hasControlDown());
+            } else if (event.isEscape() || event.isConfirmation()) {
+                focused = null;
+            } else if (event.isCycleFocus()) {
+                int i = fieldOrder.indexOf(focused);
+                int next = event.hasShiftDown() ? i - 1 + fieldOrder.size() : i + 1;
+                focused = fieldOrder.get(next % fieldOrder.size());
+            } else if (event.isPaste()) {
+                focused.type(minecraft.keyboardHandler.getClipboard());
+            } else if (event.isCut()) {
+                minecraft.keyboardHandler.setClipboard(focused.value);
+                focused.value = "";
+            } else if (event.isCopy()) {
+                minecraft.keyboardHandler.setClipboard(focused.value);
+            }
+            return true;
+        }
         if (event.key() == GLFW.GLFW_KEY_RIGHT_SHIFT) {
             onClose();
             return true;
         }
         return super.keyPressed(event);
+    }
+
+    /** Dev helper: fills the new auction form so a test run can capture it. */
+    public void devFillForm() {
+        selected = new ItemStack(Items.ELYTRA);
+        minBid.value = "45k";
+        worth.value = "50k";
+        search.value = "ely";
+        focused = minBid;
     }
 
     /** Dev helper: lets a test run jump straight to a page. */
