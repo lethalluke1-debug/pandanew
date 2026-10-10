@@ -107,7 +107,11 @@ public final class ScoreboardStyle {
         if (LethalConfig.sbHead) {
             var mc = net.minecraft.client.Minecraft.getInstance();
             if (mc.player != null) {
-                net.minecraft.client.gui.components.PlayerFaceExtractor.extractRenderState(g, mc.player.getSkin(), x - HEAD_SPACE, y - 1, 8);
+                // The title bar is 9 px tall and the head 8 px: nudge up half a pixel to centre it.
+                g.pose().pushMatrix();
+                g.pose().translate(0, -0.5f);
+                net.minecraft.client.gui.components.PlayerFaceExtractor.extractRenderState(g, mc.player.getSkin(), x - HEAD_SPACE, y, 8);
+                g.pose().popMatrix();
             }
         }
         g.text(font, text, x, y, color, shadow);
