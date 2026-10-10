@@ -23,10 +23,10 @@ import org.slf4j.LoggerFactory;
 
 public class LethalAuctionClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("lethalauction");
-    private static final SoundEvent[] CLICKS = {sound("click"), sound("click_soft"), sound("click_pop")};
-    public static final String[] SOUND_PACKS = {"Default", "Soft", "Pop"};
+    private static final SoundEvent CLICK = sound("click");
     private static final SoundEvent COIN = sound("coin");
     private static SimpleSoundInstance lastClick;
+    private static SimpleSoundInstance lastCoin;
 
     private static SoundEvent sound(String name) {
         return SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath("lethalauction", name));
@@ -48,7 +48,8 @@ public class LethalAuctionClient implements ClientModInitializer {
     private static void onBidResult(Auctions.BidResult r, String original) {
         if (r.kind() == Auctions.BidResult.Kind.UNREADABLE) {
             LOGGER.warn("Unrecognised payment message: {}", original);
-        } else if (r.kind() == Auctions.BidResult.Kind.ACCEPTED) {
+        } else {
+            // Every payment during an auction gets the coin sound, even if it was not a new top bid.
             playCoin();
         }
     }
@@ -63,13 +64,25 @@ public class LethalAuctionClient implements ClientModInitializer {
         if (lastClick != null) {
             sounds.stop(lastClick);
         }
-        lastClick = SimpleSoundInstance.forUI(CLICKS[Math.floorMod(LethalConfig.soundPack, CLICKS.length)], 1.0f, 0.7f);
+        if (LethalConfig.volume <= 0) {
+            return;
+        }
+        lastClick = SimpleSoundInstance.forUI(CLICK, 1.0f, 0.5f * LethalConfig.volume);
         sounds.play(lastClick);
     }
 
     /** Plays the coin sound for an accepted payment (always on, it is an alert rather than a click). */
     public static void playCoin() {
-        Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(COIN, 1.0f, 0.9f));
+        var sounds = Minecraft.getInstance().getSoundManager();
+        // Restart the chime for each payment so back-to-back payments are always heard.
+        if (lastCoin != null) {
+            sounds.stop(lastCoin);
+        }
+        if (LethalConfig.volume <= 0) {
+            return;
+        }
+        lastCoin = SimpleSoundInstance.forUI(COIN, 1.0f, 0.35f * LethalConfig.volume);
+        sounds.play(lastCoin);
     }
 
     @Override

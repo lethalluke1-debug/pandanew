@@ -1,6 +1,4 @@
 {
   "click": {"sounds": ["lethalauction:click"]},
-  "click_soft": {"sounds": ["lethalauction:click_soft"]},
-  "click_pop": {"sounds": ["lethalauction:click_pop"]},
   "coin": {"sounds": ["lethalauction:coin"]}
 }

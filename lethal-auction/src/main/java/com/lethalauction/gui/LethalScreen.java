@@ -662,42 +662,44 @@ public class LethalScreen extends Screen {
         Draw.text(g, "Configure interface, security, and system behavior.", 272, t + 92, 10.5f, SUBTLE, Draw.REGULAR);
 
         // Interface
-        Draw.roundBordered(g, 235, t + 120, 778, 197, 12, cardFill, cardBorder);
+        Draw.roundBordered(g, 235, t + 120, 778, 145, 12, cardFill, cardBorder);
         Draw.icon(g, I_DESKTOP, 261, t + 150, 16, head);
         Draw.text(g, "Interface", 280, t + 150, 13, WHITE, Draw.SEMIBOLD);
         Draw.text(g, "GUI Settings", 250, t + 176, 10.5f, SUBTLE, Draw.REGULAR);
-        Draw.roundBordered(g, 250, t + 192, 746, 108, 10, boxFill, boxBorder);
-        Draw.text(g, "Menu Bind", 268, t + 223, 12.5f, WHITE, Draw.MEDIUM);
+        Draw.roundBordered(g, 250, t + 192, 746, 56, 10, boxFill, boxBorder);
+        Draw.text(g, "Menu Bind", 268, t + 220, 12.5f, WHITE, Draw.MEDIUM);
         button(g, 906, t + 206, 74, 29, "RSHIFT", 0xFF131219, BUTTON_BORDER, WHITE, null);
-        Draw.rect(g, 258, t + 247, 730, 1, 0xFF221A29);
-        Draw.text(g, "Quick Friend", 268, t + 278, 12.5f, WHITE, Draw.MEDIUM);
-        Draw.round(g, 940, t + 270, 32, 16, 8, 0xFF0A0C0E);
-        Draw.circle(g, 948, t + 278, 7, 0xFFF2F2F4);
-        hotspot(938, t + 268, 36, 20, null);
 
         // Sounds
-        Draw.roundBordered(g, 235, t + 330, 778, 232, 12, cardFill, cardBorder);
-        Draw.icon(g, I_MUSIC, 260, t + 359, 16, head);
-        Draw.text(g, "Sounds", 281, t + 360, 13, WHITE, Draw.SEMIBOLD);
-        Draw.text(g, "Client Sounds", 250, t + 386, 10.5f, SUBTLE, Draw.REGULAR);
-        Draw.roundBordered(g, 250, t + 402, 746, 144, 10, boxFill, boxBorder);
-        Draw.text(g, "Module Sound", 268, t + 426, 12.5f, WHITE, Draw.MEDIUM);
-        toggle(g, 945, t + 426, LethalConfig.moduleSound, () -> {
+        int s0 = t + 278;
+        Draw.roundBordered(g, 235, s0, 778, 184, 12, cardFill, cardBorder);
+        Draw.icon(g, I_MUSIC, 260, s0 + 29, 16, head);
+        Draw.text(g, "Sounds", 281, s0 + 30, 13, WHITE, Draw.SEMIBOLD);
+        Draw.text(g, "Client Sounds", 250, s0 + 56, 10.5f, SUBTLE, Draw.REGULAR);
+        Draw.roundBordered(g, 250, s0 + 72, 746, 96, 10, boxFill, boxBorder);
+        Draw.text(g, "Module Sound", 268, s0 + 96, 12.5f, WHITE, Draw.MEDIUM);
+        toggle(g, 945, s0 + 96, LethalConfig.moduleSound, () -> {
             LethalConfig.moduleSound = !LethalConfig.moduleSound;
             LethalConfig.save();
         });
-        Draw.text(g, "Sound Pack", 268, t + 466, 12.5f, WHITE, Draw.MEDIUM);
-        Draw.roundBordered(g, 864, t + 452, 116, 25, 6, 0xFF131219, BUTTON_BORDER);
-        Draw.text(g, LethalAuctionClient.SOUND_PACKS[Math.floorMod(LethalConfig.soundPack, 3)], 878, t + 465, 12.5f, WHITE, Draw.MEDIUM);
-        Draw.icon(g, I_DOWN, 966, t + 465, 9, 0xFF9C9CA6);
-        hotspot(864, t + 452, 116, 25, () -> {
-            LethalConfig.soundPack = (LethalConfig.soundPack + 1) % 3;
-            LethalConfig.save();
+        Draw.rect(g, 258, s0 + 119, 730, 1, 0xFF221A29);
+        Draw.text(g, "Volume", 268, s0 + 143, 12.5f, WHITE, Draw.MEDIUM);
+        Draw.textRight(g, Math.round(LethalConfig.volume * 100) + "%", 822, s0 + 142, 12, 0xFFC3C3CC, Draw.MEDIUM);
+        volumeSliderY = s0 + 142;
+        slider(g, VOLUME_X, volumeSliderY, VOLUME_W, LethalConfig.volume);
+        hotspot(VOLUME_X - 6, volumeSliderY - 9, VOLUME_W + 12, 18, () -> {
+            draggingVolume = true;
+            setVolumeFromMouse(mouseDX);
         });
-        Draw.text(g, "Volume", 268, t + 506, 12.5f, WHITE, Draw.MEDIUM);
-        Draw.textRight(g, "70%", 857, t + 505, 12, 0xFFC3C3CC, Draw.REGULAR);
-        slider(g, 868, t + 504, 112, 0.7f);
-        return t + 575;
+        return t + 475;
+    }
+
+    private static final int VOLUME_X = 836, VOLUME_W = 144;
+    private int volumeSliderY;
+    private boolean draggingVolume;
+
+    private void setVolumeFromMouse(float designX) {
+        LethalConfig.volume = Math.round(Math.max(0f, Math.min(1f, (designX - VOLUME_X) / VOLUME_W)) * 100) / 100f;
     }
 
     // ---------------------------------------------------------------- recent auctions
@@ -895,6 +897,27 @@ public class LethalScreen extends Screen {
             }
         }
         return true;
+    }
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        if (draggingVolume) {
+            layout();
+            setVolumeFromMouse(toDesignX(event.x()));
+            return true;
+        }
+        return super.mouseDragged(event, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        if (draggingVolume) {
+            draggingVolume = false;
+            LethalConfig.save();
+            LethalAuctionClient.playClick();
+            return true;
+        }
+        return super.mouseReleased(event);
     }
 
     @Override

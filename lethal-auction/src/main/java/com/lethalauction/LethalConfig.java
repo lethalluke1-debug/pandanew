@@ -18,8 +18,8 @@ public final class LethalConfig {
     public static boolean frostedBlur = true;
     public static boolean ambientBackground = true;
     public static boolean moduleSound = true;
-    /** 0 = Default (your sound), 1 = Soft, 2 = Pop. */
-    public static int soundPack = 0;
+    /** Volume for the mod's sounds, 0 to 1. */
+    public static float volume = 0.4f;
 
     // Last values used in the menu
     public static String lastPage = "AUCTION";
@@ -59,9 +59,9 @@ public final class LethalConfig {
         formWorth = p.getProperty("formWorth", formWorth);
         formNote = p.getProperty("formNote", formNote);
         try {
-            soundPack = Math.floorMod(Integer.parseInt(p.getProperty("soundPack", "0")), 3);
+            volume = Math.max(0f, Math.min(1f, Float.parseFloat(p.getProperty("volume", "0.4"))));
         } catch (NumberFormatException e) {
-            soundPack = 0;
+            volume = 0.4f;
         }
     }
 
@@ -78,7 +78,7 @@ public final class LethalConfig {
         p.setProperty("formTimer", formTimer);
         p.setProperty("formWorth", formWorth);
         p.setProperty("formNote", formNote);
-        p.setProperty("soundPack", Integer.toString(soundPack));
+        p.setProperty("volume", Float.toString(volume));
         try {
             Files.createDirectories(FILE.getParent());
             try (Writer w = Files.newBufferedWriter(FILE)) {
