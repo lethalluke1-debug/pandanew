@@ -391,6 +391,14 @@ public final class Auctions {
         return "$" + num + units[u];
     }
 
+    /** Countdown text: "10:02" with minutes, "0:59" under a minute, and just "10", "9", "8"... at the end. */
+    public static String formatClock(long seconds) {
+        if (seconds <= 10) {
+            return Long.toString(Math.max(0, seconds));
+        }
+        return (seconds / 60) + ":" + String.format(Locale.ROOT, "%02d", seconds % 60);
+    }
+
     public static String formatTime(long seconds) {
         if (seconds >= 60) {
             return (seconds / 60) + "m " + (seconds % 60) + "s";

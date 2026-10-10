@@ -63,39 +63,77 @@ public final class AuctionCape {
         CapeImages.fill(img, fx + fw - 2, fy, 2, fh, light);
 
         int cx = fx + fw / 2;
-        CapeImages.textCentered(img, "AUCTION", cx, fy + 9, 1, light);
+        boolean won = a != null && a.ended() && a.hasBid();
+        CapeImages.textCentered(img, won ? "WINNER" : "AUCTION", cx, fy + 9, 1, light);
 
         long secs;
         float progress;
         String sub;
         if (a == null) {
-            secs = 60 - (now / 1000) % 60;
-            progress = secs / 60f;
+            secs = 75 - (now / 1000) % 75;
+            progress = secs / 75f;
             sub = "LETHAL";
         } else {
             secs = a.secondsLeft();
             progress = a.progressLeft();
             if (a.ended()) {
-                sub = a.hasBid() ? "SOLD" : "ENDED";
+                sub = a.hasBid() ? "SOLD " + Auctions.formatMoney(a.topBid()).toUpperCase(Locale.ROOT) : "ENDED";
             } else {
                 sub = a.hasBid() ? Auctions.formatMoney(a.topBid()).toUpperCase(Locale.ROOT) : "NO BIDS";
             }
         }
-        String time = secs >= 60 ? (secs / 60) + ":" + String.format(Locale.ROOT, "%02d", secs % 60) : secs + "S";
-        if (secs >= 6000) {
-            time = (secs / 60) + "M";
+        int midY = fy + fh / 2;
+        if (won) {
+            drawWinner(img, a.topBidder(), cx, midY, fw, light, t, now - a.endsAt());
+            CapeImages.textCentered(img, sub, cx, midY + 16, 1, light);
+        } else {
+            String time = Auctions.formatClock(secs);
+            int scale = CapeImages.textWidth(time, 4) <= fw - 8 ? 4 : CapeImages.textWidth(time, 3) <= fw - 8 ? 3 : 2;
+            boolean low = a != null && !a.ended() && secs <= 10;
+            boolean blink = low && (now / 250) % 2 == 0;
+            CapeImages.textCentered(img, time, cx, midY - 7 * scale / 2 - 4, scale, blink ? 0xFFFF4D5E : 0xFFFFFFFF);
+            CapeImages.textCentered(img, sub, cx, midY + 7 * scale / 2 + 6, 1, light);
         }
-        int scale = CapeImages.textWidth(time, 3) <= fw - 8 ? 3 : 2;
         boolean low = a != null && !a.ended() && secs <= 10;
-        boolean blink = low && (now / 250) % 2 == 0;
-        int timeColor = blink ? 0xFFFF4D5E : 0xFFFFFFFF;
-        CapeImages.textCentered(img, time, cx, fy + fh / 2 - 7 * scale / 2 - 4, scale, timeColor);
-        CapeImages.textCentered(img, sub, cx, fy + fh / 2 + 7 * scale / 2 + 6, 1, light);
 
         // progress bar
         int bx = fx + 8, by = fy + fh - 16, bw = fw - 16;
         CapeImages.fill(img, bx, by, bw, 4, dark);
         CapeImages.fill(img, bx, by, Math.round(bw * Math.max(0, Math.min(1, progress))), 4, low ? 0xFFFF4D5E : light);
+    }
+
+    /** The winner's name: each letter bobs, pulses in size and shimmers between gold and the theme colour. */
+    private static void drawWinner(NativeImage img, String name, int cx, int midY, int faceW, int light, float t, long since) {
+        String text = name.toUpperCase(Locale.ROOT);
+        int scale = CapeImages.textWidth(text, 2) <= faceW - 8 ? 2 : 1;
+        int width = CapeImages.textWidth(text, scale);
+        int x = cx - width / 2;
+        if (width > faceW - 6) {
+            // too long even at the smallest size: scroll it across
+            int span = width + faceW;
+            x = cx + faceW / 2 - (int) ((since / 25) % span);
+        }
+        for (int i = 0; i < text.length(); i++) {
+            float appear = Math.max(0, Math.min(1, (since - i * 60) / 220f));
+            if (appear > 0) {
+                int bob = (int) Math.round(Math.sin(t * 7 - i * 0.7) * 2 * scale);
+                int pop = (int) ((1 - appear) * 10);
+                float shimmer = 0.5f + 0.5f * (float) Math.sin(t * 5 - i * 0.6);
+                int color = CapeImages.mix(0xFFFFD54A, light, shimmer);
+                int s2 = scale + (Math.sin(t * 6 - i * 0.7) > 0.6 ? 1 : 0);
+                int cxChar = x + i * 6 * scale + 2 * scale;
+                CapeImages.text(img, String.valueOf(text.charAt(i)), cxChar - 2 * s2, midY - 7 * s2 / 2 - 6 + bob + pop, s2, color);
+            }
+        }
+        // twinkling sparkles around the name
+        for (int k = 0; k < 10; k++) {
+            double seed = k * 12.9898;
+            int sx = cx - faceW / 2 + 4 + (int) (Math.abs(Math.sin(seed) * 43758.5453) % (faceW - 8));
+            int sy = midY - 34 + (int) (Math.abs(Math.sin(seed * 1.7) * 23421.631) % 60);
+            if (Math.sin(t * 4 + k) > 0.55) {
+                CapeImages.fill(img, sx, sy, 2, 2, 0xFFFFFFFF);
+            }
+        }
     }
 
     /** Vertical gradient, a soft moving glow and drifting diagonal stripes. */

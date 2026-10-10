@@ -185,8 +185,14 @@ public class LethalAuctionClient implements ClientModInitializer {
                     }
                     LethalConfig.sbScale = 1.3f;
                     LethalConfig.sbRounded = true;
-                    LethalConfig.sbBackground = 1;
+                    LethalConfig.sbBackground = 0;
                     mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
+                } else if (parts.length > 1 && parts[1].equals("capewin")) {
+                    LethalConfig.auctionCape = true;
+                    Auctions.clear();
+                    Auctions.start(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ELYTRA), 1, 0, 0, 1);
+                    Auctions.onServerMessage("You received $51.1M from LethalLukeYT");
+                    mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_BACK);
                 } else if (parts.length > 1 && parts[1].equals("back")) {
                     mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_BACK);
                 } else if (parts.length > 1 && parts[1].equals("win")) {

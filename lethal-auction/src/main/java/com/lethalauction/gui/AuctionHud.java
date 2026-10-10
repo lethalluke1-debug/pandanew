@@ -114,7 +114,7 @@ public class AuctionHud implements HudElement {
         String min = a.minimumBid() > 0 ? "Min " + compact(a.minimumBid()) : "No minimum";
         pill(g, px, min, 0xFF1F1D27, 0xFFCFCDD8);
 
-        String time = String.format(Locale.ROOT, "%02d:%02d", secs / 60, secs % 60);
+        String time = Auctions.formatClock(secs);
         int timerBorder = low ? RED : Draw.lerpColor(0xFF34323C, accent, 0.25f);
         Draw.roundBordered(g, 220, 22, 70, 30, 15, low ? 0xFF2A0F14 : 0xFF15141B, timerBorder);
         Draw.textCentered(g, time, 255, 37.5f, 15, low ? RED : 0xFFFFFFFF, Draw.SEMIBOLD);

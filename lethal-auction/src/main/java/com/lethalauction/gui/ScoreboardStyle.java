@@ -57,15 +57,14 @@ public final class ScoreboardStyle {
             g.fill(x0, y0, x1, y1, body);
             return;
         }
-        Draw.round(g, x0, top, x1 - x0, y1 - top, RADIUS, body);
-        if (haveTitle) {
-            int w = titleX1 - titleX0, h = titleY1 - titleY0;
-            // title bar: rounded top corners, square bottom so it meets the body
-            Draw.round(g, titleX0, titleY0, w, h, RADIUS, title);
-            if (h > RADIUS) {
-                Draw.rect(g, titleX0, titleY1 - RADIUS, w, RADIUS, title);
-            }
+        if (!haveTitle) {
+            Draw.round(g, x0, top, x1 - x0, y1 - top, RADIUS, body);
+            return;
         }
+        // Title (top corners) and body (bottom corners) are separate pieces that never overlap, so
+        // see-through colours do not double up into a line where they meet.
+        Draw.roundTop(g, titleX0, titleY0, titleX1 - titleX0, titleY1 - titleY0, RADIUS, title);
+        Draw.roundBottom(g, x0, y0, x1 - x0, y1 - y0, RADIUS, body);
     }
 
     private static int bodyColor(int vanilla) {

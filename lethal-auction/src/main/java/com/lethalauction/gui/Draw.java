@@ -106,6 +106,34 @@ public final class Draw {
         rect(g, x + w - 1, y + r, 1, h - 2 * r, border);
     }
 
+    /** Rounded rectangle with only the top corners rounded. */
+    public static void roundTop(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int color) {
+        r = Math.max(0, Math.min(Math.min(r, MAX_RADIUS), Math.min(w / 2, h)));
+        if (r == 0) {
+            rect(g, x, y, w, h, color);
+            return;
+        }
+        int cellY = 4 * r * r - 2, q = r * ATLAS_SCALE;
+        corner(g, x, y, r, 2, cellY, color);
+        corner(g, x + w - r, y, r, 2 + q, cellY, color);
+        rect(g, x + r, y, w - 2 * r, r, color);
+        rect(g, x, y + r, w, h - r, color);
+    }
+
+    /** Rounded rectangle with only the bottom corners rounded. */
+    public static void roundBottom(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int color) {
+        r = Math.max(0, Math.min(Math.min(r, MAX_RADIUS), Math.min(w / 2, h)));
+        if (r == 0) {
+            rect(g, x, y, w, h, color);
+            return;
+        }
+        int cellY = 4 * r * r - 2, q = r * ATLAS_SCALE;
+        rect(g, x, y, w, h - r, color);
+        corner(g, x, y + h - r, r, 2, cellY + q, color);
+        corner(g, x + w - r, y + h - r, r, 2 + q, cellY + q, color);
+        rect(g, x + r, y + h - r, w - 2 * r, r, color);
+    }
+
     private static void corners(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int cellX, int color) {
         int cellY = 4 * r * r - 2;
         int q = r * ATLAS_SCALE;
