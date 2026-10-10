@@ -1211,7 +1211,7 @@ public class LethalScreen extends Screen {
         var font = minecraft.font;
         int lineH = 10;
         String title = "Player";
-        int width = font.width(title) + (LethalConfig.sbHead ? 10 : 0);
+        int width = font.width(title);
         for (String v : PREVIEW_VALUES) {
             width = Math.max(width, 11 + font.width(v));
         }
@@ -1224,7 +1224,7 @@ public class LethalScreen extends Screen {
         int x0 = -width / 2, x1 = x0 + width, bottom = h / 2, bodyTop = bottom - h;
         ScoreboardStyle.titleFill(g, x0 - 2, bodyTop - lineH - 1, x1, bodyTop - 1, 0x66000000);
         ScoreboardStyle.bodyFill(g, x0 - 2, bodyTop - 1, x1, bottom, 0x4C000000);
-        int titleX = -font.width(title) / 2 + (LethalConfig.sbHead ? 5 : 0);
+        int titleX = x0 + (width - font.width(title)) / 2 - 1;
         ScoreboardStyle.title(g, font, Component.literal(title), titleX, bodyTop - lineH, 0xFFFFFFFF, false);
         for (int i = 0; i < PREVIEW_VALUES.length; i++) {
             int ly = bodyTop + 1 + i * lineH;

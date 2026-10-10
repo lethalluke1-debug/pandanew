@@ -175,10 +175,9 @@ public class LethalAuctionClient implements ClientModInitializer {
                         server.execute(() -> {
                             var src = server.createCommandSourceStack();
                             for (String cmd : new String[] {
-                                    "scoreboard objectives add lethal dummy {\"text\":\"LETHAL\",\"color\":\"gold\"}",
+                                    "scoreboard objectives add lethal dummy {\"text\":\"LethalLukeYT\",\"color\":\"white\"}",
                                     "scoreboard objectives setdisplay sidebar lethal",
-                                    "scoreboard players set Money lethal 1200", "scoreboard players set Shards lethal 340",
-                                    "scoreboard players set Kills lethal 12", "scoreboard players set Deaths lethal 3"}) {
+                                    "scoreboard players set A lethal 1", "scoreboard players set B lethal 2"}) {
                                 server.getCommands().performPrefixedCommand(src, cmd);
                             }
                         });
@@ -186,6 +185,7 @@ public class LethalAuctionClient implements ClientModInitializer {
                     LethalConfig.sbScale = 1.3f;
                     LethalConfig.sbRounded = true;
                     LethalConfig.sbBackground = 0;
+                    LethalConfig.sbHead = true;
                     mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
                 } else if (parts.length > 1 && parts[1].equals("capewin")) {
                     LethalConfig.auctionCape = true;

@@ -8,6 +8,8 @@ import org.joml.Matrix3x2fStack;
 public final class ScoreboardStyle {
     public static final String[] BACKGROUNDS = {"Default", "Theme", "Custom", "Clear"};
     private static final int RADIUS = 3;
+    /** Extra width added on the left of the background to make room for the player head. */
+    private static final int HEAD_SPACE = 10;
 
     private static int titleX0, titleY0, titleX1, titleY1, titleColor;
     private static boolean haveTitle;
@@ -35,6 +37,7 @@ public final class ScoreboardStyle {
 
     /** Vanilla's title-bar fill. Remembered and drawn together with the body so corners line up. */
     public static void titleFill(GuiGraphicsExtractor g, int x0, int y0, int x1, int y1, int color) {
+        x0 -= headSpace();
         titleX0 = x0;
         titleY0 = y0;
         titleX1 = x1;
@@ -45,6 +48,7 @@ public final class ScoreboardStyle {
 
     /** Vanilla's body fill: draws the whole background in the chosen style. */
     public static void bodyFill(GuiGraphicsExtractor g, int x0, int y0, int x1, int y1, int color) {
+        x0 -= headSpace();
         int body = bodyColor(color), title = titleColor(haveTitle ? titleColor : color);
         if (LethalConfig.sbBackground == 3) {
             return;
@@ -83,14 +87,21 @@ public final class ScoreboardStyle {
         };
     }
 
-    /** Draws the title text, with your player head in front of it when that option is on. */
+    /** How much wider the background gets on the left so the head fits inside it. */
+    private static int headSpace() {
+        return LethalConfig.sbHead && net.minecraft.client.Minecraft.getInstance().player != null ? HEAD_SPACE : 0;
+    }
+
+    /**
+     * Draws the title text, with your player head in front of it when that option is on. The
+     * background was widened by the same amount on the left, so head and title stay centred inside it.
+     */
     public static void title(GuiGraphicsExtractor g, net.minecraft.client.gui.Font font, net.minecraft.network.chat.Component text,
                              int x, int y, int color, boolean shadow) {
         if (LethalConfig.sbHead) {
             var mc = net.minecraft.client.Minecraft.getInstance();
             if (mc.player != null) {
-                net.minecraft.client.gui.components.PlayerFaceExtractor.extractRenderState(g, mc.player.getSkin(), x - 10, y, 8);
-                x += 1;
+                net.minecraft.client.gui.components.PlayerFaceExtractor.extractRenderState(g, mc.player.getSkin(), x - HEAD_SPACE, y, 8);
             }
         }
         g.text(font, text, x, y, color, shadow);
