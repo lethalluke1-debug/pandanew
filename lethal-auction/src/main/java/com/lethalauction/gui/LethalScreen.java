@@ -681,15 +681,20 @@ public class LethalScreen extends Screen {
 
             String name = fit(a.item().getHoverName().getString(), 230, 13, Draw.SEMIBOLD);
             Draw.text(g, name, 301, y + 20, 13, WHITE, Draw.SEMIBOLD);
-            Draw.text(g, "x" + a.quantity() + "  ·  " + a.timerSeconds() + "s timer", 301, y + 37, 11.5f, SUBTLE, Draw.REGULAR);
+            String sub = "x" + a.quantity() + "  ·  " + (a.hasBid()
+                    ? (live ? "top bid by " : "won by ") + a.topBidder() : a.timerSeconds() + "s timer");
+            Draw.text(g, fit(sub, 240, 11.5f, Draw.REGULAR), 301, y + 37, 11.5f, SUBTLE, Draw.REGULAR);
 
-            stat(g, 560, y, "MIN BID", Auctions.formatMoney(a.minimumBid()));
-            stat(g, 670, y, "WORTH EACH", a.worthEach() > 0 ? Auctions.formatMoney(a.worthEach()) : "-");
-            stat(g, 780, y, "TOTAL WORTH", a.worthEach() > 0 ? Auctions.formatMoney(a.worthEach() * a.quantity()) : "-");
+            stat(g, 560, y, "MIN BID", a.minimumBid() > 0 ? Auctions.formatMoney(a.minimumBid()) : "None");
+            stat(g, 670, y, "TOP BID", a.hasBid() ? Auctions.formatMoney(a.topBid()) : "-");
+            stat(g, 780, y, "WORTH EACH", a.worthEach() > 0 ? Auctions.formatMoney(a.worthEach()) : "-");
 
             if (live) {
                 Draw.round(g, 888, y + 15, 76, 24, 12, accentDark);
                 Draw.textCentered(g, Auctions.formatTime(a.secondsLeft()), 926, y + 27.5f, 12, accentLight, Draw.SEMIBOLD);
+            } else if (a.hasBid()) {
+                Draw.round(g, 888, y + 15, 76, 24, 12, 0xFF123524);
+                Draw.textCentered(g, "Sold", 926, y + 27.5f, 12, 0xFF45E08A, Draw.SEMIBOLD);
             } else {
                 Draw.round(g, 888, y + 15, 76, 24, 12, 0xFF24222C);
                 Draw.textCentered(g, "Ended", 926, y + 27.5f, 12, 0xFF9C9CA6, Draw.SEMIBOLD);
