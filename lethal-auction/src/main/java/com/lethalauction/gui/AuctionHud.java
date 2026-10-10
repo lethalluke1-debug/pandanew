@@ -48,12 +48,12 @@ public class AuctionHud implements HudElement {
             if (msLeft <= 10_000 && msLeft > 9_000) {
                 shake = 3.5f * (msLeft - 9_000) / 1000f;
             } else if (msLeft <= 5_000) {
-                shake = 2.5f + 3.5f * (1 - msLeft / 5000f);
+                shake = 0.5f + 0.7f * (1 - msLeft / 5000f);
             }
         }
         x += (float) (Math.sin(t * 55) * shake) * SCALE * 2.2f;
         float y = 5 + (float) (Math.cos(t * 47) * shake * 0.8f) * SCALE;
-        float rot = (float) (Math.sin(t * 38) * shake * 0.012f);
+        float rot = (float) (Math.sin(t * 38) * shake * 0.006f);
         float alpha = 1;
         if (a.ended()) {
             long since = now - a.endsAt();
@@ -147,6 +147,10 @@ public class AuctionHud implements HudElement {
             float bounce = (float) Math.sin(t * 5) * 1.2f;
             Draw.text(g, "won for " + compact(a.topBid()), 74 + (1 - subIn) * 12, 51 + bounce, 13,
                     Draw.alpha(GREEN, subIn), Draw.SEMIBOLD);
+            String copied = "Name copied";
+            int cw = Math.round(Draw.width(copied, 10.5f, Draw.SEMIBOLD) + 18);
+            Draw.round(g, W - 12 - cw, 12, cw, 20, 10, Draw.alpha(Theme.accentDark(), subIn));
+            Draw.textCentered(g, copied, W - 12 - cw / 2f, 22, 10.5f, Draw.alpha(0xFFFFFFFF, subIn), Draw.SEMIBOLD);
         } else {
             Draw.text(g, "Auction ended", 74, 26, 15, 0xFFF3F3F5, Draw.SEMIBOLD);
             Draw.text(g, "No winner", 74, 50, 13, 0xFF9C9CA6, Draw.MEDIUM);

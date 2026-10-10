@@ -76,6 +76,7 @@ public class LethalAuctionClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
             for (Auctions.Auction done : Auctions.tick()) {
                 if (done.hasBid()) {
+                    mc.keyboardHandler.setClipboard(done.topBidder());
                     mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 0.8f));
                 }
             }
