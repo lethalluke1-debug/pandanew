@@ -102,34 +102,45 @@ public final class AuctionCape {
         CapeImages.fill(img, bx, by, Math.round(bw * Math.max(0, Math.min(1, progress))), 4, low ? 0xFFFF4D5E : light);
     }
 
-    /** The winner's name: each letter bobs, pulses in size and shimmers between gold and the theme colour. */
+    /**
+     * The winner's name: letters pop in one by one, then each bobs and shimmers between gold and the
+     * theme colour. The whole name breathes bigger and smaller when there is room for the larger size.
+     */
     private static void drawWinner(NativeImage img, String name, int cx, int midY, int faceW, int light, float t, long since) {
         String text = name.toUpperCase(Locale.ROOT);
-        int scale = CapeImages.textWidth(text, 2) <= faceW - 8 ? 2 : 1;
+        int room = faceW - 8;
+        int scale = CapeImages.textWidth(text, 2) <= room ? 2 : 1;
+        boolean canGrow = CapeImages.textWidth(text, scale + 1) <= room;
+        if (canGrow && since > 600 && Math.sin(t * 3.2) > 0.2) {
+            scale++;
+        }
         int width = CapeImages.textWidth(text, scale);
         int x = cx - width / 2;
-        if (width > faceW - 6) {
+        if (width > faceW - 4) {
             // too long even at the smallest size: scroll it across
             int span = width + faceW;
             x = cx + faceW / 2 - (int) ((since / 25) % span);
         }
+        int top = midY - 7 * scale / 2 - 6;
         for (int i = 0; i < text.length(); i++) {
             float appear = Math.max(0, Math.min(1, (since - i * 60) / 220f));
-            if (appear > 0) {
-                int bob = (int) Math.round(Math.sin(t * 7 - i * 0.7) * 2 * scale);
-                int pop = (int) ((1 - appear) * 10);
-                float shimmer = 0.5f + 0.5f * (float) Math.sin(t * 5 - i * 0.6);
-                int color = CapeImages.mix(0xFFFFD54A, light, shimmer);
-                int s2 = scale + (Math.sin(t * 6 - i * 0.7) > 0.6 ? 1 : 0);
-                int cxChar = x + i * 6 * scale + 2 * scale;
-                CapeImages.text(img, String.valueOf(text.charAt(i)), cxChar - 2 * s2, midY - 7 * s2 / 2 - 6 + bob + pop, s2, color);
+            if (appear <= 0) {
+                continue;
             }
+            int bob = (int) Math.round(Math.sin(t * 7 - i * 0.7) * 2);
+            int pop = (int) ((1 - appear) * 10);
+            float shimmer = 0.5f + 0.5f * (float) Math.sin(t * 5 - i * 0.6);
+            CapeImages.text(img, String.valueOf(text.charAt(i)), x + i * 6 * scale, top + bob + pop, scale,
+                    CapeImages.mix(0xFFFFD54A, light, shimmer));
         }
         // twinkling sparkles around the name
         for (int k = 0; k < 10; k++) {
             double seed = k * 12.9898;
             int sx = cx - faceW / 2 + 4 + (int) (Math.abs(Math.sin(seed) * 43758.5453) % (faceW - 8));
-            int sy = midY - 34 + (int) (Math.abs(Math.sin(seed * 1.7) * 23421.631) % 60);
+            int sy = midY - 40 + (int) (Math.abs(Math.sin(seed * 1.7) * 23421.631) % 22);
+            if (k % 2 == 1) {
+                sy += 44;
+            }
             if (Math.sin(t * 4 + k) > 0.55) {
                 CapeImages.fill(img, sx, sy, 2, 2, 0xFFFFFFFF);
             }
