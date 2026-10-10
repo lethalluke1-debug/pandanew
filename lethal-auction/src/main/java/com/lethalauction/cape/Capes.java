@@ -41,8 +41,11 @@ public final class Capes {
     public static final class Pending {
         public final NativeImage image;
         public String suggestedName;
-        public final int cropW, cropH;
+        private final int baseW, baseH;
+        public int cropW, cropH;
         public int cropX, cropY;
+        /** 1 = whole frame fits the picture; higher zooms in (smaller frame). */
+        public float zoom = 1f;
 
         Pending(NativeImage image, String suggestedName) {
             this.image = image;
@@ -55,8 +58,19 @@ public final class Capes {
                 cropW = w;
                 cropH = Math.max(1, Math.round(w / CapeImages.FACE_ASPECT));
             }
+            baseW = cropW;
+            baseH = cropH;
             cropX = (w - cropW) / 2;
             cropY = (h - cropH) / 2;
+        }
+
+        /** Zooms in or out around the middle of the current frame. */
+        public void setZoom(float z) {
+            zoom = Math.max(1f, Math.min(5f, z));
+            int midX = cropX + cropW / 2, midY = cropY + cropH / 2;
+            cropW = Math.max(4, Math.round(baseW / zoom));
+            cropH = Math.max(6, Math.round(baseH / zoom));
+            moveTo(midX - cropW / 2, midY - cropH / 2);
         }
 
         public Identifier texture() {

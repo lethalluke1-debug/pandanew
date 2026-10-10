@@ -83,6 +83,19 @@ public final class ScoreboardStyle {
         };
     }
 
+    /** Draws the title text, with your player head in front of it when that option is on. */
+    public static void title(GuiGraphicsExtractor g, net.minecraft.client.gui.Font font, net.minecraft.network.chat.Component text,
+                             int x, int y, int color, boolean shadow) {
+        if (LethalConfig.sbHead) {
+            var mc = net.minecraft.client.Minecraft.getInstance();
+            if (mc.player != null) {
+                net.minecraft.client.gui.components.PlayerFaceExtractor.extractRenderState(g, mc.player.getSkin(), x - 10, y, 8);
+                x += 1;
+            }
+        }
+        g.text(font, text, x, y, color, shadow);
+    }
+
     /** The custom colour from the hue slider at the given opacity. */
     public static int custom(float opacity) {
         int rgb = java.awt.Color.HSBtoRGB(LethalConfig.sbHue, 0.75f, 0.55f) & 0xFFFFFF;

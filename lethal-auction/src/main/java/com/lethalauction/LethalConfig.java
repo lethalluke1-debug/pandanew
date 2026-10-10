@@ -28,6 +28,8 @@ public final class LethalConfig {
     // Scoreboard sidebar
     public static float sbScale = 1f;
     public static boolean sbRounded = false;
+    /** Draw your player head next to the scoreboard title. */
+    public static boolean sbHead = false;
     /** 0 = Default (vanilla), 1 = Theme, 2 = Custom colour, 3 = Clear. */
     public static int sbBackground = 0;
     public static float sbHue = 0.8f;
@@ -74,6 +76,7 @@ public final class LethalConfig {
         auctionCape = Boolean.parseBoolean(p.getProperty("auctionCape", "false"));
         sbScale = clamp(parseFloat(p.getProperty("sbScale"), 1f), 0.5f, 1.5f);
         sbRounded = Boolean.parseBoolean(p.getProperty("sbRounded", "false"));
+        sbHead = Boolean.parseBoolean(p.getProperty("sbHead", "false"));
         sbBackground = Math.floorMod((int) parseFloat(p.getProperty("sbBackground"), 0), 4);
         sbHue = clamp(parseFloat(p.getProperty("sbHue"), 0.8f), 0f, 1f);
         sbOpacity = clamp(parseFloat(p.getProperty("sbOpacity"), 0.45f), 0f, 1f);
@@ -101,6 +104,7 @@ public final class LethalConfig {
         p.setProperty("auctionCape", Boolean.toString(auctionCape));
         p.setProperty("sbScale", Float.toString(sbScale));
         p.setProperty("sbRounded", Boolean.toString(sbRounded));
+        p.setProperty("sbHead", Boolean.toString(sbHead));
         p.setProperty("sbBackground", Integer.toString(sbBackground));
         p.setProperty("sbHue", Float.toString(sbHue));
         p.setProperty("sbOpacity", Float.toString(sbOpacity));

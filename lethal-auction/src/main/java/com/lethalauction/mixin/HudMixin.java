@@ -23,6 +23,13 @@ public abstract class HudMixin {
         ScoreboardStyle.end(g);
     }
 
+    @Redirect(method = "displayScoreboardSidebar", at = @At(value = "INVOKE", ordinal = 0,
+            target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;text(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;IIIZ)V"))
+    private void lethalauction$title(GuiGraphicsExtractor g, net.minecraft.client.gui.Font font,
+                                     net.minecraft.network.chat.Component text, int x, int y, int color, boolean shadow) {
+        ScoreboardStyle.title(g, font, text, x, y, color, shadow);
+    }
+
     @Redirect(method = "displayScoreboardSidebar",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;fill(IIIII)V", ordinal = 0))
     private void lethalauction$titleFill(GuiGraphicsExtractor g, int x0, int y0, int x1, int y1, int color) {

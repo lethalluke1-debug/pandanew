@@ -1041,8 +1041,7 @@ public class LethalScreen extends Screen {
         Draw.rect(g, fx + fw, fy, ix + dw - fx - fw, fh, shade);
         Draw.roundBordered(g, fx - 1, fy - 1, fw + 2, fh + 2, 3, 0x00000000, accent);
         Draw.roundBordered(g, fx, fy, fw, fh, 2, 0x00000000, Draw.alpha(0xFFFFFFFF, 0.5f));
-        boolean horizontal = p.cropW < iw;
-        if (horizontal) {
+        if (p.cropW < iw && fw > 40) {
             Draw.icon(g, I_LEFT, fx + 10, fy + fh / 2f, 14, 0xFFFFFFFF);
             Draw.icon(g, I_RIGHT, fx + fw - 10, fy + fh / 2f, 14, 0xFFFFFFFF);
         }
@@ -1061,14 +1060,17 @@ public class LethalScreen extends Screen {
         int pw = 96, ph = Math.round(pw / CapeImages.FACE_ASPECT);
         g.blit(RenderPipelines.GUI_TEXTURED, p.texture(), px + 124 - pw / 2, t + 227 - ph / 2, p.cropX, p.cropY, pw, ph,
                 p.cropW, p.cropH, iw, ih);
-        Draw.text(g, "Name", px, t + 336, 12.5f, TEXT, Draw.MEDIUM);
-        field(g, capeName, px, t + 346, 248, 30, "Cape name");
-        button(g, px, t + 386, 248, 30, "Save Cape", accentDark, Draw.lerpColor(accent, 0xFF000000, 0.15f), accentLight, () -> {
+        Draw.text(g, "Name", px, t + 332, 12.5f, TEXT, Draw.MEDIUM);
+        field(g, capeName, px, t + 342, 248, 28, "Cape name");
+        Draw.text(g, "Zoom", px, t + 386, 12.5f, TEXT, Draw.MEDIUM);
+        Draw.textRight(g, String.format(java.util.Locale.ROOT, "%.1fx", p.zoom), px + 248, t + 386, 12, 0xFFC3C3CC, Draw.MEDIUM);
+        dragSliderOn(g, px + 52, t + 386, 150, (p.zoom - 1f) / 4f, f -> p.setZoom(1f + f * 4f));
+        button(g, px, t + 404, 248, 28, "Save Cape", accentDark, Draw.lerpColor(accent, 0xFF000000, 0.15f), accentLight, () -> {
             Capes.pending().suggestedName = capeName.value.isBlank() ? Capes.pending().suggestedName : capeName.value;
             Capes.savePending();
             focused = null;
         });
-        button(g, px, t + 424, 248, 30, "Cancel", surface(0xFF15141B), BUTTON_BORDER, WHITE, () -> {
+        button(g, px, t + 438, 248, 28, "Cancel", surface(0xFF15141B), BUTTON_BORDER, WHITE, () -> {
             Capes.cancelPending();
             focused = null;
         });
@@ -1084,7 +1086,11 @@ public class LethalScreen extends Screen {
     private SliderDrag sliderDrag;
 
     private void dragSlider(int x, int cy, int w, float frac, java.util.function.Consumer<Float> set) {
-        slider(g(), x, cy, w, frac);
+        dragSliderOn(g(), x, cy, w, frac, set);
+    }
+
+    private void dragSliderOn(GuiGraphicsExtractor g, int x, int cy, int w, float frac, java.util.function.Consumer<Float> set) {
+        slider(g, x, cy, w, frac);
         hotspot(x - 6, cy - 9, w + 12, 18, () -> {
             sliderDrag = new SliderDrag(x, w, set);
             set.accept(Math.max(0f, Math.min(1f, (mouseDX - x) / w)));
@@ -1131,6 +1137,16 @@ public class LethalScreen extends Screen {
         Draw.text(g, "Smooth corners instead of a square box", x0 + 18, y + 42, 10.5f, SUBTLE, Draw.REGULAR);
         toggle(g, x0 + w0 - 52, y + 32, LethalConfig.sbRounded, () -> {
             LethalConfig.sbRounded = !LethalConfig.sbRounded;
+            LethalConfig.save();
+        });
+
+        // Player head
+        y += 76;
+        Draw.roundBordered(g, x0, y, w0, 64, 12, cardFill, cardBorder);
+        Draw.text(g, "Player head", x0 + 18, y + 22, 13, WHITE, Draw.SEMIBOLD);
+        Draw.text(g, "Show your head next to the name at the top", x0 + 18, y + 42, 10.5f, SUBTLE, Draw.REGULAR);
+        toggle(g, x0 + w0 - 52, y + 32, LethalConfig.sbHead, () -> {
+            LethalConfig.sbHead = !LethalConfig.sbHead;
             LethalConfig.save();
         });
 
@@ -1181,31 +1197,46 @@ public class LethalScreen extends Screen {
         return Math.max(y + bh, py + ph) + 12;
     }
 
-    /** Draws a sample sidebar using the same style code the real scoreboard uses. */
+    // 7x7 pixel icons for the preview: dollar, shard, sword, skull
+    private static final String[] PREVIEW_ICONS = {
+            "0001000011111001010000111110000101001111100001000", // $
+            "0001000001110011111110111110001110001101100100010", // shard
+            "0000011000011100011101011100011100000100001010000", // sword
+            "0111110111111110010011111111011111001010100000000"}; // skull
+    private static final int[] PREVIEW_ICON_COLORS = {0xFF3FD13F, 0xFFA83FFF, 0xFFE0303A, 0xFFFF8A1F};
+    private static final String[] PREVIEW_VALUES = {"1T", "1000", "1", "1"};
+
+    /** Draws a sample sidebar (DonutSMP style) using the same style code the real scoreboard uses. */
     private void drawScoreboardPreview(GuiGraphicsExtractor g, int cx, int cy) {
-        String[][] rows = {{"Money", "$1.2M"}, {"Shards", "340"}, {"Kills", "12"}, {"Deaths", "3"}, {"Playtime", "4h 12m"}, {"Team", "None"}};
         var font = minecraft.font;
-        int lineH = 9;
-        int width = 0;
-        for (String[] r : rows) {
-            width = Math.max(width, font.width(r[0] + ": " + r[1]));
+        int lineH = 10;
+        String title = "Player";
+        int width = font.width(title) + (LethalConfig.sbHead ? 10 : 0);
+        for (String v : PREVIEW_VALUES) {
+            width = Math.max(width, 11 + font.width(v));
         }
-        width = Math.max(width, font.width("LETHAL")) + 4;
-        int h = rows.length * lineH;
+        width += 6;
+        int h = PREVIEW_VALUES.length * lineH + 2;
         Matrix3x2fStack p = g.pose();
         p.pushMatrix();
         p.translate(cx, cy);
-        p.scale(1.6f * LethalConfig.sbScale);
-        int x0 = -width / 2, bottom = h / 2, x1 = x0 + width;
-        int bodyTop = bottom - h;
-        int vanillaBody = 0x4C000000, vanillaTitle = 0x66000000;
-        ScoreboardStyle.titleFill(g, x0 - 2, bodyTop - lineH - 1, x1, bodyTop - 1, vanillaTitle);
-        ScoreboardStyle.bodyFill(g, x0 - 2, bodyTop - 1, x1, bottom, vanillaBody);
-        g.text(font, "LETHAL", -font.width("LETHAL") / 2, bodyTop - lineH, 0xFFFFFFFF, false);
-        for (int i = 0; i < rows.length; i++) {
-            int ly = bodyTop + i * lineH;
-            g.text(font, rows[i][0] + ":", x0, ly, 0xFFFFFFFF, false);
-            g.text(font, rows[i][1], x1 - font.width(rows[i][1]), ly, 0xFFFF5555, false);
+        p.scale(1.8f * LethalConfig.sbScale);
+        int x0 = -width / 2, x1 = x0 + width, bottom = h / 2, bodyTop = bottom - h;
+        ScoreboardStyle.titleFill(g, x0 - 2, bodyTop - lineH - 1, x1, bodyTop - 1, 0x66000000);
+        ScoreboardStyle.bodyFill(g, x0 - 2, bodyTop - 1, x1, bottom, 0x4C000000);
+        int titleX = -font.width(title) / 2 + (LethalConfig.sbHead ? 5 : 0);
+        ScoreboardStyle.title(g, font, Component.literal(title), titleX, bodyTop - lineH, 0xFFFFFFFF, false);
+        for (int i = 0; i < PREVIEW_VALUES.length; i++) {
+            int ly = bodyTop + 1 + i * lineH;
+            String bits = PREVIEW_ICONS[i];
+            for (int r = 0; r < 7; r++) {
+                for (int c = 0; c < 7; c++) {
+                    if (bits.charAt(r * 7 + c) == '1') {
+                        Draw.rect(g, x0 + c, ly + r, 1, 1, PREVIEW_ICON_COLORS[i]);
+                    }
+                }
+            }
+            g.text(font, PREVIEW_VALUES[i], x0 + 11, ly, 0xFFFFFFFF, false);
         }
         p.popMatrix();
     }
