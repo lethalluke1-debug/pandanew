@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Swaps in the selected custom cape for the local player only. Other players are untouched. */
+/** Swaps in the custom (or live auction) cape for the local player only. Other players are untouched. */
 @Mixin(AbstractClientPlayer.class)
 public abstract class AbstractClientPlayerMixin {
     @Inject(method = "getSkin", at = @At("RETURN"), cancellable = true)
@@ -18,12 +18,12 @@ public abstract class AbstractClientPlayerMixin {
         if ((Object) this != Minecraft.getInstance().player) {
             return;
         }
-        Capes.Cape cape = Capes.selected();
-        if (cape == null) {
+        net.minecraft.resources.Identifier id = Capes.activeTexture();
+        if (id == null) {
             return;
         }
         PlayerSkin skin = cir.getReturnValue();
-        ClientAsset.Texture texture = new ClientAsset.ResourceTexture(cape.texture(), cape.texture());
+        ClientAsset.Texture texture = new ClientAsset.ResourceTexture(id, id);
         cir.setReturnValue(new PlayerSkin(skin.body(), texture, texture, skin.model(), skin.secure()));
     }
 }

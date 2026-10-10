@@ -2,6 +2,7 @@ package com.lethalauction.cape;
 
 import com.lethalauction.LethalAuctionClient;
 import com.lethalauction.LethalConfig;
+import com.lethalauction.auction.Auctions;
 import com.mojang.blaze3d.platform.NativeImage;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,6 +34,42 @@ public final class Capes {
     public record Cape(String name, Identifier texture, int width, int height) {
     }
 
+    public static final int MAX_SLOTS = 5;
+    private static final Identifier UPLOAD_TEXTURE = Identifier.fromNamespaceAndPath("lethalauction", "cape_upload");
+
+    /** A photo waiting to be cropped into a cape. Crop is in image pixels; only its position can change. */
+    public static final class Pending {
+        public final NativeImage image;
+        public String suggestedName;
+        public final int cropW, cropH;
+        public int cropX, cropY;
+
+        Pending(NativeImage image, String suggestedName) {
+            this.image = image;
+            this.suggestedName = suggestedName;
+            int w = image.getWidth(), h = image.getHeight();
+            if (w / (float) h > CapeImages.FACE_ASPECT) {
+                cropH = h;
+                cropW = Math.max(1, Math.round(h * CapeImages.FACE_ASPECT));
+            } else {
+                cropW = w;
+                cropH = Math.max(1, Math.round(w / CapeImages.FACE_ASPECT));
+            }
+            cropX = (w - cropW) / 2;
+            cropY = (h - cropH) / 2;
+        }
+
+        public Identifier texture() {
+            return UPLOAD_TEXTURE;
+        }
+
+        public void moveTo(int x, int y) {
+            cropX = Math.max(0, Math.min(image.getWidth() - cropW, x));
+            cropY = Math.max(0, Math.min(image.getHeight() - cropH, y));
+        }
+    }
+
+    private static Pending pending;
     private static final Map<String, Cape> LOADED = new LinkedHashMap<>();
     private static boolean scanned;
     private static String status = "";
@@ -48,6 +85,27 @@ public final class Capes {
             rescan();
         }
         return new ArrayList<>(LOADED.values());
+    }
+
+    public static Pending pending() {
+        return pending;
+    }
+
+    public static boolean full() {
+        return all().size() >= MAX_SLOTS;
+    }
+
+    /** Texture to draw on the local player right now, or null to keep their real cape. */
+    public static Identifier activeTexture() {
+        if (LethalConfig.auctionCape) {
+            Auctions.Auction a = Auctions.current();
+            if (a != null && !a.cancelled()) {
+                AuctionCape.update(a);
+                return AuctionCape.TEXTURE;
+            }
+        }
+        Cape cape = selected();
+        return cape == null ? null : cape.texture();
     }
 
     /** The cape to draw on the local player, or null to keep their real cape. */
@@ -129,9 +187,13 @@ public final class Capes {
         return fixed;
     }
 
-    /** Opens a file picker on a background thread and copies the chosen PNG into the capes folder. */
+    /** Opens a file picker on a background thread; the chosen image then opens in the cropper. */
     public static void upload() {
-        if (dialogOpen) {
+        if (dialogOpen || pending != null) {
+            return;
+        }
+        if (full()) {
+            setStatus("All " + MAX_SLOTS + " slots are full. Delete a cape first.");
             return;
         }
         dialogOpen = true;
@@ -139,38 +201,119 @@ public final class Capes {
             try {
                 String chosen;
                 try (MemoryStack stack = MemoryStack.stackPush()) {
-                    PointerBuffer filters = stack.mallocPointer(1);
+                    PointerBuffer filters = stack.mallocPointer(3);
                     filters.put(stack.UTF8("*.png"));
+                    filters.put(stack.UTF8("*.jpg"));
+                    filters.put(stack.UTF8("*.jpeg"));
                     filters.flip();
-                    chosen = TinyFileDialogs.tinyfd_openFileDialog("Choose a cape image (PNG)", "", filters, "PNG images", false);
+                    chosen = TinyFileDialogs.tinyfd_openFileDialog("Choose a picture for your cape", "", filters, "Images", false);
                 }
                 if (chosen == null) {
                     return;
                 }
-                Path source = Path.of(chosen);
-                Files.createDirectories(FOLDER);
-                Path target = FOLDER.resolve(source.getFileName().toString());
-                Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
-                String name = target.getFileName().toString();
-                Minecraft.getInstance().execute(() -> {
-                    LOADED.remove(name);
-                    rescan();
-                    if (LOADED.containsKey(name)) {
-                        select(name);
-                        setStatus("Cape added and equipped");
-                    } else {
-                        setStatus("That file is not a valid PNG image");
-                    }
-                });
+                byte[] bytes = Files.readAllBytes(Path.of(chosen));
+                String base = Path.of(chosen).getFileName().toString().replaceAll("\\.[A-Za-z0-9]+$", "");
+                Minecraft.getInstance().execute(() -> openCropper(bytes, base));
             } catch (IOException | RuntimeException e) {
                 LethalAuctionClient.LOGGER.warn("Cape upload failed", e);
-                Minecraft.getInstance().execute(() -> setStatus("Could not add that cape"));
+                Minecraft.getInstance().execute(() -> setStatus("Could not open that picture"));
             } finally {
                 dialogOpen = false;
             }
         }, "Lethal Auction cape picker");
         t.setDaemon(true);
         t.start();
+    }
+
+    /** Dev helper: open the cropper on a picture file without the file dialog. */
+    public static void devOpenCropper(Path file) {
+        try {
+            openCropper(Files.readAllBytes(file), "Sunset");
+        } catch (IOException e) {
+            LethalAuctionClient.LOGGER.warn("dev crop failed", e);
+        }
+    }
+
+    private static void openCropper(byte[] bytes, String name) {
+        try {
+            NativeImage image = NativeImage.read(bytes);
+            NativeImage preview = new NativeImage(image.getWidth(), image.getHeight(), false);
+            preview.copyFrom(image);
+            Minecraft.getInstance().getTextureManager().register(UPLOAD_TEXTURE, new DynamicTexture(() -> "Lethal Auction cape upload", preview));
+            pending = new Pending(image, name.isBlank() ? "Cape" : name);
+        } catch (IOException | RuntimeException e) {
+            LethalAuctionClient.LOGGER.warn("Could not read picture", e);
+            setStatus("That picture could not be read (use PNG)");
+        }
+    }
+
+    /** Saves the cropped part of the pending picture as a new cape and wears it. */
+    public static void savePending() {
+        Pending p = pending;
+        if (p == null) {
+            return;
+        }
+        String name = uniqueName(safeName(p.suggestedName));
+        try (NativeImage cape = CapeImages.fromCrop(p.image, p.cropX, p.cropY, p.cropW, p.cropH)) {
+            Files.createDirectories(FOLDER);
+            cape.writeToFile(FOLDER.resolve(name + ".png"));
+        } catch (IOException | RuntimeException e) {
+            LethalAuctionClient.LOGGER.warn("Could not save cape", e);
+            setStatus("Could not save the cape");
+        }
+        cancelPending();
+        rescan();
+        select(name + ".png");
+        setStatus("Cape saved and equipped");
+    }
+
+    public static void cancelPending() {
+        if (pending != null) {
+            pending.image.close();
+            pending = null;
+            Minecraft.getInstance().getTextureManager().release(UPLOAD_TEXTURE);
+        }
+    }
+
+    /** Renames a cape file. Returns false if the name is empty or taken. */
+    public static boolean rename(Cape cape, String newName) {
+        String clean = safeName(newName);
+        if (clean.isEmpty()) {
+            return false;
+        }
+        String file = clean + ".png";
+        if (file.equals(cape.name())) {
+            return true;
+        }
+        if (Files.exists(FOLDER.resolve(file))) {
+            setStatus("A cape with that name already exists");
+            return false;
+        }
+        try {
+            Files.move(FOLDER.resolve(cape.name()), FOLDER.resolve(file));
+        } catch (IOException e) {
+            LethalAuctionClient.LOGGER.warn("Could not rename cape", e);
+            return false;
+        }
+        boolean wasSelected = cape.name().equals(LethalConfig.cape);
+        rescan();
+        if (wasSelected) {
+            select(file);
+        }
+        return true;
+    }
+
+    private static String safeName(String name) {
+        return name.trim().replaceAll("[\\\\/:*?\"<>|]", "").replaceAll("\\s+", " ");
+    }
+
+    private static String uniqueName(String base) {
+        String name = base.isEmpty() ? "Cape" : base;
+        int i = 2;
+        while (Files.exists(FOLDER.resolve(name + ".png"))) {
+            name = base + " " + i++;
+        }
+        return name;
     }
 
     public static void delete(Cape cape) {

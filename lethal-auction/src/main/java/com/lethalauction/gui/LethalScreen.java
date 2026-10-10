@@ -4,6 +4,8 @@ import com.lethalauction.LethalAuctionClient;
 import com.lethalauction.LethalConfig;
 import com.lethalauction.auction.Auctions;
 import com.lethalauction.auction.Auctions.Auction;
+import com.lethalauction.cape.AuctionCape;
+import com.lethalauction.cape.CapeImages;
 import com.lethalauction.cape.Capes;
 import java.util.ArrayList;
 import java.util.List;
@@ -805,12 +807,35 @@ public class LethalScreen extends Screen {
 
     // ---------------------------------------------------------------- cape
 
+    private static final int I_PENCIL = 0xeb04;
+    private static final int CROP_BOX_X = 241, CROP_BOX_W = 500, CROP_BOX_H = 360;
+    private Capes.Cape renaming;
+    private final TextBox renameBox = TextBox.any(24);
+    private final TextBox capeName = TextBox.any(24);
+    private Capes.Pending cropFor;
+    private boolean draggingCrop;
+    private float dragStartMouseX, dragStartMouseY;
+    private int dragStartCropX, dragStartCropY;
+    private float cropScale = 1;
+    private int cropTop;
+
     private int drawCape(GuiGraphicsExtractor g, int t) {
+        Capes.Pending pending = Capes.pending();
+        if (pending != null) {
+            return drawCropper(g, t, pending);
+        }
         int head = Draw.lerpColor(accent, 0xFFFFFFFF, 0.05f);
         Draw.icon(g, I_HANGER, 253, t + 80, 18, head);
         Draw.text(g, "Cape", 272, t + 77, 13, WHITE, Draw.SEMIBOLD);
         Draw.text(g, "Only you can see this cape. It replaces the cape you are wearing.", 272, t + 94, 10.5f, SUBTLE, Draw.REGULAR);
-        button(g, 778, t + 69, 120, 26, "Upload Cape", accentDark, Draw.lerpColor(accent, 0xFF000000, 0.15f), accentLight, Capes::upload);
+        List<Capes.Cape> capes = Capes.all();
+        boolean full = capes.size() >= Capes.MAX_SLOTS;
+        if (full) {
+            Draw.roundBordered(g, 778, t + 69, 120, 26, 6, surface(0xFF15141B), 0xFF23212A);
+            Draw.textCentered(g, "Slots full", 838, t + 82.5f, 12.5f, 0xFF5E5C66, Draw.SEMIBOLD);
+        } else {
+            button(g, 778, t + 69, 120, 26, "Upload Cape", accentDark, Draw.lerpColor(accent, 0xFF000000, 0.15f), accentLight, Capes::upload);
+        }
         button(g, 904, t + 69, 100, 26, "Open Folder", BUTTON, BUTTON_BORDER, WHITE, () -> {
             Capes.rescan();
             Util.getPlatform().openPath(Capes.FOLDER);
@@ -820,58 +845,234 @@ public class LethalScreen extends Screen {
             Draw.textRight(g, status, 1004, t + 108, 11, accentLight, Draw.MEDIUM);
         }
 
-        List<Capes.Cape> capes = Capes.all();
+        // None + 5 slots
         Capes.Cape current = Capes.selected();
-        int n = capes.size() + 1;
-        int y = t + 122;
-        for (int i = 0; i < n; i++) {
-            int x = 249 + (i % 4) * 187;
-            int cy = y + (i / 4) * 170;
-            Capes.Cape cape = i == 0 ? null : capes.get(i - 1);
-            boolean selected = cape == null ? current == null : current != null && current.name().equals(cape.name());
-            if (selected) {
-                Draw.round(g, x - 3, cy - 3, 184, 166, 10, Draw.alpha(accent, 0.18f));
-                Draw.roundBordered(g, x - 1, cy - 1, 180, 162, 9, 0x00000000, accent);
-                Draw.roundBordered(g, x, cy, 178, 160, 8, surface(0xFF1B1A22), Draw.alpha(accent, 0.6f));
+        int y = t + 120;
+        for (int i = 0; i <= Capes.MAX_SLOTS; i++) {
+            int x = 233 + i * 131;
+            if (i == 0) {
+                capeCard(g, x, y, null, current == null);
+            } else if (i - 1 < capes.size()) {
+                Capes.Cape cape = capes.get(i - 1);
+                capeCard(g, x, y, cape, current != null && current.name().equals(cape.name()));
             } else {
-                Draw.round(g, x, cy, 178, 160, 8, surface(0xFF1B1A22));
+                emptySlot(g, x, y);
             }
-            Draw.round(g, x + 8, cy + 8, 162, 110, 6, surface(0xFF0C0B11));
-            if (cape == null) {
-                Draw.icon(g, I_X, x + 89, cy + 58, 28, 0xFF4A4654);
-            } else {
-                capePreview(g, cape, x + 89, cy + 63);
-            }
-            String label = cape == null ? "My normal cape" : fit(cape.name().replaceAll("(?i)\\.png$", ""), 140, 12, Draw.SEMIBOLD);
-            int nameColor = selected ? Draw.lerpColor(accent, 0xFFFFFFFF, 0.15f) : 0xFFE0DFE6;
-            Draw.text(g, label, x + 10, cy + 137, 12, nameColor, Draw.SEMIBOLD);
-            if (selected) {
-                Draw.circle(g, x + 164, cy + 137, 6, accent);
-                Draw.circle(g, x + 164, cy + 137, 4.8f, 0xFF0B0E14);
-                Draw.circle(g, x + 164, cy + 137, 3.6f, accent);
-            }
-            Capes.Cape pick = cape;
-            if (cape != null) {
-                Draw.roundBordered(g, x + 146, cy + 12, 20, 20, 5, 0xCC15141B, 0xFF44424E);
-                Draw.icon(g, I_TRASH, x + 156, cy + 22, 11, 0xFFFF8A95);
-                hotspot(x + 146, cy + 12, 20, 20, () -> Capes.delete(pick));
-            }
-            hotspot(x, cy, 178, 160, () -> Capes.select(pick == null ? "" : pick.name()));
         }
-        if (capes.isEmpty()) {
-            Draw.text(g, "Press Upload Cape and pick a cape PNG (64x32 like a normal Minecraft cape).", 249, y + 186, 11.5f, SUBTLE, Draw.REGULAR);
+
+        // dotted divider
+        int dy = y + 194;
+        for (int x = 241; x < 1005; x += 10) {
+            Draw.rect(g, x, dy, 5, 1, 0x40FFFFFF);
         }
-        return y + ((n + 3) / 4) * 170 + 10;
+        return drawAuctionCapeSection(g, dy + 22);
     }
 
-    /** Draws the front and back of a cape side by side, centred on (cx, cy). */
-    private static void capePreview(GuiGraphicsExtractor g, Capes.Cape cape, int cx, int cy) {
-        float sx = cape.width() / 64f, sy = cape.height() / 32f;
-        int w = 52, h = 84;
-        g.blit(RenderPipelines.GUI_TEXTURED, cape.texture(), cx - w - 4, cy - h / 2, 1 * sx, 1 * sy, w, h,
-                Math.round(10 * sx), Math.round(16 * sy), cape.width(), cape.height());
-        g.blit(RenderPipelines.GUI_TEXTURED, cape.texture(), cx + 4, cy - h / 2, 12 * sx, 1 * sy, w, h,
-                Math.round(10 * sx), Math.round(16 * sy), cape.width(), cape.height());
+    private void capeCard(GuiGraphicsExtractor g, int x, int y, Capes.Cape cape, boolean selected) {
+        int w = 122, h = 178;
+        if (selected) {
+            Draw.round(g, x - 3, y - 3, w + 6, h + 6, 10, Draw.alpha(accent, 0.18f));
+            Draw.roundBordered(g, x - 1, y - 1, w + 2, h + 2, 9, 0x00000000, accent);
+            Draw.roundBordered(g, x, y, w, h, 8, surface(0xFF1B1A22), Draw.alpha(accent, 0.6f));
+        } else {
+            Draw.round(g, x, y, w, h, 8, surface(0xFF1B1A22));
+        }
+        Draw.round(g, x + 6, y + 6, w - 12, 110, 6, surface(0xFF0C0B11));
+        int pcx = x + w / 2, pcy = y + 61;
+        if (cape == null) {
+            Draw.icon(g, I_X, pcx, pcy, 30, 0xFF4A4654);
+        } else {
+            capePreview(g, cape.texture(), cape.width(), cape.height(), pcx, pcy, 36, 58);
+        }
+        if (selected) {
+            Draw.circle(g, x + w - 15, y + 15, 6, accent);
+            Draw.circle(g, x + w - 15, y + 15, 4.8f, 0xFF0B0E14);
+            Draw.circle(g, x + w - 15, y + 15, 3.6f, accent);
+        }
+        int nameColor = selected ? Draw.lerpColor(accent, 0xFFFFFFFF, 0.15f) : 0xFFE0DFE6;
+        if (cape == null) {
+            Draw.textCentered(g, "Normal cape", pcx, y + 134, 12, nameColor, Draw.SEMIBOLD);
+            Draw.textCentered(g, "Your real cape", pcx, y + 154, 10.5f, SUBTLE, Draw.REGULAR);
+            hotspot(x, y, w, h, () -> Capes.select(""));
+            return;
+        }
+        if (renaming == cape) {
+            field(g, renameBox, x + 6, y + 122, w - 12, 24, "Name");
+            button(g, x + 6, y + 150, w - 12, 22, "Save", accentDark, Draw.lerpColor(accent, 0xFF000000, 0.15f), accentLight, this::commitRename);
+            return;
+        }
+        String label = fit(cape.name().replaceAll("(?i)\\.png$", ""), w - 16, 12, Draw.SEMIBOLD);
+        Draw.textCentered(g, label, pcx, y + 134, 12, nameColor, Draw.SEMIBOLD);
+        // rename + delete
+        int bw = (w - 18) / 2;
+        Capes.Cape target = cape;
+        Draw.roundBordered(g, x + 6, y + 148, bw, 24, 6, BUTTON, BUTTON_BORDER);
+        Draw.icon(g, I_PENCIL, x + 6 + 14, y + 160, 11, accentLight);
+        Draw.text(g, "Rename", x + 6 + 24, y + 160.5f, 10.5f, WHITE, Draw.SEMIBOLD);
+        hotspot(x + 6, y + 148, bw, 24, () -> {
+            renaming = target;
+            renameBox.value = target.name().replaceAll("(?i)\\.png$", "");
+            renameBox.allSelected = true;
+            focused = renameBox;
+        });
+        Draw.roundBordered(g, x + 12 + bw, y + 148, bw, 24, 6, 0xFF2A0F14, 0xFF5A1E28);
+        Draw.icon(g, I_TRASH, x + 12 + bw + 14, y + 160, 11, 0xFFFF8A95);
+        Draw.text(g, "Delete", x + 12 + bw + 24, y + 160.5f, 10.5f, 0xFFFF8A95, Draw.SEMIBOLD);
+        hotspot(x + 12 + bw, y + 148, bw, 24, () -> Capes.delete(target));
+        hotspot(x, y, w, 140, () -> Capes.select(target.name()));
+    }
+
+    private void emptySlot(GuiGraphicsExtractor g, int x, int y) {
+        int w = 122, h = 178;
+        int dash = Draw.alpha(0xFFFFFFFF, 0.18f);
+        for (int i = 6; i < w - 6; i += 8) {
+            Draw.rect(g, x + i, y, 4, 1, dash);
+            Draw.rect(g, x + i, y + h - 1, 4, 1, dash);
+        }
+        for (int i = 6; i < h - 6; i += 8) {
+            Draw.rect(g, x, y + i, 1, 4, dash);
+            Draw.rect(g, x + w - 1, y + i, 1, 4, dash);
+        }
+        Draw.icon(g, I_UPLOAD, x + w / 2f, y + 72, 22, 0xFF6E6A78);
+        Draw.textCentered(g, "Empty slot", x + w / 2f, y + 104, 11.5f, 0xFF8C8495, Draw.MEDIUM);
+        Draw.textCentered(g, "Click to upload", x + w / 2f, y + 120, 10, 0xFF6E6A78, Draw.REGULAR);
+        hotspot(x, y, w, h, Capes::upload);
+    }
+
+    private void commitRename() {
+        if (renaming != null) {
+            if (!Capes.rename(renaming, renameBox.value)) {
+                return;
+            }
+        }
+        renaming = null;
+        focused = null;
+    }
+
+    /** Animated, theme-coloured section that previews and toggles the live auction cape. */
+    private int drawAuctionCapeSection(GuiGraphicsExtractor g, int y) {
+        Draw.textCentered(g, "Auction Cape", 623, y + 4, 15, WHITE, Draw.SEMIBOLD);
+        Draw.textCentered(g, "Wear a live timer on your back during auctions. Your chosen cape comes back afterwards.",
+                623, y + 22, 10.5f, SUBTLE, Draw.REGULAR);
+
+        int cx = 333, cy = y + 38, cw = 580, ch = 150;
+        float tm = (System.currentTimeMillis() % 100_000L) / 1000f;
+        Draw.round(g, cx - 3, cy - 3, cw + 6, ch + 6, 16, Draw.alpha(accent, 0.12f + 0.06f * (float) Math.sin(tm * 2)));
+        Draw.roundBordered(g, cx, cy, cw, ch, 14, surface(Draw.lerpColor(0xFF0B0A10, accent, 0.10f)), Draw.alpha(accent, 0.55f));
+        g.enableScissor(cx + 1, Math.max(cy + 1, VIEW_Y), cx + cw - 1, Math.min(cy + ch - 1, VIEW_B));
+        for (int i = 0; i < 6; i++) {
+            float bx = cx + cw * (0.15f + 0.7f * (0.5f + 0.5f * (float) Math.sin(tm * (0.35f + i * 0.09f) + i * 1.7f)));
+            float by = cy + ch * (0.5f + 0.42f * (float) Math.sin(tm * (0.5f + i * 0.07f) + i * 2.3f));
+            float r = 38 + (i % 3) * 12;
+            int col = i % 2 == 0 ? accent : Draw.lerpColor(accent, 0xFFFFFFFF, 0.35f);
+            Draw.circle(g, bx, by, r, Draw.alpha(col, 0.10f));
+            Draw.circle(g, bx, by, r * 0.55f, Draw.alpha(col, 0.10f));
+        }
+        for (int i = -ch; i < cw; i += 26) {
+            int sx = cx + i + (int) ((tm * 18) % 26);
+            for (int k = 0; k < ch; k += 2) {
+                Draw.rect(g, sx + k, cy + k, 2, 2, 0x0DFFFFFF);
+            }
+        }
+        g.disableScissor();
+
+        // live preview of the cape itself
+        Auctions.Auction live = Auctions.current();
+        AuctionCape.update(live != null && !live.cancelled() ? live : null);
+        Draw.round(g, cx + 22, cy + 16, 84, 118, 10, 0xAA06050A);
+        capePreview(g, AuctionCape.TEXTURE, AuctionCape.WIDTH, AuctionCape.HEIGHT, cx + 64, cy + 75, 64, 102, true);
+
+        Draw.text(g, "Live timer cape", cx + 128, cy + 30, 14, WHITE, Draw.SEMIBOLD);
+        Draw.text(g, "Switches on by itself when an auction starts and", cx + 128, cy + 52, 11, 0xFFD6D2DE, Draw.REGULAR);
+        Draw.text(g, "shows the time left, the top bid and a progress bar.", cx + 128, cy + 68, 11, 0xFFD6D2DE, Draw.REGULAR);
+        Draw.text(g, "When nothing is being auctioned you keep your cape.", cx + 128, cy + 84, 11, 0xFFD6D2DE, Draw.REGULAR);
+        Draw.text(g, LethalConfig.auctionCape ? "Enabled" : "Disabled", cx + 128, cy + 118, 12.5f,
+                LethalConfig.auctionCape ? accentLight : 0xFF9C9CA6, Draw.SEMIBOLD);
+        toggle(g, cx + cw - 58, cy + 118, LethalConfig.auctionCape, () -> {
+            LethalConfig.auctionCape = !LethalConfig.auctionCape;
+            LethalConfig.save();
+        });
+        return cy + ch + 16;
+    }
+
+    private static void capePreview(GuiGraphicsExtractor g, Identifier tex, int texW, int texH, int cx, int cy, int w, int h) {
+        capePreview(g, tex, texW, texH, cx, cy, w, h, false);
+    }
+
+    /** Draws a cape's outside face (and, unless single, its inside face) centred on (cx, cy). */
+    private static void capePreview(GuiGraphicsExtractor g, Identifier tex, int texW, int texH, int cx, int cy, int w, int h, boolean single) {
+        float sx = texW / 64f, sy = texH / 32f;
+        int rw = Math.round(10 * sx), rh = Math.round(16 * sy);
+        if (single) {
+            g.blit(RenderPipelines.GUI_TEXTURED, tex, cx - w / 2, cy - h / 2, sx, sy, w, h, rw, rh, texW, texH);
+            return;
+        }
+        g.blit(RenderPipelines.GUI_TEXTURED, tex, cx - w - 3, cy - h / 2, sx, sy, w, h, rw, rh, texW, texH);
+        g.blit(RenderPipelines.GUI_TEXTURED, tex, cx + 3, cy - h / 2, 12 * sx, sy, w, h, rw, rh, texW, texH);
+    }
+
+    /** Lets the player drag a fixed-size frame over their picture to choose the cape area. */
+    private int drawCropper(GuiGraphicsExtractor g, int t, Capes.Pending p) {
+        if (cropFor != p) {
+            cropFor = p;
+            capeName.value = p.suggestedName;
+            capeName.allSelected = false;
+        }
+        int head = Draw.lerpColor(accent, 0xFFFFFFFF, 0.05f);
+        Draw.icon(g, I_HANGER, 253, t + 80, 18, head);
+        Draw.text(g, "Pick your cape area", 272, t + 77, 13, WHITE, Draw.SEMIBOLD);
+        Draw.text(g, "Drag the frame to choose which part of the picture goes on your cape.", 272, t + 94, 10.5f, SUBTLE, Draw.REGULAR);
+
+        int bx = CROP_BOX_X, by = t + 112, bw = CROP_BOX_W, bh = CROP_BOX_H;
+        cropTop = by;
+        Draw.roundBordered(g, bx, by, bw, bh, 10, surface(0xFF0C0B11), 0xFF2A2633);
+        int iw = p.image.getWidth(), ih = p.image.getHeight();
+        cropScale = Math.min((bw - 24) / (float) iw, (bh - 24) / (float) ih);
+        int dw = Math.round(iw * cropScale), dh = Math.round(ih * cropScale);
+        int ix = bx + (bw - dw) / 2, iy = by + (bh - dh) / 2;
+        g.blit(RenderPipelines.GUI_TEXTURED, p.texture(), ix, iy, 0, 0, dw, dh, iw, ih, iw, ih);
+
+        int fx = ix + Math.round(p.cropX * cropScale), fy = iy + Math.round(p.cropY * cropScale);
+        int fw = Math.round(p.cropW * cropScale), fh = Math.round(p.cropH * cropScale);
+        int shade = 0xB0000000;
+        Draw.rect(g, ix, iy, dw, fy - iy, shade);
+        Draw.rect(g, ix, fy + fh, dw, iy + dh - fy - fh, shade);
+        Draw.rect(g, ix, fy, fx - ix, fh, shade);
+        Draw.rect(g, fx + fw, fy, ix + dw - fx - fw, fh, shade);
+        Draw.roundBordered(g, fx - 1, fy - 1, fw + 2, fh + 2, 3, 0x00000000, accent);
+        Draw.roundBordered(g, fx, fy, fw, fh, 2, 0x00000000, Draw.alpha(0xFFFFFFFF, 0.5f));
+        boolean horizontal = p.cropW < iw;
+        if (horizontal) {
+            Draw.icon(g, I_LEFT, fx + 10, fy + fh / 2f, 14, 0xFFFFFFFF);
+            Draw.icon(g, I_RIGHT, fx + fw - 10, fy + fh / 2f, 14, 0xFFFFFFFF);
+        }
+        hotspot(ix, iy, dw, dh, () -> {
+            draggingCrop = true;
+            dragStartMouseX = mouseDX;
+            dragStartMouseY = mouseDY;
+            dragStartCropX = p.cropX;
+            dragStartCropY = p.cropY;
+        });
+
+        // preview + name + save
+        int px = 757;
+        Draw.text(g, "Preview", px, t + 122, 12.5f, TEXT, Draw.MEDIUM);
+        Draw.round(g, px, t + 134, 248, 186, 10, surface(0xFF0C0B11));
+        int pw = 96, ph = Math.round(pw / CapeImages.FACE_ASPECT);
+        g.blit(RenderPipelines.GUI_TEXTURED, p.texture(), px + 124 - pw / 2, t + 227 - ph / 2, p.cropX, p.cropY, pw, ph,
+                p.cropW, p.cropH, iw, ih);
+        Draw.text(g, "Name", px, t + 336, 12.5f, TEXT, Draw.MEDIUM);
+        field(g, capeName, px, t + 346, 248, 30, "Cape name");
+        button(g, px, t + 386, 248, 30, "Save Cape", accentDark, Draw.lerpColor(accent, 0xFF000000, 0.15f), accentLight, () -> {
+            Capes.pending().suggestedName = capeName.value.isBlank() ? Capes.pending().suggestedName : capeName.value;
+            Capes.savePending();
+            focused = null;
+        });
+        button(g, px, t + 424, 248, 30, "Cancel", surface(0xFF15141B), BUTTON_BORDER, WHITE, () -> {
+            Capes.cancelPending();
+            focused = null;
+        });
+        return t + 480;
     }
 
     // ---------------------------------------------------------------- theme
@@ -977,6 +1178,14 @@ public class LethalScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        Capes.Pending crop = Capes.pending();
+        if (draggingCrop && crop != null) {
+            layout();
+            float mx = toDesignX(event.x()), my = toDesignY(event.y());
+            crop.moveTo(dragStartCropX + Math.round((mx - dragStartMouseX) / cropScale),
+                    dragStartCropY + Math.round((my - dragStartMouseY) / cropScale));
+            return true;
+        }
         if (draggingVolume) {
             layout();
             setVolumeFromMouse(toDesignX(event.x()));
@@ -987,6 +1196,10 @@ public class LethalScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
+        if (draggingCrop) {
+            draggingCrop = false;
+            return true;
+        }
         if (draggingVolume) {
             draggingVolume = false;
             LethalConfig.save();
@@ -1010,7 +1223,7 @@ public class LethalScreen extends Screen {
 
     @Override
     public boolean charTyped(CharacterEvent event) {
-        if (focused != null && page == Page.AUCTION) {
+        if (focused != null) {
             focused.type(event.codepointAsString());
             return true;
         }
@@ -1019,8 +1232,17 @@ public class LethalScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        if (focused != null && page == Page.AUCTION) {
+        if (focused != null) {
             int key = event.key();
+            if (focused == renameBox && (event.isConfirmation() || event.isEscape())) {
+                if (event.isConfirmation()) {
+                    commitRename();
+                } else {
+                    renaming = null;
+                    focused = null;
+                }
+                return true;
+            }
             if (key == GLFW.GLFW_KEY_BACKSPACE) {
                 focused.backspace(event.hasControlDown());
             } else if (key == GLFW.GLFW_KEY_DELETE) {
@@ -1031,7 +1253,7 @@ public class LethalScreen extends Screen {
                 focused.allSelected = !focused.value.isEmpty();
             } else if (event.isEscape() || event.isConfirmation()) {
                 focused = null;
-            } else if (event.isCycleFocus()) {
+            } else if (event.isCycleFocus() && fieldOrder.contains(focused)) {
                 int i = fieldOrder.indexOf(focused);
                 int next = event.hasShiftDown() ? i - 1 + fieldOrder.size() : i + 1;
                 focused = fieldOrder.get(next % fieldOrder.size());
