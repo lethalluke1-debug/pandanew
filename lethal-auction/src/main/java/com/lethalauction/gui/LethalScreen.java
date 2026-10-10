@@ -1,10 +1,10 @@
 package com.lethalauction.gui;
 
-import com.lethalauction.gui.Modules.Columns;
+import com.lethalauction.LethalAuctionClient;
+import com.lethalauction.LethalConfig;
 import com.lethalauction.gui.Modules.Module;
 import com.lethalauction.gui.Modules.Setting;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -21,43 +21,48 @@ import org.lwjgl.glfw.GLFW;
 
 /**
  * The Lethal Auction menu. Everything is laid out in a fixed 1036x518 "design space" that is scaled to
- * the window, so it keeps the same proportions at every GUI scale. Only the sidebar tabs and scrolling
- * respond to input; every other button and toggle is display-only.
+ * the window, so it keeps the same proportions at every GUI scale. The sidebar tabs, theme presets, theme
+ * effects and the module sound toggle work; the other buttons only play the click sound.
  */
 public class LethalScreen extends Screen {
     static final int DW = 1036;
     static final int DH = 518;
 
-    // Palette
-    static final int ACCENT = 0xFFE000FD;
+    // Fixed palette
     static final int WHITE = 0xFFF3F3F5;
     static final int TEXT = 0xFFE3E3E8;
     static final int GRAY = 0xFF9B9FA4;
+    static final int SUBTLE = 0xFFB3B0BA;
     static final int MUTED = 0xFF8F8597;
     static final int CARD = 0xFF101118;
     static final int CARD_BORDER = 0xFF1B1622;
-    static final int CARD_ON = 0xFF1A1224;
-    static final int CARD_ON_BORDER = 0xFFA21FC2;
-    static final int SEPARATOR = 0xFF2B2135;
     static final int BUTTON = 0xFF14131A;
     static final int BUTTON_BORDER = 0xFF34323C;
     static final int RED = 0xFFC4141C;
 
+    static final int DEFAULT_ACCENT = 0xFFE000FD;
+    static final int DEFAULT_TINT = 0xFFA611FB;
+
     // Icon code points (Tabler Icons)
-    static final int I_SWORDS = 0xf132, I_RUN = 0xec82, I_DONUT = 0xeadd, I_EYE = 0xea9a, I_TOOL = 0xeb40,
-            I_SETTINGS = 0xeb20, I_FILE = 0xeaa2, I_PALETTE = 0xeb01, I_USERS = 0xebf2, I_SEARCH = 0xeb1c,
-            I_LEFT = 0xea60, I_RIGHT = 0xea61, I_DOWN = 0xea5f, I_DESKTOP = 0xea89, I_MUSIC = 0xeafc,
-            I_X = 0xeb55, I_RESET = 0xeb15, I_BRUSH = 0xebb8, I_SPARKLES = 0xf6d7, I_COMMAND = 0xea78;
-    static final int IF_INFO = 0xf6d8, IF_USER = 0xfd19;
+    static final int I_GAVEL = 0xef90, I_HISTORY = 0xebea, I_SETTINGS = 0xeb20, I_PALETTE = 0xeb01,
+            I_SEARCH = 0xeb1c, I_LEFT = 0xea60, I_RIGHT = 0xea61, I_DOWN = 0xea5f, I_DESKTOP = 0xea89,
+            I_MUSIC = 0xeafc, I_X = 0xeb55, I_RESET = 0xeb15, I_SPARKLES = 0xf6d7, I_COMMAND = 0xea78;
+    static final int IF_INFO = 0xf6d8;
 
     static final Identifier TEX_FRAME = Draw.id("textures/gui/frame.png");
     static final Identifier TEX_SIDEBAR = Draw.id("textures/gui/sidebar.png");
     static final Identifier TEX_CONTENT = Draw.id("textures/gui/content.png");
 
+    static final String[] PRESET_NAMES = {"Limelight", "Sunset", "Electric", "Nebula", "Goldrush", "Emerald", "Plasma", "Crimson"};
+    static final int[][] PRESET_COLORS = {
+            {0xB8F906, 0xE8F960, 0x04F97F, 0x181C04}, {0xFE0072, 0xFD6904, 0xB02DFF, 0x1E0228},
+            {0x2E6AFE, 0x04BEFE, 0x5F7AFF, 0x0A1230}, {0x9E4EFF, 0xC77BFF, 0x5B18C9, 0x160032},
+            {0xFEBD08, 0xFFD869, 0xFD9808, 0x2B180A}, {0x07DD8E, 0x33F7B3, 0x07A271, 0x0C2320},
+            {0xFE2CCE, 0x6E5AFE, 0x08D8FF, 0x1E0142}, {0xFE3664, 0xFD775F, 0xD20007, 0x1C0009}};
+
     enum Page {
-        COMBAT("Combat", I_SWORDS, 132), MOVEMENT("Movement", I_RUN, 162), DONUT("DonutSMP", I_DONUT, 193),
-        VISUALS("Visuals", I_EYE, 223), MISC("Misc", I_TOOL, 253), SETTINGS("Settings", I_SETTINGS, 320),
-        CONFIGS("Configs", I_FILE, 350), THEME("Theme", I_PALETTE, 380), SOCIALS("Socials", I_USERS, 410);
+        AUCTION("Auction", I_GAVEL, 132), SETTINGS("Settings", I_SETTINGS, 199),
+        RECENT("Recent Auctions", I_HISTORY, 229), THEME("Theme", I_PALETTE, 259);
 
         final String label;
         final int icon;
@@ -70,19 +75,31 @@ public class LethalScreen extends Screen {
         }
     }
 
+    /** A clickable area in design space. A null action just plays the click sound. */
+    private record Hotspot(int x, int y, int w, int h, Runnable action) {
+        boolean contains(float px, float py) {
+            return px >= x && px < x + w && py >= y && py < y + h;
+        }
+    }
+
     // Content viewport
     static final int VIEW_X = 232, VIEW_Y = 54, VIEW_R = 1027, VIEW_B = 508;
 
-    private static Page lastPage = Page.COMBAT;
+    private static Page lastPage = Page.AUCTION;
 
     private Page page = lastPage;
     private final float[] scrollTarget = new float[Page.values().length];
     private final float[] scroll = new float[Page.values().length];
     private final float[] maxScroll = new float[Page.values().length];
-    private final Columns combat = Modules.combat(), movement = Modules.movement(), donut = Modules.donut(),
-            visuals = Modules.visuals(), misc = Modules.misc();
+    private final List<Module> auctionLeft = Modules.auctionLeft(), auctionRight = Modules.auctionRight();
+    private final List<Hotspot> hotspots = new ArrayList<>();
+    private boolean clipping;
 
     private float scale = 1, originX, originY;
+
+    // Theme colours, refreshed every frame from LethalConfig
+    private int accent, accentDark, accentLight, tint;
+    private float surfaceAlpha;
 
     public LethalScreen() {
         super(Component.literal("Lethal Auction"));
@@ -107,9 +124,59 @@ public class LethalScreen extends Screen {
         return (float) ((my - originY) / scale);
     }
 
+    private void refreshTheme() {
+        int p = LethalConfig.preset;
+        if (p >= 0 && p < PRESET_COLORS.length) {
+            accent = 0xFF000000 | PRESET_COLORS[p][0];
+            tint = accent;
+        } else {
+            accent = DEFAULT_ACCENT;
+            tint = DEFAULT_TINT;
+        }
+        accentDark = Draw.lerpColor(accent, 0xFF000000, 0.55f);
+        accentLight = Draw.lerpColor(accent, 0xFFFFFFFF, 0.65f);
+        surfaceAlpha = LethalConfig.seeThrough ? 0.72f : 1f;
+    }
+
+    /** A panel colour, made translucent when See-Through GUI is on. */
+    private int surface(int color) {
+        return Draw.alpha(color, surfaceAlpha);
+    }
+
+    /** A neutral dark colour with a little of the accent mixed in. */
+    private int tinted(int base, float amount) {
+        return Draw.lerpColor(base, accent, amount);
+    }
+
+    private void hotspot(int x, int y, int w, int h, Runnable action) {
+        if (clipping) {
+            int top = Math.max(y, VIEW_Y), bottom = Math.min(y + h, VIEW_B);
+            if (bottom <= top) {
+                return;
+            }
+            hotspots.add(new Hotspot(x, top, w, bottom - top, action));
+        } else {
+            hotspots.add(new Hotspot(x, y, w, h, action));
+        }
+    }
+
+    // ---------------------------------------------------------------- background
+
+    @Override
+    public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+        if (minecraft.level != null && !LethalConfig.frostedBlur) {
+            extractMenuBackground(g);
+            return;
+        }
+        super.extractBackground(g, mouseX, mouseY, partialTick);
+    }
+
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         layout();
+        refreshTheme();
+        hotspots.clear();
+
         int pi = page.ordinal();
         scroll[pi] += (scrollTarget[pi] - scroll[pi]) * 0.35f;
         if (Math.abs(scrollTarget[pi] - scroll[pi]) < 0.3f) {
@@ -121,24 +188,26 @@ public class LethalScreen extends Screen {
         p.translate(originX, originY);
         p.scale(scale);
 
-        Draw.texture(g, TEX_FRAME, 0, 0, DW, DH, DW * 2, DH * 2);
+        Draw.texture(g, TEX_FRAME, 0, 0, DW, DH, DW * 2, DH * 2, surface(0xFFFFFFFF));
         drawSidebar(g, toDesignX(mouseX), toDesignY(mouseY));
-        Draw.texture(g, TEX_CONTENT, 232, 7, 795, 502, 795 * 2, 502 * 2);
+        if (LethalConfig.ambientBackground) {
+            Draw.texture(g, TEX_CONTENT, 232, 7, 795, 502, 795 * 2, 502 * 2, surface(tint));
+        } else {
+            Draw.round(g, 232, 7, 795, 502, 14, surface(0xFF0E0E14));
+            Draw.rect(g, 241, 48, 776, 1, accent);
+        }
         drawHeader(g);
 
         g.enableScissor(VIEW_X, VIEW_Y, VIEW_R, VIEW_B);
+        clipping = true;
         int top = Math.round(-scroll[pi]);
         int contentBottom = switch (page) {
-            case COMBAT -> drawColumns(g, combat, top);
-            case MOVEMENT -> drawColumns(g, movement, top);
-            case DONUT -> drawColumns(g, donut, top);
-            case VISUALS -> drawColumns(g, visuals, top);
-            case MISC -> drawColumns(g, misc, top);
+            case AUCTION -> drawModules(g, top);
             case SETTINGS -> drawSettings(g, top);
-            case CONFIGS -> drawConfigs(g, top);
+            case RECENT -> drawRecent(g, top);
             case THEME -> drawTheme(g, top);
-            case SOCIALS -> drawSocials(g, top);
         };
+        clipping = false;
         g.disableScissor();
 
         float contentHeight = contentBottom - top;
@@ -151,37 +220,47 @@ public class LethalScreen extends Screen {
     // ---------------------------------------------------------------- sidebar
 
     private void drawSidebar(GuiGraphicsExtractor g, float mx, float my) {
-        Draw.texture(g, TEX_SIDEBAR, 8, 7, 215, 500, 430, 1000);
+        if (LethalConfig.ambientBackground) {
+            Draw.texture(g, TEX_SIDEBAR, 8, 7, 215, 500, 430, 1000, surface(tint));
+        } else {
+            Draw.roundBordered(g, 8, 7, 215, 500, 14, surface(0xFF121118), 0xFF26222C);
+        }
 
         // logo
-        Draw.round(g, 27, 23, 38, 44, 8, 0x30E000FD);
-        Draw.round(g, 32, 27, 11, 35, 3, ACCENT);
-        Draw.round(g, 32, 51, 29, 11, 3, ACCENT);
+        Draw.round(g, 27, 23, 38, 44, 8, Draw.alpha(accent, 0.19f));
+        Draw.round(g, 32, 27, 11, 35, 3, accent);
+        Draw.round(g, 32, 51, 29, 11, 3, accent);
         Draw.text(g, "LETHAL", 75, 37, 15, 0xFFEDE6F2, Draw.LOGO);
         Draw.text(g, "A U C T I O N", 76, 53, 9.5f, 0xFFD9CCE2, Draw.SEMIBOLD);
         Draw.text(g, "v1.0.0", 75, 67, 10.5f, MUTED, Draw.REGULAR);
 
-        Draw.rect(g, 26, 83, 178, 1, 0x664A2A55);
-        Draw.text(g, "MODULES", 26, 105, 12.5f, 0xFF8C7C95, Draw.REGULAR);
-        Draw.text(g, "GENERAL", 26, 292, 12.5f, 0xFF8C7C95, Draw.REGULAR);
+        Draw.rect(g, 26, 83, 178, 1, 0x66FFFFFF & tinted(0xFF2A2A30, 0.3f));
+        Draw.text(g, "MODULES", 26, 105, 12.5f, 0xFF8C8495, Draw.REGULAR);
+        Draw.text(g, "GENERAL", 26, 171, 12.5f, 0xFF8C8495, Draw.REGULAR);
 
         for (Page pg : Page.values()) {
             boolean active = pg == page;
             boolean hover = mx >= 24 && mx < 212 && my >= pg.y - 13 && my < pg.y + 14;
             if (active) {
-                Draw.round(g, 24, pg.y - 13, 188, 27, 7, 0x8A3A2546);
-                Draw.round(g, 20, pg.y - 7, 3, 14, 1, ACCENT);
+                Draw.round(g, 24, pg.y - 13, 188, 27, 7, Draw.alpha(tinted(0xFF2A2A32, 0.22f), 0.6f));
+                Draw.round(g, 20, pg.y - 7, 3, 14, 1, accent);
             } else if (hover) {
                 Draw.round(g, 24, pg.y - 13, 188, 27, 7, 0x40362240);
             }
-            Draw.icon(g, pg.icon, 47, pg.y, 21, active ? 0xFFC10FDC : 0xFFA597AD);
-            Draw.text(g, pg.label, 75, pg.y, 13, active ? 0xFFCC12E8 : 0xFFBBADC4, active ? Draw.SEMIBOLD : Draw.MEDIUM);
+            int activeColor = Draw.lerpColor(accent, 0xFFFFFFFF, 0.08f);
+            Draw.icon(g, pg.icon, 47, pg.y, 21, active ? activeColor : 0xFFA597AD);
+            Draw.text(g, pg.label, 75, pg.y, 13, active ? activeColor : 0xFFBBADC4, active ? Draw.SEMIBOLD : Draw.MEDIUM);
+            Page target = pg;
+            hotspot(24, pg.y - 13, 188, 27, () -> {
+                page = target;
+                lastPage = target;
+            });
         }
 
-        Draw.rect(g, 26, 439, 178, 1, 0x664A2A55);
+        Draw.rect(g, 26, 439, 178, 1, 0x66FFFFFF & tinted(0xFF2A2A30, 0.3f));
 
         // user card
-        Draw.roundBordered(g, 20, 449, 192, 50, 10, 0xFF0F1319, 0xFF241A2A);
+        Draw.roundBordered(g, 20, 449, 192, 50, 10, surface(0xFF0F1319), 0xFF241A2A);
         PlayerFaceExtractor.extractRenderState(g, skin(), 31, 459, 28);
         Draw.text(g, "You", 75, 465, 13, WHITE, Draw.SEMIBOLD);
         Draw.text(g, "Lifetime", 75, 483, 11.5f, MUTED, Draw.REGULAR);
@@ -201,19 +280,18 @@ public class LethalScreen extends Screen {
     // ---------------------------------------------------------------- header
 
     private void drawHeader(GuiGraphicsExtractor g) {
+        Draw.round(g, 235, 11, 779, 36, 10, surface(0xFF111219));
         float hx = 253;
         Draw.text(g, "Hello, ", hx, 29, 13, 0xFFC3C3CC, Draw.REGULAR);
-        Draw.text(g, "You", hx + Draw.width("Hello, ", 13, Draw.REGULAR), 29, 13, WHITE, Draw.MEDIUM);
+        Draw.text(g, "You", hx + Draw.width("Hello, ", 13, Draw.REGULAR), 29, 13, WHITE, Draw.SEMIBOLD);
 
-        String clock = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
-        Draw.textCentered(g, clock, 519, 29, 13, 0xFFC419E0, Draw.SEMIBOLD);
-
-        Draw.roundBordered(g, 753, 17, 251, 24, 9, 0xFF0B0D12, 0xFF1F2128);
+        Draw.roundBordered(g, 753, 17, 251, 24, 9, surface(0xFF0B0D12), 0xFF1F2128);
         Draw.icon(g, I_SEARCH, 771, 29, 13, 0xFFA4A6AD);
         Draw.text(g, "Search modules...", 787, 29, 12.5f, 0xFFA4A6AD, Draw.REGULAR);
         Draw.roundBordered(g, 960, 20, 38, 18, 6, 0xFF15171D, 0xFF2E3038);
         Draw.icon(g, I_COMMAND, 973, 29, 10, 0xFFC8C9CE);
         Draw.text(g, "K", 982, 29, 11.5f, 0xFFC8C9CE, Draw.MEDIUM);
+        hotspot(753, 17, 251, 24, null);
     }
 
     private void drawScrollbar(GuiGraphicsExtractor g, float contentHeight, float offset) {
@@ -229,13 +307,10 @@ public class LethalScreen extends Screen {
         Draw.round(g, 1021, y, 3, Math.round(thumbH), 1, 0xFF4E4A56);
     }
 
-    // ---------------------------------------------------------------- module pages
+    // ---------------------------------------------------------------- auction (module) page
 
-    private int drawColumns(GuiGraphicsExtractor g, Columns cols, int top) {
-        int bottom = top;
-        bottom = Math.max(bottom, drawColumn(g, cols.left(), 233, top));
-        bottom = Math.max(bottom, drawColumn(g, cols.right(), 632, top));
-        return bottom;
+    private int drawModules(GuiGraphicsExtractor g, int top) {
+        return Math.max(drawColumn(g, auctionLeft, 233, top), drawColumn(g, auctionRight, 632, top));
     }
 
     private int drawColumn(GuiGraphicsExtractor g, List<Module> mods, int x, int top) {
@@ -248,12 +323,11 @@ public class LethalScreen extends Screen {
 
     private int drawModule(GuiGraphicsExtractor g, Module m, int x, int y, int w) {
         int h = moduleHeight(m);
-        int fill = m.on ? CARD_ON : CARD;
         if (m.on) {
-            Draw.round(g, x - 2, y - 2, w + 4, h + 4, 12, 0x40B21FD6);
-            Draw.roundBordered(g, x, y, w, h, 10, fill, CARD_ON_BORDER);
+            Draw.round(g, x - 2, y - 2, w + 4, h + 4, 12, Draw.alpha(accent, 0.25f));
+            Draw.roundBordered(g, x, y, w, h, 10, surface(tinted(CARD, 0.08f)), Draw.lerpColor(accent, 0xFF000000, 0.25f));
         } else {
-            Draw.roundBordered(g, x, y, w, h, 10, fill, CARD_BORDER);
+            Draw.roundBordered(g, x, y, w, h, 10, surface(CARD), CARD_BORDER);
         }
 
         Draw.text(g, m.name, x + 13, y + 18, 12.5f, WHITE, Draw.SEMIBOLD);
@@ -268,19 +342,19 @@ public class LethalScreen extends Screen {
         if (m.key != null) {
             Draw.text(g, m.key, kx, y + 38, 12, WHITE, Draw.SEMIBOLD);
         } else {
-            keyIcon(g, Math.round(kx) + 3, y + 38, fill);
+            keyIcon(g, Math.round(kx) + 3, y + 38);
         }
 
-        toggle(g, x + w - 47, y + 27, m.on);
+        toggle(g, x + w - 47, y + 27, m.on, null);
 
         if (m.expanded()) {
-            Draw.rect(g, x + 12, y + 50, w - 24, 1, SEPARATOR);
+            Draw.rect(g, x + 12, y + 50, w - 24, 1, 0xFF2B2135);
             int cy = y + 72;
             for (Setting s : m.settings) {
                 switch (s.kind()) {
                     case TOGGLE -> {
                         Draw.text(g, s.label(), x + 19, cy, 12.5f, TEXT, Draw.MEDIUM);
-                        toggle(g, x + w - 47, cy, s.on());
+                        toggle(g, x + w - 47, cy, s.on(), null);
                         cy += 29;
                     }
                     case MODE -> {
@@ -295,7 +369,7 @@ public class LethalScreen extends Screen {
                         cy = ty + 29;
                     }
                     case SUBHEADER -> {
-                        Draw.rect(g, x + 12, cy - 9, w - 24, 1, SEPARATOR);
+                        Draw.rect(g, x + 12, cy - 9, w - 24, 1, 0xFF2B2135);
                         Draw.text(g, s.label(), x + 16, cy - 1, 12, 0xFF8F8F98, Draw.REGULAR);
                         cy += 26;
                     }
@@ -324,241 +398,222 @@ public class LethalScreen extends Screen {
         return endsWithReset ? cy - 5 + 24 : cy - 12;
     }
 
-    static void toggle(GuiGraphicsExtractor g, int x, int cy, boolean on) {
+    // ---------------------------------------------------------------- widgets
+
+    private void toggle(GuiGraphicsExtractor g, int x, int cy, boolean on, Runnable action) {
         if (on) {
-            Draw.round(g, x, cy - 8, 32, 16, 8, ACCENT);
+            Draw.round(g, x, cy - 8, 32, 16, 8, accent);
             Draw.circle(g, x + 24, cy, 6, 0xFFFFFFFF);
         } else {
             Draw.round(g, x, cy - 8, 32, 16, 8, 0xFF2E3139);
             Draw.circle(g, x + 8, cy, 6, 0xFF9EA2AA);
         }
+        hotspot(x - 2, cy - 10, 36, 20, action);
     }
 
-    static void slider(GuiGraphicsExtractor g, int x, int cy, int w, float frac) {
+    private void slider(GuiGraphicsExtractor g, int x, int cy, int w, float frac) {
         Draw.round(g, x, cy - 2, w, 4, 2, 0xFF30273C);
         int fw = Math.round(w * frac);
         if (fw > 0) {
-            Draw.round(g, x, cy - 2, Math.max(4, fw), 4, 2, 0xFFB40FD4);
+            Draw.round(g, x, cy - 2, Math.max(4, fw), 4, 2, Draw.lerpColor(accent, 0xFF000000, 0.2f));
         }
         Draw.circle(g, x + fw, cy, 5, 0xFFFFFFFF);
     }
 
-    static void modeBox(GuiGraphicsExtractor g, int x, int cy, int w, String value) {
-        Draw.roundBordered(g, x, cy - 12, w, 25, 6, 0xFF050407, 0xFF33123D);
+    private void modeBox(GuiGraphicsExtractor g, int x, int cy, int w, String value) {
+        Draw.roundBordered(g, x, cy - 12, w, 25, 6, 0xFF050407, tinted(0xFF141018, 0.15f));
         Draw.icon(g, I_LEFT, x + 11, cy, 12, 0xFF9C9CA6);
         Draw.icon(g, I_RIGHT, x + w - 11, cy, 12, 0xFF9C9CA6);
         Draw.textCentered(g, value, x + w / 2f, cy, 12.5f, WHITE, Draw.MEDIUM);
+        hotspot(x, cy - 12, w, 25, null);
     }
 
-    static void keyIcon(GuiGraphicsExtractor g, int cx, int cy, int bg) {
-        Draw.roundBordered(g, cx - 4, cy - 5, 9, 10, 2, bg, GRAY);
+    private static void keyIcon(GuiGraphicsExtractor g, int cx, int cy) {
+        Draw.roundBordered(g, cx - 4, cy - 5, 9, 10, 2, 0x00000000, GRAY);
         Draw.rect(g, cx - 1, cy - 2, 3, 4, GRAY);
     }
 
-    static void button(GuiGraphicsExtractor g, int x, int y, int w, int h, String label, int fill, int border, int color) {
+    private void button(GuiGraphicsExtractor g, int x, int y, int w, int h, String label, int fill, int border, int color, Runnable action) {
         Draw.roundBordered(g, x, y, w, h, 6, fill, border);
         Draw.textCentered(g, label, x + w / 2f, y + h / 2f + 0.5f, 12.5f, color, Draw.SEMIBOLD);
+        hotspot(x, y, w, h, action);
+    }
+
+    private void accentButton(GuiGraphicsExtractor g, int x, int y, int w, int h, String label) {
+        button(g, x, y, w, h, label, accentDark, Draw.lerpColor(accent, 0xFF000000, 0.3f), accentLight, null);
     }
 
     // ---------------------------------------------------------------- settings
 
     private int drawSettings(GuiGraphicsExtractor g, int t) {
-        Draw.icon(g, I_SETTINGS, 253, t + 80, 22, 0xFFB00FD0);
+        int head = Draw.lerpColor(accent, 0xFFFFFFFF, 0.05f);
+        int cardFill = surface(tinted(0xFF141119, 0.07f)), cardBorder = tinted(0xFF1E1A24, 0.12f);
+        int boxFill = surface(tinted(0xFF0F0D14, 0.04f)), boxBorder = 0xFF2A2433;
+
+        Draw.icon(g, I_SETTINGS, 253, t + 80, 22, head);
         Draw.text(g, "Settings", 272, t + 76, 13.5f, WHITE, Draw.SEMIBOLD);
-        Draw.text(g, "Configure interface, security, and system behavior.", 272, t + 92, 10.5f, 0xFFB3B0BA, Draw.REGULAR);
+        Draw.text(g, "Configure interface, security, and system behavior.", 272, t + 92, 10.5f, SUBTLE, Draw.REGULAR);
 
         // Interface
-        Draw.roundBordered(g, 235, t + 120, 778, 197, 12, 0xFF1A1124, 0xFF2A1A36);
-        Draw.icon(g, I_DESKTOP, 261, t + 150, 16, 0xFFD10FF0);
+        Draw.roundBordered(g, 235, t + 120, 778, 197, 12, cardFill, cardBorder);
+        Draw.icon(g, I_DESKTOP, 261, t + 150, 16, head);
         Draw.text(g, "Interface", 280, t + 150, 13, WHITE, Draw.SEMIBOLD);
-        Draw.text(g, "GUI Settings", 250, t + 176, 10.5f, 0xFFB3B0BA, Draw.REGULAR);
-        Draw.roundBordered(g, 250, t + 192, 746, 108, 10, 0xFF130E1A, 0xFF2A2433);
+        Draw.text(g, "GUI Settings", 250, t + 176, 10.5f, SUBTLE, Draw.REGULAR);
+        Draw.roundBordered(g, 250, t + 192, 746, 108, 10, boxFill, boxBorder);
         Draw.text(g, "Menu Bind", 268, t + 223, 12.5f, WHITE, Draw.MEDIUM);
-        Draw.roundBordered(g, 906, t + 206, 74, 29, 6, 0xFF131219, 0xFF34323C);
-        Draw.textCentered(g, "RSHIFT", 943, t + 221, 12, WHITE, Draw.SEMIBOLD);
+        button(g, 906, t + 206, 74, 29, "RSHIFT", 0xFF131219, BUTTON_BORDER, WHITE, null);
         Draw.rect(g, 258, t + 247, 730, 1, 0xFF221A29);
         Draw.text(g, "Quick Friend", 268, t + 278, 12.5f, WHITE, Draw.MEDIUM);
         Draw.round(g, 940, t + 270, 32, 16, 8, 0xFF0A0C0E);
         Draw.circle(g, 948, t + 278, 7, 0xFFF2F2F4);
+        hotspot(938, t + 268, 36, 20, null);
 
         // Sounds
-        Draw.roundBordered(g, 235, t + 330, 778, 232, 12, 0xFF1A1124, 0xFF2A1A36);
-        Draw.icon(g, I_MUSIC, 260, t + 359, 16, 0xFFD10FF0);
+        Draw.roundBordered(g, 235, t + 330, 778, 232, 12, cardFill, cardBorder);
+        Draw.icon(g, I_MUSIC, 260, t + 359, 16, head);
         Draw.text(g, "Sounds", 281, t + 360, 13, WHITE, Draw.SEMIBOLD);
-        Draw.text(g, "Client Sounds", 250, t + 386, 10.5f, 0xFFB3B0BA, Draw.REGULAR);
-        Draw.roundBordered(g, 250, t + 402, 746, 144, 10, 0xFF130E1A, 0xFF2A2433);
+        Draw.text(g, "Client Sounds", 250, t + 386, 10.5f, SUBTLE, Draw.REGULAR);
+        Draw.roundBordered(g, 250, t + 402, 746, 144, 10, boxFill, boxBorder);
         Draw.text(g, "Module Sound", 268, t + 426, 12.5f, WHITE, Draw.MEDIUM);
-        toggle(g, 945, t + 426, true);
+        toggle(g, 945, t + 426, LethalConfig.moduleSound, () -> {
+            LethalConfig.moduleSound = !LethalConfig.moduleSound;
+            LethalConfig.save();
+        });
         Draw.text(g, "Sound Pack", 268, t + 466, 12.5f, WHITE, Draw.MEDIUM);
-        Draw.roundBordered(g, 864, t + 452, 116, 25, 6, 0xFF131219, 0xFF34323C);
+        Draw.roundBordered(g, 864, t + 452, 116, 25, 6, 0xFF131219, BUTTON_BORDER);
         Draw.text(g, "Default", 878, t + 465, 12.5f, WHITE, Draw.MEDIUM);
         Draw.icon(g, I_DOWN, 966, t + 465, 9, 0xFF9C9CA6);
+        hotspot(864, t + 452, 116, 25, null);
         Draw.text(g, "Volume", 268, t + 506, 12.5f, WHITE, Draw.MEDIUM);
         Draw.textRight(g, "70%", 857, t + 505, 12, 0xFFC3C3CC, Draw.REGULAR);
-        slider(g, 868, t + 504, 112, 0.31f);
+        slider(g, 868, t + 504, 112, 0.7f);
         return t + 575;
     }
 
-    // ---------------------------------------------------------------- configs
+    // ---------------------------------------------------------------- recent auctions
 
-    private int drawConfigs(GuiGraphicsExtractor g, int t) {
-        Draw.round(g, 246, t + 66, 754, 26, 7, 0xFF0D0F13);
-        Draw.round(g, 248, t + 67, 249, 24, 6, 0xFF7A0B90);
-        Draw.round(g, 248, t + 67, 249, 12, 6, 0xFF8A0FA2);
-        Draw.textCentered(g, "My Configs", 372.5f, t + 79.5f, 12.5f, 0xFFF0C8FF, Draw.MEDIUM);
-        Draw.textCentered(g, "Community", 624, t + 79.5f, 12.5f, 0xFFC9CAD0, Draw.REGULAR);
-        Draw.textCentered(g, "Downloads", 875, t + 79.5f, 12.5f, 0xFFC9CAD0, Draw.REGULAR);
+    private int drawRecent(GuiGraphicsExtractor g, int t) {
+        Draw.round(g, 246, t + 66, 754, 26, 7, surface(0xFF0D0F13));
+        Draw.round(g, 248, t + 67, 249, 24, 6, accentDark);
+        Draw.round(g, 248, t + 67, 249, 12, 6, Draw.lerpColor(accent, 0xFF000000, 0.45f));
+        Draw.textCentered(g, "My Configs", 372.5f, t + 79.5f, 12.5f, accentLight, Draw.SEMIBOLD);
+        Draw.textCentered(g, "Community", 624, t + 79.5f, 12.5f, 0xFFC9CAD0, Draw.MEDIUM);
+        Draw.textCentered(g, "Downloads", 875, t + 79.5f, 12.5f, 0xFFC9CAD0, Draw.MEDIUM);
+        hotspot(248, t + 67, 249, 24, null);
+        hotspot(500, t + 67, 249, 24, null);
+        hotspot(751, t + 67, 249, 24, null);
 
-        button(g, 247, t + 103, 88, 23, "Autosave", BUTTON, 0xFF3A3344, WHITE);
-        Draw.text(g, "Active", 348, t + 115, 12.5f, 0xFFB3B0BA, Draw.REGULAR);
-        Draw.text(g, "test", 348 + Draw.width("Active ", 12.5f, Draw.REGULAR), t + 115, 12.5f, WHITE, Draw.MEDIUM);
-        button(g, 770, t + 103, 72, 23, "Create", 0xFF6A0A7A, 0xFF9A1AB4, 0xFFF0B8FF);
-        button(g, 849, t + 103, 72, 23, "Import", BUTTON, BUTTON_BORDER, WHITE);
-        button(g, 928, t + 103, 72, 23, "Redeem", BUTTON, BUTTON_BORDER, WHITE);
+        button(g, 247, t + 103, 88, 23, "Autosave", BUTTON, 0xFF3A3344, WHITE, null);
+        Draw.text(g, "Active", 348, t + 115, 12.5f, SUBTLE, Draw.REGULAR);
+        Draw.text(g, "test", 348 + Draw.width("Active ", 12.5f, Draw.REGULAR), t + 115, 12.5f, WHITE, Draw.SEMIBOLD);
+        accentButton(g, 770, t + 103, 72, 23, "Create");
+        button(g, 849, t + 103, 72, 23, "Import", BUTTON, BUTTON_BORDER, WHITE, null);
+        button(g, 928, t + 103, 72, 23, "Redeem", BUTTON, BUTTON_BORDER, WHITE, null);
 
-        Draw.roundBordered(g, 242, t + 135, 763, 47, 8, 0xFF32243C, 0xFF4A2E58);
-        Draw.round(g, 243, t + 142, 3, 32, 1, 0xFFCD0BE6);
+        Draw.roundBordered(g, 242, t + 135, 763, 47, 8, surface(tinted(0xFF26242C, 0.12f)), tinted(0xFF34303C, 0.2f));
+        Draw.round(g, 243, t + 142, 3, 32, 1, accent);
         Draw.text(g, "test", 258, t + 154, 13, WHITE, Draw.SEMIBOLD);
-        Draw.text(g, "114 modules", 258, t + 171, 12, 0xFFB3B0BA, Draw.REGULAR);
-        button(g, 736, t + 148, 73, 23, "Publish", BUTTON, 0xFF44424E, WHITE);
-        button(g, 816, t + 148, 68, 23, "Share", 0xFF2E2B35, 0xFF4A4654, 0xFFB98FC8);
-        button(g, 891, t + 148, 74, 23, "Apply", 0xFF6A0A7A, 0xFF9A1AB4, 0xFFFF9BFF);
+        Draw.text(g, "114 modules", 258, t + 171, 12, SUBTLE, Draw.REGULAR);
+        button(g, 736, t + 148, 73, 23, "Publish", BUTTON, 0xFF44424E, WHITE, null);
+        button(g, 816, t + 148, 68, 23, "Share", 0xFF2E2B35, 0xFF4A4654, Draw.lerpColor(accentLight, 0xFF808080, 0.4f), null);
+        accentButton(g, 891, t + 148, 74, 23, "Apply");
         Draw.roundBordered(g, 972, t + 148, 26, 23, 6, BUTTON, 0xFF44424E);
         Draw.icon(g, I_X, 985, t + 159.5f, 11, WHITE);
+        hotspot(972, t + 148, 26, 23, null);
         return t + 190;
     }
 
     // ---------------------------------------------------------------- theme
 
-    private static final String[] PRESET_NAMES = {"Limelight", "Sunset", "Electric", "Nebula", "Goldrush", "Emerald", "Plasma", "Crimson"};
-    private static final int[][] PRESET_COLORS = {
-            {0xB8F906, 0xE8F960, 0x04F97F, 0x181C04}, {0xFE0072, 0xFD6904, 0xB02DFF, 0x1E0228},
-            {0x2E6AFE, 0x04BEFE, 0x5F7AFF, 0x0A1230}, {0x9E4EFF, 0xC77BFF, 0x5B18C9, 0x160032},
-            {0xFEBD08, 0xFFD869, 0xFD9808, 0x2B180A}, {0x07DD8E, 0x33F7B3, 0x07A271, 0x0C2320},
-            {0xFE2CCE, 0x6E5AFE, 0x08D8FF, 0x1E0142}, {0xFE3664, 0xFD775F, 0xD20007, 0x1C0009}};
-
     private int drawTheme(GuiGraphicsExtractor g, int t) {
         int[] cx = {249, 436, 623, 810};
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < PRESET_NAMES.length; i++) {
             int x = cx[i % 4];
             int y = t + 60 + (i / 4) * 69;
-            Draw.round(g, x, y, 184, 60, 6, 0xFF24222C);
-            Draw.text(g, PRESET_NAMES[i], x + 6, y + 13, 12, 0xFFE0DFE6, Draw.REGULAR);
+            boolean selected = LethalConfig.preset == i;
+            if (selected) {
+                Draw.round(g, x - 2, y - 2, 188, 64, 8, Draw.alpha(accent, 0.3f));
+                Draw.roundBordered(g, x, y, 184, 60, 6, surface(0xFF24222C), accent);
+            } else {
+                Draw.round(g, x, y, 184, 60, 6, surface(0xFF24222C));
+            }
+            Draw.text(g, PRESET_NAMES[i], x + 6, y + 13, 12, 0xFFE0DFE6, selected ? Draw.SEMIBOLD : Draw.REGULAR);
+            if (selected) {
+                Draw.textRight(g, "Active", x + 178, y + 13, 10.5f, accentLight, Draw.MEDIUM);
+            }
             int sx = x + 3, sw = 178, sy = y + 26, sh = 32;
-            int[] seg = {Math.round(sw * 0.25f), Math.round(sw * 0.25f), Math.round(sw * 0.25f)};
+            int seg = Math.round(sw * 0.25f);
             int ox = sx;
             for (int k = 0; k < 4; k++) {
-                int w = k < 3 ? seg[k] : sx + sw - ox;
+                int w = k < 3 ? seg : sx + sw - ox;
                 Draw.rect(g, ox, sy, w, sh, 0xFF000000 | PRESET_COLORS[i][k]);
                 ox += w;
             }
+            int index = i;
+            hotspot(x, y, 184, 60, () -> {
+                LethalConfig.preset = LethalConfig.preset == index ? -1 : index;
+                LethalConfig.save();
+            });
         }
-
-        // Appearance
-        int a = t + 222;
-        Draw.roundBordered(g, 233, a, 383, 330, 10, 0xFF1F1328, 0xFF2E1D3A);
-        Draw.icon(g, I_BRUSH, 258, a + 25, 14, 0xFFD10FF0);
-        Draw.text(g, "APPEARANCE", 278, a + 25, 12.5f, 0xFFCDBBD6, Draw.REGULAR);
-        Draw.text(g, "Main Color", 256, a + 66, 12.5f, WHITE, Draw.MEDIUM);
-        Draw.roundBordered(g, 549, a + 54, 24, 24, 4, 0xFFE100FE, 0xFFF0B8FF);
-        Draw.icon(g, I_RESET, 591, a + 66, 10, 0xFF8F8597);
-
-        int px = 254, py = a + 88, pw = 231, ph = 88;
-        for (int i = 0; i < pw; i++) {
-            int topCol = Draw.lerpColor(0xFFFFFFFF, 0xFFE100FE, i / (float) (pw - 1));
-            g.fillGradient(px + i, py, px + i + 1, py + ph, topCol, 0xFF000000);
-        }
-        Draw.circle(g, px + pw, py + 1, 5, 0xFFFFFFFF);
-        Draw.circle(g, px + pw, py + 1, 3.5f, 0xFFE100FE);
-
-        int hy = a + 181;
-        for (int i = 0; i < pw; i++) {
-            Draw.rect(g, px + i, hy, 1, 10, 0xFF000000 | hsv(i / (float) pw));
-        }
-        Draw.circle(g, px + 188, hy + 5, 5, 0xFFFFFFFF);
-        Draw.circle(g, px + 188, hy + 5, 3.5f, 0xFF3F2BFF);
-
-        int ay = a + 199;
-        for (int i = 0; i < pw; i += 5) {
-            for (int j = 0; j < 10; j += 5) {
-                boolean light = ((i / 5) + (j / 5)) % 2 == 0;
-                Draw.rect(g, px + i, ay + j, Math.min(5, pw - i), 5, light ? 0xFFBDBDBD : 0xFF7A7A7A);
-            }
-        }
-        for (int i = 0; i < pw; i++) {
-            int alpha = Math.round(255f * i / (pw - 1));
-            Draw.rect(g, px + i, ay, 1, 10, (alpha << 24) | 0xE100FE);
-        }
-        Draw.circle(g, px + pw, ay + 5, 5, 0xFFFFFFFF);
-        Draw.circle(g, px + pw, ay + 5, 3.5f, 0xFFE100FE);
-
-        Draw.text(g, "Toggle Style", 251, a + 236, 12.5f, WHITE, Draw.MEDIUM);
-        Draw.text(g, "Choose the style of toggles.", 251, a + 251, 10.5f, 0xFFB3B0BA, Draw.REGULAR);
-        Draw.round(g, 442, a + 230, 134, 30, 8, 0xFF211429);
-        Draw.round(g, 443, a + 231, 66, 28, 7, 0xFF7A0B90);
-        Draw.textCentered(g, "Modern", 476, a + 245, 12.5f, 0xFFF0B8FF, Draw.MEDIUM);
-        Draw.textCentered(g, "Classic", 546, a + 245, 12.5f, WHITE, Draw.MEDIUM);
-        Draw.icon(g, I_RESET, 591, a + 244, 10, 0xFF8F8597);
-        Draw.text(g, "Ambient Color Mode", 251, a + 294, 12.5f, WHITE, Draw.MEDIUM);
-        modeBox(g, 442, a + 294, 134, "Theme");
 
         // Effects
-        Draw.roundBordered(g, 631, a, 382, 239, 10, 0xFF1F1328, 0xFF2E1D3A);
-        Draw.icon(g, I_SPARKLES, 654, a + 25, 14, 0xFFD10FF0);
-        Draw.text(g, "EFFECTS", 674, a + 25, 12.5f, 0xFFCDBBD6, Draw.REGULAR);
+        int a = t + 211;
+        int head = Draw.lerpColor(accent, 0xFFFFFFFF, 0.05f);
+        Draw.roundBordered(g, 233, a, 780, 239, 10, surface(tinted(0xFF15121B, 0.08f)), tinted(0xFF221E2A, 0.14f));
+        Draw.icon(g, I_SPARKLES, 256, a + 25, 14, head);
+        Draw.text(g, "EFFECTS", 276, a + 25, 12.5f, 0xFFCDC3D6, Draw.MEDIUM);
+        button(g, 915, a + 13, 82, 24, "Reset", BUTTON, BUTTON_BORDER, WHITE, () -> {
+            LethalConfig.resetTheme();
+            LethalConfig.save();
+        });
+
         String[][] fx = {{"See-Through GUI", "Allow background blur and transparency."},
                 {"Frosted Blur", "Apply frosted glass blur to surfaces."},
                 {"Ambient Background", "Enable the ambient gradient background."}};
+        boolean[] state = {LethalConfig.seeThrough, LethalConfig.frostedBlur, LethalConfig.ambientBackground};
         for (int i = 0; i < 3; i++) {
             int ry = a + 69 + i * 57;
-            Draw.text(g, fx[i][0], 648, ry, 12.5f, WHITE, Draw.MEDIUM);
-            Draw.text(g, fx[i][1], 648, ry + 16, 10, 0xFFB3B0BA, Draw.REGULAR);
-            toggle(g, 942, ry + 8, true);
+            Draw.text(g, fx[i][0], 252, ry, 12.5f, WHITE, Draw.SEMIBOLD);
+            Draw.text(g, fx[i][1], 252, ry + 16, 10, SUBTLE, Draw.REGULAR);
+            int which = i;
+            toggle(g, 942, ry + 8, state[i], () -> {
+                switch (which) {
+                    case 0 -> LethalConfig.seeThrough = !LethalConfig.seeThrough;
+                    case 1 -> LethalConfig.frostedBlur = !LethalConfig.frostedBlur;
+                    default -> LethalConfig.ambientBackground = !LethalConfig.ambientBackground;
+                }
+                LethalConfig.save();
+            });
             Draw.icon(g, I_RESET, 989, ry + 8, 10, 0xFF8F8597);
+            boolean def = which != 0;
+            hotspot(982, ry + 1, 14, 14, () -> {
+                switch (which) {
+                    case 0 -> LethalConfig.seeThrough = def;
+                    case 1 -> LethalConfig.frostedBlur = def;
+                    default -> LethalConfig.ambientBackground = def;
+                }
+                LethalConfig.save();
+            });
         }
-        return a + 345;
-    }
-
-    private static int hsv(float h) {
-        float r = Math.abs(h * 6 - 3) - 1, gr = 2 - Math.abs(h * 6 - 2), b = 2 - Math.abs(h * 6 - 4);
-        r = Math.max(0, Math.min(1, r));
-        gr = Math.max(0, Math.min(1, gr));
-        b = Math.max(0, Math.min(1, b));
-        return ((int) (r * 255) << 16) | ((int) (gr * 255) << 8) | (int) (b * 255);
-    }
-
-    // ---------------------------------------------------------------- socials
-
-    private int drawSocials(GuiGraphicsExtractor g, int t) {
-        Draw.icon(g, I_USERS, 253, t + 79, 17, 0xFFD10FF0);
-        Draw.text(g, "Saved Players", 272, t + 77, 13, WHITE, Draw.SEMIBOLD);
-        int bx = Math.round(272 + Draw.width("Saved Players", 13, Draw.SEMIBOLD) + 10);
-        Draw.round(g, bx, t + 66, 26, 18, 9, 0xFF9602B2);
-        Draw.textCentered(g, "0", bx + 13, t + 75, 11.5f, WHITE, Draw.SEMIBOLD);
-        Draw.text(g, "Players ignored by selected modules", 272, t + 94, 10.5f, 0xFFB3B0BA, Draw.REGULAR);
-        button(g, 887, t + 69, 113, 26, "Add / Manage", BUTTON, BUTTON_BORDER, WHITE);
-
-        Draw.roundBordered(g, 241, t + 105, 765, 135, 8, 0xFF0F1319, 0xFF201A2C);
-        Draw.iconFilled(g, IF_USER, 623, t + 130, 22, 0xFF3A3E46);
-        Draw.textCentered(g, "No saved players", 625, t + 162, 12.5f, WHITE, Draw.SEMIBOLD);
-        Draw.textCentered(g, "Add a player and your modules will never target them.", 625, t + 179, 12.5f, 0xFFC3C5CB, Draw.REGULAR);
-        button(g, 568, t + 199, 111, 27, "Add Player", 0xFF14151B, 0xFF2C2E35, WHITE);
-        return t + 250;
+        return a + 255;
     }
 
     // ---------------------------------------------------------------- input
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            return true;
+        }
         layout();
         float x = toDesignX(event.x()), y = toDesignY(event.y());
-        if (event.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT && x >= 24 && x < 212) {
-            for (Page pg : Page.values()) {
-                if (y >= pg.y - 13 && y < pg.y + 14) {
-                    page = pg;
-                    lastPage = pg;
-                    return true;
+        for (Hotspot h : List.copyOf(hotspots)) {
+            if (h.contains(x, y)) {
+                if (h.action() != null) {
+                    h.action().run();
                 }
+                LethalAuctionClient.playClick();
+                return true;
             }
         }
         return true;

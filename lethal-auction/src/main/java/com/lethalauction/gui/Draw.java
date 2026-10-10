@@ -103,10 +103,40 @@ public final class Draw {
         }
     }
 
-    /** Rounded rectangle with a 1-unit border. The fill should be opaque. */
+    /** Rounded rectangle with a 1-unit border ring. Works with translucent colours. */
     public static void roundBordered(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int fill, int border) {
-        round(g, x, y, w, h, r, border);
-        round(g, x + 1, y + 1, w - 2, h - 2, Math.max(0, r - 1), fill);
+        r = Math.max(1, Math.min(r, Math.min(w, h) / 2));
+        round(g, x + 1, y + 1, w - 2, h - 2, r - 1, fill);
+        rect(g, x + r, y, w - 2 * r, 1, border);
+        rect(g, x + r, y + h - 1, w - 2 * r, 1, border);
+        rect(g, x, y + r, 1, h - 2 * r, border);
+        rect(g, x + w - 1, y + r, 1, h - 2 * r, border);
+        for (int j = 0; j < r; j++) {
+            int outer = cornerInset(r, j);
+            int inner = j == 0 ? r : 1 + cornerInset(r - 1, j - 1);
+            int len = Math.max(1, inner - outer);
+            if (j == 0) {
+                len = r - outer;
+            }
+            rect(g, x + outer, y + j, len, 1, border);
+            rect(g, x + w - outer - len, y + j, len, 1, border);
+            rect(g, x + outer, y + h - 1 - j, len, 1, border);
+            rect(g, x + w - outer - len, y + h - 1 - j, len, 1, border);
+        }
+    }
+
+    private static int cornerInset(int r, int row) {
+        if (r <= 0 || row >= r) {
+            return 0;
+        }
+        double dy = r - row - 0.5;
+        return (int) Math.ceil(r - Math.sqrt(Math.max(0, (double) r * r - dy * dy)));
+    }
+
+    /** Multiplies a colour's alpha by f. */
+    public static int alpha(int color, float f) {
+        int a = Math.round((color >>> 24) * f);
+        return (Math.max(0, Math.min(255, a)) << 24) | (color & 0xFFFFFF);
     }
 
     public static void circle(GuiGraphicsExtractor g, float cx, float cy, float radius, int color) {
@@ -129,7 +159,12 @@ public final class Draw {
     }
 
     public static void texture(GuiGraphicsExtractor g, Identifier tex, int x, int y, int w, int h, int texW, int texH) {
-        g.blit(RenderPipelines.GUI_TEXTURED, tex, x, y, 0, 0, w, h, texW, texH, texW, texH);
+        texture(g, tex, x, y, w, h, texW, texH, 0xFFFFFFFF);
+    }
+
+    /** Draws a texture stretched to w x h, multiplied by the given ARGB colour. */
+    public static void texture(GuiGraphicsExtractor g, Identifier tex, int x, int y, int w, int h, int texW, int texH, int color) {
+        g.blit(RenderPipelines.GUI_TEXTURED, tex, x, y, 0, 0, w, h, texW, texH, texW, texH, color);
     }
 
     public static void hGradient(GuiGraphicsExtractor g, int x, int y, int w, int h, int from, int to) {
