@@ -97,6 +97,9 @@ public class LethalScreen extends Screen {
     private boolean clipping;
 
     private float scale = 1, originX, originY;
+    /** When the current tab was opened; drives the top-to-bottom reveal. */
+    private long pageShownAt = System.currentTimeMillis();
+    private static final float REVEAL_MILLIS = 320f;
 
     // Theme colours, refreshed every frame from LethalConfig
     private int accent, accentDark, accentLight, tint;
@@ -226,9 +229,14 @@ public class LethalScreen extends Screen {
         }
         drawHeader(g);
 
-        g.enableScissor(VIEW_X, VIEW_Y, VIEW_R, VIEW_B);
+        // Reveal the tab from top to bottom when it is opened.
+        float k = Math.min(1f, (System.currentTimeMillis() - pageShownAt) / REVEAL_MILLIS);
+        float ease = 1 - (float) Math.pow(1 - k, 3);
+        int revealBottom = VIEW_Y + Math.round((VIEW_B - VIEW_Y) * ease);
+        g.enableScissor(VIEW_X, VIEW_Y, VIEW_R, Math.max(VIEW_Y + 1, revealBottom));
+        Draw.globalAlpha = 0.35f + 0.65f * ease;
         clipping = true;
-        int top = Math.round(-scroll[pi]);
+        int top = Math.round(-scroll[pi] - (1 - ease) * 12);
         int contentBottom = switch (page) {
             case AUCTION -> drawNewAuction(g, top);
             case SETTINGS -> drawSettings(g, top);
@@ -236,6 +244,7 @@ public class LethalScreen extends Screen {
             case THEME -> drawTheme(g, top);
         };
         clipping = false;
+        Draw.globalAlpha = 1f;
         g.disableScissor();
 
         float contentHeight = contentBottom - top;
@@ -255,14 +264,12 @@ public class LethalScreen extends Screen {
         }
 
         // logo
-        Draw.round(g, 23, 21, 46, 46, 14, Draw.alpha(accent, 0.22f));
-        Draw.round(g, 26, 24, 40, 40, 11, accentDark);
-        Draw.round(g, 26, 24, 40, 30, 11, Draw.lerpColor(accent, accentDark, 0.25f));
-        Draw.round(g, 26, 24, 40, 20, 11, accent);
-        Draw.icon(g, I_GAVEL, 46, 44, 26, 0xFFFFFFFF);
-        Draw.text(g, "LETHAL", 75, 37, 15, 0xFFEDE6F2, Draw.LOGO);
-        Draw.text(g, "A U C T I O N", 76, 53, 9.5f, 0xFFD9CCE2, Draw.SEMIBOLD);
-        Draw.text(g, "v1.0.0", 75, 67, 10.5f, MUTED, Draw.REGULAR);
+        Draw.round(g, 24, 25, 40, 40, 12, Draw.alpha(accent, 0.22f));
+        Draw.round(g, 26, 27, 36, 36, 10, accentDark);
+        Draw.round(g, 26, 27, 36, 27, 10, Draw.lerpColor(accent, accentDark, 0.25f));
+        Draw.round(g, 26, 27, 36, 18, 10, accent);
+        Draw.icon(g, I_GAVEL, 44, 45, 20, 0xFFFFFFFF);
+        Draw.text(g, "LETHAL", 74, 45, 12, 0xFFEDE6F2, Draw.LOGO);
 
         Draw.rect(g, 26, 83, 178, 1, 0x66FFFFFF & tinted(0xFF2A2A30, 0.3f));
         Draw.text(g, "MODULES", 26, 105, 12.5f, 0xFF8C8495, Draw.REGULAR);
@@ -282,6 +289,9 @@ public class LethalScreen extends Screen {
             Draw.text(g, pg.label, 75, pg.y, 13, active ? activeColor : 0xFFBBADC4, active ? Draw.SEMIBOLD : Draw.MEDIUM);
             Page target = pg;
             hotspot(24, pg.y - 13, 188, 27, () -> {
+                if (page != target) {
+                    pageShownAt = System.currentTimeMillis();
+                }
                 page = target;
                 lastPage = target;
                 LethalConfig.lastPage = target.name();
@@ -712,6 +722,7 @@ public class LethalScreen extends Screen {
             Draw.textCentered(g, "No auctions yet", 623, t + 162, 12.5f, WHITE, Draw.SEMIBOLD);
             Draw.textCentered(g, "Pick an item on the Auction tab and press Start Auction.", 623, t + 179, 12.5f, 0xFFC3C5CB, Draw.REGULAR);
             button(g, 568, t + 199, 111, 27, "New Auction", 0xFF14151B, 0xFF2C2E35, WHITE, () -> {
+                pageShownAt = System.currentTimeMillis();
                 page = Page.AUCTION;
                 lastPage = Page.AUCTION;
             });
@@ -794,14 +805,18 @@ public class LethalScreen extends Screen {
             int y = t + 60 + (i / 4) * 69;
             boolean selected = LethalConfig.preset == i;
             if (selected) {
-                Draw.round(g, x - 2, y - 2, 188, 64, 8, Draw.alpha(accent, 0.3f));
-                Draw.roundBordered(g, x, y, 184, 60, 6, surface(0xFF24222C), accent);
+                Draw.round(g, x - 3, y - 3, 190, 66, 9, Draw.alpha(accent, 0.18f));
+                Draw.roundBordered(g, x - 1, y - 1, 186, 62, 7, 0x00000000, accent);
+                Draw.roundBordered(g, x, y, 184, 60, 6, surface(0xFF1B1A22), Draw.alpha(accent, 0.6f));
             } else {
                 Draw.round(g, x, y, 184, 60, 6, surface(0xFF24222C));
             }
-            Draw.text(g, PRESET_NAMES[i], x + 6, y + 13, 12, 0xFFE0DFE6, selected ? Draw.SEMIBOLD : Draw.REGULAR);
+            Draw.text(g, PRESET_NAMES[i], x + 6, y + 13, 12, selected ? Draw.lerpColor(accent, 0xFFFFFFFF, 0.15f) : 0xFFE0DFE6,
+                    selected ? Draw.SEMIBOLD : Draw.REGULAR);
             if (selected) {
-                Draw.textRight(g, "Active", x + 178, y + 13, 10.5f, accentLight, Draw.MEDIUM);
+                Draw.circle(g, x + 174, y + 12, 6, accent);
+                Draw.circle(g, x + 174, y + 12, 4.8f, 0xFF0B0E14);
+                Draw.circle(g, x + 174, y + 12, 3.6f, accent);
             }
             int sx = x + 3, sw = 178, sy = y + 26, sh = 32;
             int seg = Math.round(sw * 0.25f);
