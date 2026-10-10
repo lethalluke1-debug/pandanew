@@ -338,12 +338,18 @@ public class LethalScreen extends Screen {
     private List<ItemStack> items() {
         if (allItems.isEmpty()) {
             List<ItemStack> list = new ArrayList<>();
-            for (Item item : BuiltInRegistries.ITEM) {
-                if (item != Items.AIR) {
-                    list.add(new ItemStack(item));
+            try {
+                for (Item item : BuiltInRegistries.ITEM) {
+                    if (item != Items.AIR) {
+                        list.add(new ItemStack(item));
+                    }
                 }
+            } catch (RuntimeException e) {
+                // Item data is not ready while the game is still loading; try again next frame.
+                return List.of();
             }
             allItems = list;
+            filteredFor = null;
         }
         String q = search.value.trim().toLowerCase(Locale.ROOT);
         if (!q.equals(filteredFor)) {

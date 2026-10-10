@@ -57,7 +57,7 @@ public class LethalAuctionClient implements ClientModInitializer {
 
     private void devTick(Minecraft mc) {
         if (devTicks < 0) {
-            if (mc.gui.screen() instanceof TitleScreen) {
+            if (mc.gui.screen() instanceof TitleScreen && mc.gui.overlay() == null) {
                 devTicks = 0;
             }
             return;
