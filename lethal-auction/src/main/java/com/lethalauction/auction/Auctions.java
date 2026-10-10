@@ -32,13 +32,15 @@ public final class Auctions {
         private final long worthEach;
         private final int timerSeconds;
         private final long startedAt;
+        private final String note;
         private String topBidder;
         private long topBid;
         private boolean finished;
         private long finishedAt;
         private boolean cancelled;
 
-        Auction(ItemStack item, int quantity, long minimumBid, long worthEach, int timerSeconds, long startedAt) {
+        Auction(ItemStack item, int quantity, long minimumBid, long worthEach, int timerSeconds, long startedAt, String note) {
+            this.note = note;
             this.item = item;
             this.itemId = BuiltInRegistries.ITEM.getKey(item.getItem()).toString();
             this.quantity = quantity;
@@ -70,6 +72,11 @@ public final class Auctions {
 
         public long worthEach() {
             return worthEach;
+        }
+
+        /** The line shown on the auction card, e.g. "Pay over = I keep". Empty hides it. */
+        public String note() {
+            return note == null ? "Pay over = I keep" : note;
         }
 
         public int timerSeconds() {
@@ -177,7 +184,11 @@ public final class Auctions {
     }
 
     public static void start(ItemStack item, int quantity, long minimumBid, long worthEach, int timerSeconds) {
-        RECENT.add(0, new Auction(item.copy(), quantity, minimumBid, worthEach, timerSeconds, System.currentTimeMillis()));
+        start(item, quantity, minimumBid, worthEach, timerSeconds, "Pay over = I keep");
+    }
+
+    public static void start(ItemStack item, int quantity, long minimumBid, long worthEach, int timerSeconds, String note) {
+        RECENT.add(0, new Auction(item.copy(), quantity, minimumBid, worthEach, timerSeconds, System.currentTimeMillis(), note));
         while (RECENT.size() > MAX_HISTORY) {
             RECENT.remove(RECENT.size() - 1);
         }
@@ -186,7 +197,7 @@ public final class Auctions {
 
     /** Starts the same auction again with a fresh timer and no bids. */
     public static void redo(Auction a) {
-        start(a.item(), a.quantity(), a.minimumBid(), a.worthEach(), a.timerSeconds());
+        start(a.item(), a.quantity(), a.minimumBid(), a.worthEach(), a.timerSeconds(), a.note());
     }
 
     /** Loads the saved auction history. Auctions that were still running when the game closed are cancelled. */

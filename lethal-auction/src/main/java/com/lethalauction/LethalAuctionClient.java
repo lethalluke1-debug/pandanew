@@ -23,8 +23,14 @@ import org.slf4j.LoggerFactory;
 
 public class LethalAuctionClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("lethalauction");
-    private static final SoundEvent CLICK =
-            SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath("lethalauction", "click"));
+    private static final SoundEvent[] CLICKS = {sound("click"), sound("click_soft"), sound("click_pop")};
+    public static final String[] SOUND_PACKS = {"Default", "Soft", "Pop"};
+    private static final SoundEvent COIN = sound("coin");
+    private static SimpleSoundInstance lastClick;
+
+    private static SoundEvent sound(String name) {
+        return SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath("lethalauction", name));
+    }
 
     private static final KeyMapping.Category CATEGORY =
             KeyMapping.Category.register(Identifier.fromNamespaceAndPath("lethalauction", "main"));
@@ -43,15 +49,27 @@ public class LethalAuctionClient implements ClientModInitializer {
         if (r.kind() == Auctions.BidResult.Kind.UNREADABLE) {
             LOGGER.warn("Unrecognised payment message: {}", original);
         } else if (r.kind() == Auctions.BidResult.Kind.ACCEPTED) {
-            playClick();
+            playCoin();
         }
     }
 
     /** Plays the menu click sound, if module sounds are enabled. */
     public static void playClick() {
-        if (LethalConfig.moduleSound) {
-            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(CLICK, 1.0f, 0.7f));
+        if (!LethalConfig.moduleSound) {
+            return;
         }
+        var sounds = Minecraft.getInstance().getSoundManager();
+        // Stop the previous click first so fast clicks never stack on top of each other.
+        if (lastClick != null) {
+            sounds.stop(lastClick);
+        }
+        lastClick = SimpleSoundInstance.forUI(CLICKS[Math.floorMod(LethalConfig.soundPack, CLICKS.length)], 1.0f, 0.7f);
+        sounds.play(lastClick);
+    }
+
+    /** Plays the coin sound for an accepted payment (always on, it is an alert rather than a click). */
+    public static void playCoin() {
+        Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(COIN, 1.0f, 0.9f));
     }
 
     @Override

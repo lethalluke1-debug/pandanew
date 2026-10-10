@@ -107,11 +107,16 @@ public class AuctionHud implements HudElement {
         Draw.textCentered(g, time, 255, 37.5f, 15, low ? RED : 0xFFFFFFFF, Draw.SEMIBOLD);
 
         int light = Theme.accentLight();
-        Draw.circle(g, 15, 75, 2.5f, accent);
-        Draw.text(g, "Pay over = I keep", 22, 75, 11, light, Draw.SEMIBOLD);
+        String note = a.note();
+        float noteEnd = 10;
+        if (!note.isBlank()) {
+            Draw.circle(g, 15, 75, 2.5f, accent);
+            Draw.text(g, note, 22, 75, 11, light, Draw.SEMIBOLD);
+            noteEnd = 22 + Draw.width(note, 11, Draw.SEMIBOLD);
+        }
         if (a.worthEach() > 0) {
             String worth = "Worth " + compact(a.worthEach() * a.quantity());
-            float wx = 22 + Draw.width("Pay over = I keep", 11, Draw.SEMIBOLD) + 12;
+            float wx = noteEnd + 12;
             int ww = Math.round(Draw.width(worth, 11, Draw.SEMIBOLD) + 18);
             Draw.round(g, Math.round(wx), 66, ww, 18, 9, Theme.accentDark());
             Draw.textCentered(g, worth, wx + ww / 2f, 75, 11, 0xFFFFFFFF, Draw.SEMIBOLD);

@@ -106,6 +106,7 @@ public class LethalScreen extends Screen {
         super(Component.literal("Lethal Auction"));
         minBid.value = LethalConfig.formMinBid;
         worth.value = LethalConfig.formWorth;
+        note.value = LethalConfig.formNote;
     }
 
     private static Page savedPage() {
@@ -124,6 +125,7 @@ public class LethalScreen extends Screen {
         LethalConfig.formQuantity = quantity.value.isEmpty() ? "1" : quantity.value;
         LethalConfig.formTimer = timer.value.isEmpty() ? "60" : timer.value;
         LethalConfig.formWorth = worth.value;
+        LethalConfig.formNote = note.value;
         LethalConfig.save();
     }
 
@@ -253,9 +255,11 @@ public class LethalScreen extends Screen {
         }
 
         // logo
-        Draw.round(g, 27, 23, 38, 44, 8, Draw.alpha(accent, 0.19f));
-        Draw.round(g, 32, 27, 11, 35, 3, accent);
-        Draw.round(g, 32, 51, 29, 11, 3, accent);
+        Draw.round(g, 23, 21, 46, 46, 14, Draw.alpha(accent, 0.22f));
+        Draw.round(g, 26, 24, 40, 40, 11, accentDark);
+        Draw.round(g, 26, 24, 40, 30, 11, Draw.lerpColor(accent, accentDark, 0.25f));
+        Draw.round(g, 26, 24, 40, 20, 11, accent);
+        Draw.icon(g, I_GAVEL, 46, 44, 26, 0xFFFFFFFF);
         Draw.text(g, "LETHAL", 75, 37, 15, 0xFFEDE6F2, Draw.LOGO);
         Draw.text(g, "A U C T I O N", 76, 53, 9.5f, 0xFFD9CCE2, Draw.SEMIBOLD);
         Draw.text(g, "v1.0.0", 75, 67, 10.5f, MUTED, Draw.REGULAR);
@@ -341,7 +345,8 @@ public class LethalScreen extends Screen {
     private final TextBox quantity = TextBox.digits(LethalConfig.formQuantity, 5);
     private final TextBox timer = TextBox.digits(LethalConfig.formTimer, 5);
     private final TextBox worth = TextBox.amount(12);
-    private final List<TextBox> fieldOrder = List.of(search, minBid, quantity, timer, worth);
+    private final TextBox note = TextBox.any(32);
+    private final List<TextBox> fieldOrder = List.of(search, minBid, quantity, timer, worth, note);
     private TextBox focused;
     private List<ItemStack> allItems = List.of(), filtered = List.of();
     private String filteredFor;
@@ -489,6 +494,8 @@ public class LethalScreen extends Screen {
         field(g, timer, 839, 232, 174, 32, "60");
         Draw.text(g, "Worth of one item", 664, 282, 12.5f, TEXT, Draw.MEDIUM);
         field(g, worth, 652, 292, 361, 32, "Optional");
+        Draw.text(g, "Note on the auction card", 664, 342, 12.5f, TEXT, Draw.MEDIUM);
+        field(g, note, 652, 352, 361, 32, "e.g. Pay over = I keep");
 
         long bid = Auctions.parseAmount(minBid.value);
         int qty = parseInt(quantity.value);
@@ -510,12 +517,12 @@ public class LethalScreen extends Screen {
             hint = "Total worth: " + Auctions.formatMoney(each * qty);
         }
         if (hint != null) {
-            Draw.textCentered(g, hint, 832.5f, 400, 12, hintColor, Draw.MEDIUM);
+            Draw.textCentered(g, hint, 832.5f, 403, 12, hintColor, Draw.MEDIUM);
         }
 
         if (ready) {
             button(g, 652, 420, 361, 32, "Start Auction", accentDark, Draw.lerpColor(accent, 0xFF000000, 0.15f), accentLight, () -> {
-                Auctions.start(selected, qty, bid, each, secs);
+                Auctions.start(selected, qty, bid, each, secs, note.value.trim());
                 saveState();
                 startedMessageUntil = System.currentTimeMillis() + 3000;
                 resetForm();
@@ -577,13 +584,20 @@ public class LethalScreen extends Screen {
             while (!shown.isEmpty() && Draw.width(shown, 13, Draw.MEDIUM) > maxW) {
                 shown = shown.substring(1);
             }
+            if (isFocused && box.allSelected && !shown.isEmpty()) {
+                Draw.round(g, x + 10, Math.round(cy - 9), Math.round(Draw.width(shown, 13, Draw.MEDIUM) + 4), 18, 3,
+                        Draw.alpha(accent, 0.45f));
+            }
             Draw.text(g, shown, x + 12, cy, 13, WHITE, Draw.MEDIUM);
-            if (isFocused && (System.currentTimeMillis() / 500) % 2 == 0) {
+            if (isFocused && !box.allSelected && (System.currentTimeMillis() / 500) % 2 == 0) {
                 int cx = Math.round(x + 13 + Draw.width(shown, 13, Draw.MEDIUM));
                 Draw.rect(g, cx, Math.round(cy - 7), 1, 14, WHITE);
             }
         }
-        hotspot(x, y, w, h, () -> focused = box);
+        hotspot(x, y, w, h, () -> {
+            focused = box;
+            box.allSelected = false;
+        });
     }
 
     // ---------------------------------------------------------------- widgets
@@ -664,9 +678,12 @@ public class LethalScreen extends Screen {
         });
         Draw.text(g, "Sound Pack", 268, t + 466, 12.5f, WHITE, Draw.MEDIUM);
         Draw.roundBordered(g, 864, t + 452, 116, 25, 6, 0xFF131219, BUTTON_BORDER);
-        Draw.text(g, "Default", 878, t + 465, 12.5f, WHITE, Draw.MEDIUM);
+        Draw.text(g, LethalAuctionClient.SOUND_PACKS[Math.floorMod(LethalConfig.soundPack, 3)], 878, t + 465, 12.5f, WHITE, Draw.MEDIUM);
         Draw.icon(g, I_DOWN, 966, t + 465, 9, 0xFF9C9CA6);
-        hotspot(864, t + 452, 116, 25, null);
+        hotspot(864, t + 452, 116, 25, () -> {
+            LethalConfig.soundPack = (LethalConfig.soundPack + 1) % 3;
+            LethalConfig.save();
+        });
         Draw.text(g, "Volume", 268, t + 506, 12.5f, WHITE, Draw.MEDIUM);
         Draw.textRight(g, "70%", 857, t + 505, 12, 0xFFC3C3CC, Draw.REGULAR);
         slider(g, 868, t + 504, 112, 0.7f);
@@ -892,6 +909,12 @@ public class LethalScreen extends Screen {
             int key = event.key();
             if (key == GLFW.GLFW_KEY_BACKSPACE) {
                 focused.backspace(event.hasControlDown());
+            } else if (key == GLFW.GLFW_KEY_DELETE) {
+                if (focused.allSelected) {
+                    focused.backspace(true);
+                }
+            } else if (event.isSelectAll()) {
+                focused.allSelected = !focused.value.isEmpty();
             } else if (event.isEscape() || event.isConfirmation()) {
                 focused = null;
             } else if (event.isCycleFocus()) {
@@ -903,8 +926,12 @@ public class LethalScreen extends Screen {
             } else if (event.isCut()) {
                 minecraft.keyboardHandler.setClipboard(focused.value);
                 focused.value = "";
+                focused.allSelected = false;
             } else if (event.isCopy()) {
                 minecraft.keyboardHandler.setClipboard(focused.value);
+            } else if (key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT || key == GLFW.GLFW_KEY_HOME
+                    || key == GLFW.GLFW_KEY_END) {
+                focused.allSelected = false;
             }
             return true;
         }
@@ -921,7 +948,9 @@ public class LethalScreen extends Screen {
         minBid.value = "45k";
         worth.value = "50k";
         search.value = "ely";
-        focused = minBid;
+        note.value = "Pay over = I keep";
+        focused = search;
+        search.allSelected = true;
     }
 
     /** Dev helper: lets a test run jump straight to a page. */
