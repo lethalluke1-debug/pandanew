@@ -107,7 +107,7 @@ public final class ScoreboardStyle {
         if (LethalConfig.sbHead) {
             var mc = net.minecraft.client.Minecraft.getInstance();
             if (mc.player != null) {
-                net.minecraft.client.gui.components.PlayerFaceExtractor.extractRenderState(g, mc.player.getSkin(), x - HEAD_SPACE, y, 8);
+                net.minecraft.client.gui.components.PlayerFaceExtractor.extractRenderState(g, mc.player.getSkin(), x - HEAD_SPACE, y - 1, 8);
             }
         }
         g.text(font, text, x, y, color, shadow);
