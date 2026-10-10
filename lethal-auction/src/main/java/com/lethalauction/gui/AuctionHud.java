@@ -29,7 +29,8 @@ public class AuctionHud implements HudElement {
             return;
         }
         long now = System.currentTimeMillis();
-        float t = now / 1000f;
+        // Seconds as a small number: a float of the full epoch time only changes every ~2 minutes.
+        float t = (now % 3_600_000L) / 1000f;
         boolean won = a.ended() && a.hasBid();
         if (won) {
             drawConfetti(g, now - a.endsAt(), a.endsAt());
@@ -45,13 +46,14 @@ public class AuctionHud implements HudElement {
         float shake = 0;
         if (!a.ended()) {
             if (msLeft <= 10_000 && msLeft > 9_000) {
-                shake = 2.2f * (msLeft - 9_000) / 1000f;
+                shake = 3.5f * (msLeft - 9_000) / 1000f;
             } else if (msLeft <= 5_000) {
-                shake = 1.6f + 2.4f * (1 - msLeft / 5000f);
+                shake = 2.5f + 3.5f * (1 - msLeft / 5000f);
             }
         }
-        x += (float) (Math.sin(t * 55) * shake) * SCALE * 1.4f;
-        float y = 5 + (float) (Math.cos(t * 47) * shake * 0.35f) * SCALE;
+        x += (float) (Math.sin(t * 55) * shake) * SCALE * 2.2f;
+        float y = 5 + (float) (Math.cos(t * 47) * shake * 0.8f) * SCALE;
+        float rot = (float) (Math.sin(t * 38) * shake * 0.012f);
         float alpha = 1;
         if (a.ended()) {
             long since = now - a.endsAt();
@@ -61,7 +63,9 @@ public class AuctionHud implements HudElement {
             alpha = Math.max(0, Math.min(1, (Auctions.RESULT_MILLIS - since) / 900f));
             y -= (1 - alpha) * 16;
         }
-        p.translate(x, y);
+        p.translate(x + W * SCALE / 2f, y);
+        p.rotate(rot);
+        p.translate(-W * SCALE / 2f, 0);
         p.scale(SCALE);
 
         Draw.globalAlpha = alpha;
@@ -162,7 +166,7 @@ public class AuctionHud implements HudElement {
             if (appear > 0) {
                 float wave = (float) Math.sin(t * 7 - i * 0.7) * 4.5f;
                 float pop = (1 - easeOutBack(appear)) * 14;
-                float scale = 1 + 0.18f * (float) Math.max(0, Math.sin(t * 7 - i * 0.7));
+                float scale = 1 + 0.2f * (float) Math.sin(t * 6 - i * 0.7);
                 float shimmer = 0.5f + 0.5f * (float) Math.sin(t * 5 - i * 0.6);
                 int color = Draw.alpha(Draw.lerpColor(GOLD, light, shimmer), appear);
                 p.pushMatrix();
