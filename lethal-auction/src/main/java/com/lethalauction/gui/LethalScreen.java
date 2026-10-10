@@ -405,7 +405,7 @@ public class LethalScreen extends Screen {
         Draw.roundBordered(g, 235, 58, 405, 447, 12, cardFill, cardBorder);
         Draw.circle(g, 254, 76, 3.5f, accent);
         Draw.text(g, "New Auction", 263, 76, 13.5f, WHITE, Draw.SEMIBOLD);
-        Draw.textRight(g, list.size() + " items", 627, 76, 12, SUBTLE, Draw.REGULAR);
+        Draw.textRight(g, list.size() + (list.size() == 1 ? " item" : " items"), 627, 76, 12, SUBTLE, Draw.REGULAR);
         field(g, search, 247, 92, 381, 28, "Search items...");
 
         Draw.roundBordered(g, GRID_X, GRID_Y, GRID_W, GRID_H, 10, surface(0xFF0C0B11), 0xFF221E2A);
