@@ -1226,17 +1226,18 @@ public class LethalScreen extends Screen {
         ScoreboardStyle.bodyFill(g, x0 - 2, bodyTop - 1, x1, bottom, 0x4C000000);
         int titleX = x0 + (width - font.width(title)) / 2 - 1;
         ScoreboardStyle.title(g, font, Component.literal(title), titleX, bodyTop - lineH, 0xFFFFFFFF, false);
+        int rowX = x0 - (LethalConfig.sbHead ? 10 : 0);
         for (int i = 0; i < PREVIEW_VALUES.length; i++) {
             int ly = bodyTop + 1 + i * lineH;
             String bits = PREVIEW_ICONS[i];
             for (int r = 0; r < 7; r++) {
                 for (int c = 0; c < 7; c++) {
                     if (bits.charAt(r * 7 + c) == '1') {
-                        Draw.rect(g, x0 + c, ly + r, 1, 1, PREVIEW_ICON_COLORS[i]);
+                        Draw.rect(g, rowX + c, ly + r, 1, 1, PREVIEW_ICON_COLORS[i]);
                     }
                 }
             }
-            g.text(font, PREVIEW_VALUES[i], x0 + 11, ly, 0xFFFFFFFF, false);
+            g.text(font, PREVIEW_VALUES[i], rowX + 11, ly, 0xFFFFFFFF, false);
         }
         p.popMatrix();
     }

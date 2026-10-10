@@ -87,8 +87,14 @@ public final class ScoreboardStyle {
         };
     }
 
+    /** Draws a line's name, moved left into the extra space when the head is shown. */
+    public static void lineName(GuiGraphicsExtractor g, net.minecraft.client.gui.Font font, net.minecraft.network.chat.Component text,
+                                int x, int y, int color, boolean shadow) {
+        g.text(font, text, x - headSpace(), y, color, shadow);
+    }
+
     /** How much wider the background gets on the left so the head fits inside it. */
-    private static int headSpace() {
+    public static int headSpace() {
         return LethalConfig.sbHead && net.minecraft.client.Minecraft.getInstance().player != null ? HEAD_SPACE : 0;
     }
 
