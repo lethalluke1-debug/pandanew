@@ -70,7 +70,8 @@ public class LethalScreen extends Screen {
 
     enum Page {
         AUCTION("Auction", I_GAVEL, 132), SETTINGS("Settings", I_SETTINGS, 199),
-        RECENT("Recent Auctions", I_HISTORY, 229), THEME("Theme", I_PALETTE, 259), CAPE("Cape", I_HANGER, 289);
+        RECENT("Recent Auctions", I_HISTORY, 229), THEME("Theme", I_PALETTE, 259), CAPE("Cape", I_HANGER, 289),
+        SCOREBOARD("Scoreboard", 0xef11, 319);
 
         final String label;
         final int icon;
@@ -249,6 +250,7 @@ public class LethalScreen extends Screen {
             case RECENT -> drawRecent(g, top);
             case THEME -> drawTheme(g, top);
             case CAPE -> drawCape(g, top);
+            case SCOREBOARD -> drawScoreboard(g, top);
         };
         clipping = false;
         Draw.globalAlpha = 1f;
@@ -907,8 +909,7 @@ public class LethalScreen extends Screen {
         int bw = (w - 18) / 2;
         Capes.Cape target = cape;
         Draw.roundBordered(g, x + 6, y + 148, bw, 24, 6, BUTTON, BUTTON_BORDER);
-        Draw.icon(g, I_PENCIL, x + 6 + 14, y + 160, 11, accentLight);
-        Draw.text(g, "Rename", x + 6 + 24, y + 160.5f, 10.5f, WHITE, Draw.SEMIBOLD);
+        Draw.icon(g, I_PENCIL, x + 6 + bw / 2f, y + 160, 13, accentLight);
         hotspot(x + 6, y + 148, bw, 24, () -> {
             renaming = target;
             renameBox.value = target.name().replaceAll("(?i)\\.png$", "");
@@ -916,8 +917,7 @@ public class LethalScreen extends Screen {
             focused = renameBox;
         });
         Draw.roundBordered(g, x + 12 + bw, y + 148, bw, 24, 6, 0xFF2A0F14, 0xFF5A1E28);
-        Draw.icon(g, I_TRASH, x + 12 + bw + 14, y + 160, 11, 0xFFFF8A95);
-        Draw.text(g, "Delete", x + 12 + bw + 24, y + 160.5f, 10.5f, 0xFFFF8A95, Draw.SEMIBOLD);
+        Draw.icon(g, I_TRASH, x + 12 + bw + bw / 2f, y + 160, 13, 0xFFFF8A95);
         hotspot(x + 12 + bw, y + 148, bw, 24, () -> Capes.delete(target));
         hotspot(x, y, w, 140, () -> Capes.select(target.name()));
     }
@@ -1075,6 +1075,141 @@ public class LethalScreen extends Screen {
         return t + 480;
     }
 
+    // ---------------------------------------------------------------- scoreboard
+
+    /** A slider being dragged: its track and what to set. */
+    private record SliderDrag(int x, int w, java.util.function.Consumer<Float> set) {
+    }
+
+    private SliderDrag sliderDrag;
+
+    private void dragSlider(int x, int cy, int w, float frac, java.util.function.Consumer<Float> set) {
+        slider(g(), x, cy, w, frac);
+        hotspot(x - 6, cy - 9, w + 12, 18, () -> {
+            sliderDrag = new SliderDrag(x, w, set);
+            set.accept(Math.max(0f, Math.min(1f, (mouseDX - x) / w)));
+        });
+    }
+
+    private GuiGraphicsExtractor currentG;
+
+    private GuiGraphicsExtractor g() {
+        return currentG;
+    }
+
+    private int drawScoreboard(GuiGraphicsExtractor g, int t) {
+        currentG = g;
+        int head = Draw.lerpColor(accent, 0xFFFFFFFF, 0.05f);
+        int cardFill = surface(tinted(0xFF141119, 0.07f)), cardBorder = tinted(0xFF1E1A24, 0.12f);
+        Draw.icon(g, 0xef11, 253, t + 80, 17, head);
+        Draw.text(g, "Scoreboard", 272, t + 77, 13, WHITE, Draw.SEMIBOLD);
+        Draw.text(g, "Change the size, corners and background of the scoreboard on the right of your screen.", 272, t + 94, 10.5f, SUBTLE, Draw.REGULAR);
+        button(g, 912, t + 69, 88, 26, "Reset", BUTTON, BUTTON_BORDER, WHITE, () -> {
+            LethalConfig.sbScale = 1f;
+            LethalConfig.sbRounded = false;
+            LethalConfig.sbBackground = 0;
+            LethalConfig.sbHue = 0.8f;
+            LethalConfig.sbOpacity = 0.45f;
+            LethalConfig.save();
+        });
+
+        int x0 = 235, w0 = 500;
+        // Size
+        int y = t + 116;
+        Draw.roundBordered(g, x0, y, w0, 64, 12, cardFill, cardBorder);
+        Draw.text(g, "Size", x0 + 18, y + 22, 13, WHITE, Draw.SEMIBOLD);
+        Draw.text(g, "Make it bigger or smaller", x0 + 18, y + 42, 10.5f, SUBTLE, Draw.REGULAR);
+        Draw.textRight(g, Math.round(LethalConfig.sbScale * 100) + "%", x0 + 260, y + 32, 12, 0xFFC3C3CC, Draw.MEDIUM);
+        dragSlider(x0 + 276, y + 32, 200, (LethalConfig.sbScale - 0.5f), f -> {
+            LethalConfig.sbScale = Math.round((0.5f + f) * 20) / 20f;
+        });
+
+        // Corners
+        y += 76;
+        Draw.roundBordered(g, x0, y, w0, 64, 12, cardFill, cardBorder);
+        Draw.text(g, "Rounded corners", x0 + 18, y + 22, 13, WHITE, Draw.SEMIBOLD);
+        Draw.text(g, "Smooth corners instead of a square box", x0 + 18, y + 42, 10.5f, SUBTLE, Draw.REGULAR);
+        toggle(g, x0 + w0 - 52, y + 32, LethalConfig.sbRounded, () -> {
+            LethalConfig.sbRounded = !LethalConfig.sbRounded;
+            LethalConfig.save();
+        });
+
+        // Background
+        y += 76;
+        boolean custom = LethalConfig.sbBackground == 2;
+        int bh = custom ? 168 : 96;
+        Draw.roundBordered(g, x0, y, w0, bh, 12, cardFill, cardBorder);
+        Draw.text(g, "Background", x0 + 18, y + 22, 13, WHITE, Draw.SEMIBOLD);
+        int segX = x0 + 18, segY = y + 40, segW = w0 - 36, opt = (segW - 6) / 4;
+        Draw.round(g, segX, segY, segW, 32, 8, 0xFF0C0B11);
+        for (int i = 0; i < 4; i++) {
+            int ox = segX + 3 + i * opt;
+            boolean on = LethalConfig.sbBackground == i;
+            if (on) {
+                Draw.round(g, ox, segY + 3, opt, 26, 6, accentDark);
+            }
+            Draw.textCentered(g, ScoreboardStyle.BACKGROUNDS[i], ox + opt / 2f, segY + 16.5f, 12, on ? accentLight : 0xFFC9CAD0, Draw.SEMIBOLD);
+            int which = i;
+            hotspot(ox, segY + 3, opt, 26, () -> {
+                LethalConfig.sbBackground = which;
+                LethalConfig.save();
+            });
+        }
+        if (custom) {
+            Draw.text(g, "Colour", x0 + 18, y + 96, 12, TEXT, Draw.MEDIUM);
+            int hx = x0 + 120, hw = w0 - 138;
+            for (int i = 0; i < hw; i++) {
+                Draw.rect(g, hx + i, y + 91, 1, 10, 0xFF000000 | java.awt.Color.HSBtoRGB(i / (float) hw, 0.75f, 0.85f));
+            }
+            int kx = hx + Math.round(LethalConfig.sbHue * hw);
+            Draw.circle(g, kx, y + 96, 7, 0xFFFFFFFF);
+            Draw.circle(g, kx, y + 96, 5, 0xFF000000 | java.awt.Color.HSBtoRGB(LethalConfig.sbHue, 0.75f, 0.85f));
+            hotspot(hx - 6, y + 87, hw + 12, 18, () -> {
+                sliderDrag = new SliderDrag(hx, hw, f -> LethalConfig.sbHue = f);
+                LethalConfig.sbHue = Math.max(0f, Math.min(1f, (mouseDX - hx) / hw));
+            });
+            Draw.text(g, "Opacity", x0 + 18, y + 132, 12, TEXT, Draw.MEDIUM);
+            Draw.textRight(g, Math.round(LethalConfig.sbOpacity * 100) + "%", x0 + w0 - 18, y + 132, 12, 0xFFC3C3CC, Draw.MEDIUM);
+            dragSlider(x0 + 120, y + 132, w0 - 190, LethalConfig.sbOpacity, f -> LethalConfig.sbOpacity = Math.round(f * 100) / 100f);
+        }
+
+        // Live preview
+        int px = 751, pw = 254, ph = 300, py = t + 116;
+        Draw.roundBordered(g, px, py, pw, ph, 12, surface(0xFF0C0B11), cardBorder);
+        Draw.text(g, "Preview", px + 14, py + 18, 12, TEXT, Draw.MEDIUM);
+        drawScoreboardPreview(g, px + pw / 2, py + ph / 2 + 12);
+        return Math.max(y + bh, py + ph) + 12;
+    }
+
+    /** Draws a sample sidebar using the same style code the real scoreboard uses. */
+    private void drawScoreboardPreview(GuiGraphicsExtractor g, int cx, int cy) {
+        String[][] rows = {{"Money", "$1.2M"}, {"Shards", "340"}, {"Kills", "12"}, {"Deaths", "3"}, {"Playtime", "4h 12m"}, {"Team", "None"}};
+        var font = minecraft.font;
+        int lineH = 9;
+        int width = 0;
+        for (String[] r : rows) {
+            width = Math.max(width, font.width(r[0] + ": " + r[1]));
+        }
+        width = Math.max(width, font.width("LETHAL")) + 4;
+        int h = rows.length * lineH;
+        Matrix3x2fStack p = g.pose();
+        p.pushMatrix();
+        p.translate(cx, cy);
+        p.scale(1.6f * LethalConfig.sbScale);
+        int x0 = -width / 2, bottom = h / 2, x1 = x0 + width;
+        int bodyTop = bottom - h;
+        int vanillaBody = 0x4C000000, vanillaTitle = 0x66000000;
+        ScoreboardStyle.titleFill(g, x0 - 2, bodyTop - lineH - 1, x1, bodyTop - 1, vanillaTitle);
+        ScoreboardStyle.bodyFill(g, x0 - 2, bodyTop - 1, x1, bottom, vanillaBody);
+        g.text(font, "LETHAL", -font.width("LETHAL") / 2, bodyTop - lineH, 0xFFFFFFFF, false);
+        for (int i = 0; i < rows.length; i++) {
+            int ly = bodyTop + i * lineH;
+            g.text(font, rows[i][0] + ":", x0, ly, 0xFFFFFFFF, false);
+            g.text(font, rows[i][1], x1 - font.width(rows[i][1]), ly, 0xFFFF5555, false);
+        }
+        p.popMatrix();
+    }
+
     // ---------------------------------------------------------------- theme
 
     private int drawTheme(GuiGraphicsExtractor g, int t) {
@@ -1178,6 +1313,11 @@ public class LethalScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        if (sliderDrag != null) {
+            layout();
+            sliderDrag.set().accept(Math.max(0f, Math.min(1f, (toDesignX(event.x()) - sliderDrag.x()) / sliderDrag.w())));
+            return true;
+        }
         Capes.Pending crop = Capes.pending();
         if (draggingCrop && crop != null) {
             layout();
@@ -1196,6 +1336,11 @@ public class LethalScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
+        if (sliderDrag != null) {
+            sliderDrag = null;
+            LethalConfig.save();
+            return true;
+        }
         if (draggingCrop) {
             draggingCrop = false;
             return true;

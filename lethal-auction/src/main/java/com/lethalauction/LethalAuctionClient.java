@@ -169,6 +169,24 @@ public class LethalAuctionClient implements ClientModInitializer {
                     Auctions.start(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ELYTRA), 1, 0, 0, 125);
                     Auctions.onServerMessage("You received $51.1M from 7SullV");
                     mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_BACK);
+                } else if (parts.length > 1 && parts[1].equals("sb")) {
+                    var server = mc.getSingleplayerServer();
+                    if (server != null) {
+                        server.execute(() -> {
+                            var src = server.createCommandSourceStack();
+                            for (String cmd : new String[] {
+                                    "scoreboard objectives add lethal dummy {\"text\":\"LETHAL\",\"color\":\"gold\"}",
+                                    "scoreboard objectives setdisplay sidebar lethal",
+                                    "scoreboard players set Money lethal 1200", "scoreboard players set Shards lethal 340",
+                                    "scoreboard players set Kills lethal 12", "scoreboard players set Deaths lethal 3"}) {
+                                server.getCommands().performPrefixedCommand(src, cmd);
+                            }
+                        });
+                    }
+                    LethalConfig.sbScale = 1.3f;
+                    LethalConfig.sbRounded = true;
+                    LethalConfig.sbBackground = 1;
+                    mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
                 } else if (parts.length > 1 && parts[1].equals("back")) {
                     mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_BACK);
                 } else if (parts.length > 1 && parts[1].equals("win")) {

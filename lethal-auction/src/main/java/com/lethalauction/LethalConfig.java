@@ -25,6 +25,14 @@ public final class LethalConfig {
     /** Wear the animated auction cape (with the timer) while an auction runs. Off by default. */
     public static boolean auctionCape = false;
 
+    // Scoreboard sidebar
+    public static float sbScale = 1f;
+    public static boolean sbRounded = false;
+    /** 0 = Default (vanilla), 1 = Theme, 2 = Custom colour, 3 = Clear. */
+    public static int sbBackground = 0;
+    public static float sbHue = 0.8f;
+    public static float sbOpacity = 0.45f;
+
     // Last values used in the menu
     public static String lastPage = "AUCTION";
     public static String formMinBid = "";
@@ -64,6 +72,11 @@ public final class LethalConfig {
         formNote = p.getProperty("formNote", formNote);
         cape = p.getProperty("cape", cape);
         auctionCape = Boolean.parseBoolean(p.getProperty("auctionCape", "false"));
+        sbScale = clamp(parseFloat(p.getProperty("sbScale"), 1f), 0.5f, 1.5f);
+        sbRounded = Boolean.parseBoolean(p.getProperty("sbRounded", "false"));
+        sbBackground = Math.floorMod((int) parseFloat(p.getProperty("sbBackground"), 0), 4);
+        sbHue = clamp(parseFloat(p.getProperty("sbHue"), 0.8f), 0f, 1f);
+        sbOpacity = clamp(parseFloat(p.getProperty("sbOpacity"), 0.45f), 0f, 1f);
         try {
             volume = Math.max(0f, Math.min(1f, Float.parseFloat(p.getProperty("volume", "0.4"))));
         } catch (NumberFormatException e) {
@@ -86,6 +99,11 @@ public final class LethalConfig {
         p.setProperty("formNote", formNote);
         p.setProperty("cape", cape);
         p.setProperty("auctionCape", Boolean.toString(auctionCape));
+        p.setProperty("sbScale", Float.toString(sbScale));
+        p.setProperty("sbRounded", Boolean.toString(sbRounded));
+        p.setProperty("sbBackground", Integer.toString(sbBackground));
+        p.setProperty("sbHue", Float.toString(sbHue));
+        p.setProperty("sbOpacity", Float.toString(sbOpacity));
         p.setProperty("volume", Float.toString(volume));
         try {
             Files.createDirectories(FILE.getParent());
@@ -95,6 +113,18 @@ public final class LethalConfig {
         } catch (IOException e) {
             LethalAuctionClient.LOGGER.warn("Could not save {}", FILE, e);
         }
+    }
+
+    private static float parseFloat(String s, float def) {
+        try {
+            return s == null ? def : Float.parseFloat(s);
+        } catch (NumberFormatException e) {
+            return def;
+        }
+    }
+
+    private static float clamp(float v, float min, float max) {
+        return Math.max(min, Math.min(max, v));
     }
 
     public static void resetTheme() {
