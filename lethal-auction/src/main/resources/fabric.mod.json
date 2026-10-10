@@ -3,18 +3,25 @@
   "id": "lethalauction",
   "version": "${version}",
   "name": "Lethal Auction",
-  "description": "Lethal Auction client GUI.",
-  "authors": ["lethalluke1"],
+  "description": "Lethal Auction: auction menu, live auction card and custom capes.",
+  "authors": [
+    "lethalluke1"
+  ],
   "license": "All-Rights-Reserved",
   "icon": "assets/lethalauction/icon.png",
   "environment": "client",
   "entrypoints": {
-    "client": ["com.lethalauction.LethalAuctionClient"]
+    "client": [
+      "com.lethalauction.LethalAuctionClient"
+    ]
   },
   "depends": {
     "fabricloader": ">=0.19.0",
     "minecraft": "~26.2",
     "java": ">=25",
     "fabric-api": "*"
-  }
+  },
+  "mixins": [
+    "lethalauction.mixins.json"
+  ]
 }

@@ -20,6 +20,8 @@ public final class LethalConfig {
     public static boolean moduleSound = true;
     /** Volume for the mod's sounds, 0 to 1. */
     public static float volume = 0.4f;
+    /** File name of the selected custom cape in config/lethalauction/capes, or empty for none. */
+    public static String cape = "";
 
     // Last values used in the menu
     public static String lastPage = "AUCTION";
@@ -58,6 +60,7 @@ public final class LethalConfig {
         formTimer = p.getProperty("formTimer", formTimer);
         formWorth = p.getProperty("formWorth", formWorth);
         formNote = p.getProperty("formNote", formNote);
+        cape = p.getProperty("cape", cape);
         try {
             volume = Math.max(0f, Math.min(1f, Float.parseFloat(p.getProperty("volume", "0.4"))));
         } catch (NumberFormatException e) {
@@ -78,6 +81,7 @@ public final class LethalConfig {
         p.setProperty("formTimer", formTimer);
         p.setProperty("formWorth", formWorth);
         p.setProperty("formNote", formNote);
+        p.setProperty("cape", cape);
         p.setProperty("volume", Float.toString(volume));
         try {
             Files.createDirectories(FILE.getParent());

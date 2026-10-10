@@ -4,6 +4,7 @@ import com.lethalauction.LethalAuctionClient;
 import com.lethalauction.LethalConfig;
 import com.lethalauction.auction.Auctions;
 import com.lethalauction.auction.Auctions.Auction;
+import com.lethalauction.cape.Capes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -11,6 +12,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.util.Util;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -49,7 +52,8 @@ public class LethalScreen extends Screen {
     // Icon code points (Tabler Icons)
     static final int I_GAVEL = 0xef90, I_HISTORY = 0xebea, I_SETTINGS = 0xeb20, I_PALETTE = 0xeb01,
             I_SEARCH = 0xeb1c, I_LEFT = 0xea60, I_RIGHT = 0xea61, I_DOWN = 0xea5f, I_DESKTOP = 0xea89,
-            I_MUSIC = 0xeafc, I_X = 0xeb55, I_RESET = 0xeb15, I_SPARKLES = 0xf6d7, I_COMMAND = 0xea78;
+            I_MUSIC = 0xeafc, I_X = 0xeb55, I_RESET = 0xeb15, I_SPARKLES = 0xf6d7, I_COMMAND = 0xea78,
+            I_HANGER = 0xee9a, I_UPLOAD = 0xeb47, I_FOLDER = 0xeaad, I_TRASH = 0xeb41;
 
     static final Identifier TEX_FRAME = Draw.id("textures/gui/frame.png");
     static final Identifier TEX_SIDEBAR = Draw.id("textures/gui/sidebar.png");
@@ -64,7 +68,7 @@ public class LethalScreen extends Screen {
 
     enum Page {
         AUCTION("Auction", I_GAVEL, 132), SETTINGS("Settings", I_SETTINGS, 199),
-        RECENT("Recent Auctions", I_HISTORY, 229), THEME("Theme", I_PALETTE, 259);
+        RECENT("Recent Auctions", I_HISTORY, 229), THEME("Theme", I_PALETTE, 259), CAPE("Cape", I_HANGER, 289);
 
         final String label;
         final int icon;
@@ -242,6 +246,7 @@ public class LethalScreen extends Screen {
             case SETTINGS -> drawSettings(g, top);
             case RECENT -> drawRecent(g, top);
             case THEME -> drawTheme(g, top);
+            case CAPE -> drawCape(g, top);
         };
         clipping = false;
         Draw.globalAlpha = 1f;
@@ -796,6 +801,77 @@ public class LethalScreen extends Screen {
     private void stat(GuiGraphicsExtractor g, int x, int y, String label, String value) {
         Draw.text(g, label, x, y + 19, 9.5f, 0xFF8C8495, Draw.MEDIUM);
         Draw.text(g, value, x, y + 36, 13, WHITE, Draw.SEMIBOLD);
+    }
+
+    // ---------------------------------------------------------------- cape
+
+    private int drawCape(GuiGraphicsExtractor g, int t) {
+        int head = Draw.lerpColor(accent, 0xFFFFFFFF, 0.05f);
+        Draw.icon(g, I_HANGER, 253, t + 80, 18, head);
+        Draw.text(g, "Cape", 272, t + 77, 13, WHITE, Draw.SEMIBOLD);
+        Draw.text(g, "Only you can see this cape. It replaces the cape you are wearing.", 272, t + 94, 10.5f, SUBTLE, Draw.REGULAR);
+        button(g, 778, t + 69, 120, 26, "Upload Cape", accentDark, Draw.lerpColor(accent, 0xFF000000, 0.15f), accentLight, Capes::upload);
+        button(g, 904, t + 69, 100, 26, "Open Folder", BUTTON, BUTTON_BORDER, WHITE, () -> {
+            Capes.rescan();
+            Util.getPlatform().openPath(Capes.FOLDER);
+        });
+        String status = Capes.status();
+        if (!status.isEmpty()) {
+            Draw.textRight(g, status, 1004, t + 108, 11, accentLight, Draw.MEDIUM);
+        }
+
+        List<Capes.Cape> capes = Capes.all();
+        Capes.Cape current = Capes.selected();
+        int n = capes.size() + 1;
+        int y = t + 122;
+        for (int i = 0; i < n; i++) {
+            int x = 249 + (i % 4) * 187;
+            int cy = y + (i / 4) * 170;
+            Capes.Cape cape = i == 0 ? null : capes.get(i - 1);
+            boolean selected = cape == null ? current == null : current != null && current.name().equals(cape.name());
+            if (selected) {
+                Draw.round(g, x - 3, cy - 3, 184, 166, 10, Draw.alpha(accent, 0.18f));
+                Draw.roundBordered(g, x - 1, cy - 1, 180, 162, 9, 0x00000000, accent);
+                Draw.roundBordered(g, x, cy, 178, 160, 8, surface(0xFF1B1A22), Draw.alpha(accent, 0.6f));
+            } else {
+                Draw.round(g, x, cy, 178, 160, 8, surface(0xFF1B1A22));
+            }
+            Draw.round(g, x + 8, cy + 8, 162, 110, 6, surface(0xFF0C0B11));
+            if (cape == null) {
+                Draw.icon(g, I_X, x + 89, cy + 58, 28, 0xFF4A4654);
+            } else {
+                capePreview(g, cape, x + 89, cy + 63);
+            }
+            String label = cape == null ? "My normal cape" : fit(cape.name().replaceAll("(?i)\\.png$", ""), 140, 12, Draw.SEMIBOLD);
+            int nameColor = selected ? Draw.lerpColor(accent, 0xFFFFFFFF, 0.15f) : 0xFFE0DFE6;
+            Draw.text(g, label, x + 10, cy + 137, 12, nameColor, Draw.SEMIBOLD);
+            if (selected) {
+                Draw.circle(g, x + 164, cy + 137, 6, accent);
+                Draw.circle(g, x + 164, cy + 137, 4.8f, 0xFF0B0E14);
+                Draw.circle(g, x + 164, cy + 137, 3.6f, accent);
+            }
+            Capes.Cape pick = cape;
+            if (cape != null) {
+                Draw.roundBordered(g, x + 146, cy + 12, 20, 20, 5, 0xCC15141B, 0xFF44424E);
+                Draw.icon(g, I_TRASH, x + 156, cy + 22, 11, 0xFFFF8A95);
+                hotspot(x + 146, cy + 12, 20, 20, () -> Capes.delete(pick));
+            }
+            hotspot(x, cy, 178, 160, () -> Capes.select(pick == null ? "" : pick.name()));
+        }
+        if (capes.isEmpty()) {
+            Draw.text(g, "Press Upload Cape and pick a cape PNG (64x32 like a normal Minecraft cape).", 249, y + 186, 11.5f, SUBTLE, Draw.REGULAR);
+        }
+        return y + ((n + 3) / 4) * 170 + 10;
+    }
+
+    /** Draws the front and back of a cape side by side, centred on (cx, cy). */
+    private static void capePreview(GuiGraphicsExtractor g, Capes.Cape cape, int cx, int cy) {
+        float sx = cape.width() / 64f, sy = cape.height() / 32f;
+        int w = 52, h = 84;
+        g.blit(RenderPipelines.GUI_TEXTURED, cape.texture(), cx - w - 4, cy - h / 2, 1 * sx, 1 * sy, w, h,
+                Math.round(10 * sx), Math.round(16 * sy), cape.width(), cape.height());
+        g.blit(RenderPipelines.GUI_TEXTURED, cape.texture(), cx + 4, cy - h / 2, 12 * sx, 1 * sy, w, h,
+                Math.round(10 * sx), Math.round(16 * sy), cape.width(), cape.height());
     }
 
     // ---------------------------------------------------------------- theme

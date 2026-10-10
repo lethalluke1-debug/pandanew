@@ -158,12 +158,17 @@ public class LethalAuctionClient implements ClientModInitializer {
                     Auctions.start(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ELYTRA), 1, 45_000_000, 0, 1);
                     LethalConfig.preset = 4;
                     LethalConfig.save();
+                } else if (parts.length > 1 && parts[1].equals("select")) {
+                    com.lethalauction.cape.Capes.rescan();
+                    com.lethalauction.cape.Capes.select("Lethal Test.png");
+                } else if (parts.length > 1 && parts[1].equals("back")) {
+                    mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_BACK);
                 } else if (parts.length > 1 && parts[1].equals("win")) {
                     Auctions.clear();
                     Auctions.start(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ELYTRA), 1, 0, 0, 1);
                     Auctions.onServerMessage("You received $51.1M from 7SullV");
                 }
-                mc.gui.setScreen(parts[0].equals("hud") ? null : screen);
+                mc.gui.setScreen(parts[0].equals("hud") || parts[0].equals("view") ? null : screen);
                 System.out.println("LA_PAGE " + DEV_PAGES[i].replace(':', '-'));
             } else if (i == DEV_PAGES.length) {
                 System.out.println("LA_DONE");
