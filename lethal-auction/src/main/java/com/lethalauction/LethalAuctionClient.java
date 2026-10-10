@@ -29,6 +29,7 @@ public class LethalAuctionClient implements ClientModInitializer {
     private static final boolean DEV_CYCLE = Boolean.getBoolean("lethalauction.devcycle");
     private static final String[] DEV_PAGES = {"auction", "auction:filled", "recent", "recent:one", "settings", "theme"};
     private int devTicks = -1;
+    private boolean devWorldRequested;
 
     /** Plays the menu click sound, if module sounds are enabled. */
     public static void playClick() {
@@ -57,8 +58,11 @@ public class LethalAuctionClient implements ClientModInitializer {
 
     private void devTick(Minecraft mc) {
         if (devTicks < 0) {
-            if (mc.gui.screen() instanceof TitleScreen && mc.gui.overlay() == null) {
+            if (mc.level != null && mc.player != null && mc.gui.screen() == null && mc.gui.overlay() == null) {
                 devTicks = 0;
+            } else if (mc.gui.screen() instanceof TitleScreen && mc.gui.overlay() == null && !devWorldRequested) {
+                devWorldRequested = true;
+                System.out.println("LA_TITLE");
             }
             return;
         }
