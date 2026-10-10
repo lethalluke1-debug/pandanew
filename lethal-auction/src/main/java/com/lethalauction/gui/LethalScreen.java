@@ -158,7 +158,7 @@ public class LethalScreen extends Screen {
         Draw.round(g, 32, 27, 11, 35, 3, ACCENT);
         Draw.round(g, 32, 51, 29, 11, 3, ACCENT);
         Draw.text(g, "LETHAL", 75, 37, 15, 0xFFEDE6F2, Draw.LOGO);
-        Draw.text(g, "AUCTION", 75, 53, 9.5f, 0xFFD9CCE2, Draw.LOGO);
+        Draw.text(g, "A U C T I O N", 76, 53, 9.5f, 0xFFD9CCE2, Draw.SEMIBOLD);
         Draw.text(g, "v1.0.0", 75, 67, 10.5f, MUTED, Draw.REGULAR);
 
         Draw.rect(g, 26, 83, 178, 1, 0x664A2A55);
@@ -174,8 +174,8 @@ public class LethalScreen extends Screen {
             } else if (hover) {
                 Draw.round(g, 24, pg.y - 13, 188, 27, 7, 0x40362240);
             }
-            Draw.icon(g, pg.icon, 47, pg.y, 17, active ? 0xFFC10FDC : 0xFF8F8199);
-            Draw.text(g, pg.label, 75, pg.y, 13, active ? 0xFFCC12E8 : 0xFFBBADC4, active ? Draw.MEDIUM : Draw.REGULAR);
+            Draw.icon(g, pg.icon, 47, pg.y, 21, active ? 0xFFC10FDC : 0xFFA597AD);
+            Draw.text(g, pg.label, 75, pg.y, 13, active ? 0xFFCC12E8 : 0xFFBBADC4, active ? Draw.SEMIBOLD : Draw.MEDIUM);
         }
 
         Draw.rect(g, 26, 439, 178, 1, 0x664A2A55);
@@ -183,7 +183,7 @@ public class LethalScreen extends Screen {
         // user card
         Draw.roundBordered(g, 20, 449, 192, 50, 10, 0xFF0F1319, 0xFF241A2A);
         PlayerFaceExtractor.extractRenderState(g, skin(), 31, 459, 28);
-        Draw.text(g, "You", 75, 465, 13, WHITE, Draw.MEDIUM);
+        Draw.text(g, "You", 75, 465, 13, WHITE, Draw.SEMIBOLD);
         Draw.text(g, "Lifetime", 75, 483, 11.5f, MUTED, Draw.REGULAR);
         Draw.circle(g, 191, 473, 7, 0x3343CC7F);
         Draw.circle(g, 191, 473, 4.5f, 0x7743CC7F);
@@ -256,17 +256,17 @@ public class LethalScreen extends Screen {
             Draw.roundBordered(g, x, y, w, h, 10, fill, CARD_BORDER);
         }
 
-        Draw.text(g, m.name, x + 13, y + 18, 13, WHITE, Draw.MEDIUM);
-        float infoX = x + 13 + Draw.width(m.name, 13, Draw.MEDIUM) + 10;
-        Draw.iconFilled(g, IF_INFO, infoX, y + 17, 12, 0xFFE6E6EA);
+        Draw.text(g, m.name, x + 13, y + 18, 12.5f, WHITE, Draw.SEMIBOLD);
+        float infoX = x + 13 + Draw.width(m.name, 12.5f, Draw.SEMIBOLD) + 11;
+        Draw.iconFilled(g, IF_INFO, infoX, y + 17, 13.5f, 0xFFE6E6EA);
         if (m.diamond) {
-            Draw.diamond(g, infoX + 16, y + 16, 9, RED);
+            Draw.diamond(g, infoX + 17, y + 16, 10, RED);
         }
 
-        Draw.text(g, "KeyBind:", x + 13, y + 38, 12, GRAY, Draw.REGULAR);
-        float kx = x + 13 + Draw.width("KeyBind:", 12, Draw.REGULAR) + 5;
+        Draw.text(g, "KeyBind:", x + 13, y + 38, 12, GRAY, Draw.MEDIUM);
+        float kx = x + 13 + Draw.width("KeyBind:", 12, Draw.MEDIUM) + 5;
         if (m.key != null) {
-            Draw.text(g, m.key, kx, y + 38, 12, WHITE, Draw.MEDIUM);
+            Draw.text(g, m.key, kx, y + 38, 12, WHITE, Draw.SEMIBOLD);
         } else {
             keyIcon(g, Math.round(kx) + 3, y + 38, fill);
         }
@@ -279,17 +279,17 @@ public class LethalScreen extends Screen {
             for (Setting s : m.settings) {
                 switch (s.kind()) {
                     case TOGGLE -> {
-                        Draw.text(g, s.label(), x + 19, cy, 12.5f, TEXT, Draw.REGULAR);
+                        Draw.text(g, s.label(), x + 19, cy, 12.5f, TEXT, Draw.MEDIUM);
                         toggle(g, x + w - 47, cy, s.on());
                         cy += 29;
                     }
                     case MODE -> {
-                        Draw.text(g, s.label(), x + 19, cy, 12.5f, TEXT, Draw.REGULAR);
+                        Draw.text(g, s.label(), x + 19, cy, 12.5f, TEXT, Draw.MEDIUM);
                         modeBox(g, x + w - 150, cy, 131, s.value());
                         cy += 32;
                     }
                     case SLIDER -> {
-                        Draw.text(g, s.label(), x + 18, cy, 12.5f, TEXT, Draw.REGULAR);
+                        Draw.text(g, s.label(), x + 18, cy, 12.5f, TEXT, Draw.MEDIUM);
                         int ty = cy + 17;
                         slider(g, x + 16, ty, w - 34, s.frac());
                         cy = ty + 29;
@@ -345,8 +345,8 @@ public class LethalScreen extends Screen {
 
     static void modeBox(GuiGraphicsExtractor g, int x, int cy, int w, String value) {
         Draw.roundBordered(g, x, cy - 12, w, 25, 6, 0xFF050407, 0xFF33123D);
-        Draw.icon(g, I_LEFT, x + 11, cy, 9, 0xFF9C9CA6);
-        Draw.icon(g, I_RIGHT, x + w - 11, cy, 9, 0xFF9C9CA6);
+        Draw.icon(g, I_LEFT, x + 11, cy, 12, 0xFF9C9CA6);
+        Draw.icon(g, I_RIGHT, x + w - 11, cy, 12, 0xFF9C9CA6);
         Draw.textCentered(g, value, x + w / 2f, cy, 12.5f, WHITE, Draw.MEDIUM);
     }
 
@@ -357,20 +357,20 @@ public class LethalScreen extends Screen {
 
     static void button(GuiGraphicsExtractor g, int x, int y, int w, int h, String label, int fill, int border, int color) {
         Draw.roundBordered(g, x, y, w, h, 6, fill, border);
-        Draw.textCentered(g, label, x + w / 2f, y + h / 2f + 0.5f, 12.5f, color, Draw.MEDIUM);
+        Draw.textCentered(g, label, x + w / 2f, y + h / 2f + 0.5f, 12.5f, color, Draw.SEMIBOLD);
     }
 
     // ---------------------------------------------------------------- settings
 
     private int drawSettings(GuiGraphicsExtractor g, int t) {
         Draw.icon(g, I_SETTINGS, 253, t + 80, 22, 0xFFB00FD0);
-        Draw.text(g, "Settings", 272, t + 76, 13.5f, WHITE, Draw.MEDIUM);
+        Draw.text(g, "Settings", 272, t + 76, 13.5f, WHITE, Draw.SEMIBOLD);
         Draw.text(g, "Configure interface, security, and system behavior.", 272, t + 92, 10.5f, 0xFFB3B0BA, Draw.REGULAR);
 
         // Interface
         Draw.roundBordered(g, 235, t + 120, 778, 197, 12, 0xFF1A1124, 0xFF2A1A36);
         Draw.icon(g, I_DESKTOP, 261, t + 150, 16, 0xFFD10FF0);
-        Draw.text(g, "Interface", 280, t + 150, 13, WHITE, Draw.MEDIUM);
+        Draw.text(g, "Interface", 280, t + 150, 13, WHITE, Draw.SEMIBOLD);
         Draw.text(g, "GUI Settings", 250, t + 176, 10.5f, 0xFFB3B0BA, Draw.REGULAR);
         Draw.roundBordered(g, 250, t + 192, 746, 108, 10, 0xFF130E1A, 0xFF2A2433);
         Draw.text(g, "Menu Bind", 268, t + 223, 12.5f, WHITE, Draw.MEDIUM);
@@ -384,7 +384,7 @@ public class LethalScreen extends Screen {
         // Sounds
         Draw.roundBordered(g, 235, t + 330, 778, 232, 12, 0xFF1A1124, 0xFF2A1A36);
         Draw.icon(g, I_MUSIC, 260, t + 359, 16, 0xFFD10FF0);
-        Draw.text(g, "Sounds", 281, t + 360, 13, WHITE, Draw.MEDIUM);
+        Draw.text(g, "Sounds", 281, t + 360, 13, WHITE, Draw.SEMIBOLD);
         Draw.text(g, "Client Sounds", 250, t + 386, 10.5f, 0xFFB3B0BA, Draw.REGULAR);
         Draw.roundBordered(g, 250, t + 402, 746, 144, 10, 0xFF130E1A, 0xFF2A2433);
         Draw.text(g, "Module Sound", 268, t + 426, 12.5f, WHITE, Draw.MEDIUM);
@@ -418,7 +418,7 @@ public class LethalScreen extends Screen {
 
         Draw.roundBordered(g, 242, t + 135, 763, 47, 8, 0xFF32243C, 0xFF4A2E58);
         Draw.round(g, 243, t + 142, 3, 32, 1, 0xFFCD0BE6);
-        Draw.text(g, "test", 258, t + 154, 13, WHITE, Draw.MEDIUM);
+        Draw.text(g, "test", 258, t + 154, 13, WHITE, Draw.SEMIBOLD);
         Draw.text(g, "114 modules", 258, t + 171, 12, 0xFFB3B0BA, Draw.REGULAR);
         button(g, 736, t + 148, 73, 23, "Publish", BUTTON, 0xFF44424E, WHITE);
         button(g, 816, t + 148, 68, 23, "Share", 0xFF2E2B35, 0xFF4A4654, 0xFFB98FC8);
@@ -531,9 +531,10 @@ public class LethalScreen extends Screen {
 
     private int drawSocials(GuiGraphicsExtractor g, int t) {
         Draw.icon(g, I_USERS, 253, t + 79, 17, 0xFFD10FF0);
-        Draw.text(g, "Saved Players", 272, t + 77, 13, WHITE, Draw.MEDIUM);
-        Draw.round(g, 363, t + 64, 26, 18, 9, 0xFF9602B2);
-        Draw.textCentered(g, "0", 376, t + 73, 11.5f, WHITE, Draw.MEDIUM);
+        Draw.text(g, "Saved Players", 272, t + 77, 13, WHITE, Draw.SEMIBOLD);
+        int bx = Math.round(272 + Draw.width("Saved Players", 13, Draw.SEMIBOLD) + 10);
+        Draw.round(g, bx, t + 66, 26, 18, 9, 0xFF9602B2);
+        Draw.textCentered(g, "0", bx + 13, t + 75, 11.5f, WHITE, Draw.SEMIBOLD);
         Draw.text(g, "Players ignored by selected modules", 272, t + 94, 10.5f, 0xFFB3B0BA, Draw.REGULAR);
         button(g, 887, t + 69, 113, 26, "Add / Manage", BUTTON, BUTTON_BORDER, WHITE);
 
