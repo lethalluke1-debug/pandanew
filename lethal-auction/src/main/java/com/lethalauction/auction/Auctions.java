@@ -1,11 +1,22 @@
 package com.lethalauction.auction;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 /** Auctions started from the menu during this game session. */
@@ -14,7 +25,8 @@ public final class Auctions {
     public static final long RESULT_MILLIS = 6000;
 
     public static final class Auction {
-        private final ItemStack item;
+        private final String itemId;
+        private transient ItemStack item;
         private final int quantity;
         private final long minimumBid;
         private final long worthEach;
@@ -28,6 +40,7 @@ public final class Auctions {
 
         Auction(ItemStack item, int quantity, long minimumBid, long worthEach, int timerSeconds, long startedAt) {
             this.item = item;
+            this.itemId = BuiltInRegistries.ITEM.getKey(item.getItem()).toString();
             this.quantity = quantity;
             this.minimumBid = minimumBid;
             this.worthEach = worthEach;
@@ -35,7 +48,15 @@ public final class Auctions {
             this.startedAt = startedAt;
         }
 
+        /** The auctioned item. Saved auctions only store the item id, so the stack is rebuilt on first use. */
         public ItemStack item() {
+            if (item == null) {
+                try {
+                    item = new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.parse(itemId)));
+                } catch (RuntimeException e) {
+                    return ItemStack.EMPTY;
+                }
+            }
             return item;
         }
 
@@ -94,6 +115,7 @@ public final class Auctions {
 
         public void cancel() {
             cancelled = true;
+            save();
         }
 
         /** Fraction of the timer still remaining, from 1 down to 0. */
@@ -123,6 +145,7 @@ public final class Auctions {
             }
             topBidder = player;
             topBid = amount;
+            save();
             return BidResult.Kind.ACCEPTED;
         }
     }
@@ -133,6 +156,9 @@ public final class Auctions {
     }
 
     private static final List<Auction> RECENT = new ArrayList<>();
+    private static final int MAX_HISTORY = 50;
+    private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("lethalauction-history.json");
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     /** Payment messages. Group "name" is the payer, group "amount" the money. */
     private static final String AMOUNT = "\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b";
@@ -152,6 +178,50 @@ public final class Auctions {
 
     public static void start(ItemStack item, int quantity, long minimumBid, long worthEach, int timerSeconds) {
         RECENT.add(0, new Auction(item.copy(), quantity, minimumBid, worthEach, timerSeconds, System.currentTimeMillis()));
+        while (RECENT.size() > MAX_HISTORY) {
+            RECENT.remove(RECENT.size() - 1);
+        }
+        save();
+    }
+
+    /** Starts the same auction again with a fresh timer and no bids. */
+    public static void redo(Auction a) {
+        start(a.item(), a.quantity(), a.minimumBid(), a.worthEach(), a.timerSeconds());
+    }
+
+    /** Loads the saved auction history. Auctions that were still running when the game closed are cancelled. */
+    public static void load() {
+        if (!Files.exists(FILE)) {
+            return;
+        }
+        try (Reader r = Files.newBufferedReader(FILE)) {
+            List<Auction> saved = GSON.fromJson(r, new TypeToken<List<Auction>>() { }.getType());
+            RECENT.clear();
+            if (saved != null) {
+                for (Auction a : saved) {
+                    if (a != null && a.itemId != null) {
+                        if (!a.ended()) {
+                            a.cancelled = true;
+                        }
+                        a.finished = true;
+                        RECENT.add(a);
+                    }
+                }
+            }
+        } catch (IOException | RuntimeException e) {
+            com.lethalauction.LethalAuctionClient.LOGGER.warn("Could not read {}", FILE, e);
+        }
+    }
+
+    public static void save() {
+        try {
+            Files.createDirectories(FILE.getParent());
+            try (Writer w = Files.newBufferedWriter(FILE)) {
+                GSON.toJson(RECENT, w);
+            }
+        } catch (IOException e) {
+            com.lethalauction.LethalAuctionClient.LOGGER.warn("Could not save {}", FILE, e);
+        }
     }
 
     /** The newest running auction, otherwise the newest one whose result is still being shown. */
@@ -248,6 +318,9 @@ public final class Auctions {
                 justFinished.add(a);
             }
         }
+        if (!justFinished.isEmpty()) {
+            save();
+        }
         return justFinished;
     }
 
@@ -257,10 +330,12 @@ public final class Auctions {
 
     public static void remove(Auction auction) {
         RECENT.remove(auction);
+        save();
     }
 
     public static void clear() {
         RECENT.clear();
+        save();
     }
 
     /** Parses amounts like "1500", "2.5k", "3m" or "1b". Returns -1 if the text is not a valid amount. */

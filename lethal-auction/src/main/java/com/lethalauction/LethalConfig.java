@@ -19,6 +19,13 @@ public final class LethalConfig {
     public static boolean ambientBackground = true;
     public static boolean moduleSound = true;
 
+    // Last values used in the menu
+    public static String lastPage = "AUCTION";
+    public static String formMinBid = "";
+    public static String formQuantity = "1";
+    public static String formTimer = "60";
+    public static String formWorth = "";
+
     private LethalConfig() {
     }
 
@@ -42,6 +49,11 @@ public final class LethalConfig {
         frostedBlur = Boolean.parseBoolean(p.getProperty("frostedBlur", "true"));
         ambientBackground = Boolean.parseBoolean(p.getProperty("ambientBackground", "true"));
         moduleSound = Boolean.parseBoolean(p.getProperty("moduleSound", "true"));
+        lastPage = p.getProperty("lastPage", lastPage);
+        formMinBid = p.getProperty("formMinBid", formMinBid);
+        formQuantity = p.getProperty("formQuantity", formQuantity);
+        formTimer = p.getProperty("formTimer", formTimer);
+        formWorth = p.getProperty("formWorth", formWorth);
     }
 
     public static void save() {
@@ -51,6 +63,11 @@ public final class LethalConfig {
         p.setProperty("frostedBlur", Boolean.toString(frostedBlur));
         p.setProperty("ambientBackground", Boolean.toString(ambientBackground));
         p.setProperty("moduleSound", Boolean.toString(moduleSound));
+        p.setProperty("lastPage", lastPage);
+        p.setProperty("formMinBid", formMinBid);
+        p.setProperty("formQuantity", formQuantity);
+        p.setProperty("formTimer", formTimer);
+        p.setProperty("formWorth", formWorth);
         try {
             Files.createDirectories(FILE.getParent());
             try (Writer w = Files.newBufferedWriter(FILE)) {

@@ -87,7 +87,7 @@ public class LethalScreen extends Screen {
     // Content viewport
     static final int VIEW_X = 232, VIEW_Y = 54, VIEW_R = 1027, VIEW_B = 508;
 
-    private static Page lastPage = Page.AUCTION;
+    private static Page lastPage = savedPage();
 
     private Page page = lastPage;
     private final float[] scrollTarget = new float[Page.values().length];
@@ -104,6 +104,33 @@ public class LethalScreen extends Screen {
 
     public LethalScreen() {
         super(Component.literal("Lethal Auction"));
+        minBid.value = LethalConfig.formMinBid;
+        worth.value = LethalConfig.formWorth;
+    }
+
+    private static Page savedPage() {
+        for (Page p : Page.values()) {
+            if (p.name().equals(LethalConfig.lastPage)) {
+                return p;
+            }
+        }
+        return Page.AUCTION;
+    }
+
+    /** Remembers the open tab and the auction form values for next time. */
+    private void saveState() {
+        LethalConfig.lastPage = page.name();
+        LethalConfig.formMinBid = minBid.value;
+        LethalConfig.formQuantity = quantity.value.isEmpty() ? "1" : quantity.value;
+        LethalConfig.formTimer = timer.value.isEmpty() ? "60" : timer.value;
+        LethalConfig.formWorth = worth.value;
+        LethalConfig.save();
+    }
+
+    @Override
+    public void removed() {
+        saveState();
+        super.removed();
     }
 
     @Override
@@ -253,6 +280,7 @@ public class LethalScreen extends Screen {
             hotspot(24, pg.y - 13, 188, 27, () -> {
                 page = target;
                 lastPage = target;
+                LethalConfig.lastPage = target.name();
             });
         }
 
@@ -261,11 +289,15 @@ public class LethalScreen extends Screen {
         // user card
         Draw.roundBordered(g, 20, 449, 192, 50, 10, surface(0xFF0F1319), 0xFF241A2A);
         PlayerFaceExtractor.extractRenderState(g, skin(), 31, 459, 28);
-        Draw.text(g, "You", 75, 465, 13, WHITE, Draw.SEMIBOLD);
+        Draw.text(g, fit(username(), 100, 13, Draw.SEMIBOLD), 75, 465, 13, WHITE, Draw.SEMIBOLD);
         Draw.text(g, "Lifetime", 75, 483, 11.5f, MUTED, Draw.REGULAR);
         Draw.circle(g, 191, 473, 7, 0x3343CC7F);
         Draw.circle(g, 191, 473, 4.5f, 0x7743CC7F);
         Draw.circle(g, 191, 473, 3.5f, 0xFF43CC7F);
+    }
+
+    private static String username() {
+        return Minecraft.getInstance().getUser().getName();
     }
 
     private PlayerSkin skin() {
@@ -282,15 +314,8 @@ public class LethalScreen extends Screen {
         Draw.round(g, 235, 11, 779, 36, 10, surface(0xFF111219));
         float hx = 253;
         Draw.text(g, "Hello, ", hx, 29, 13, 0xFFC3C3CC, Draw.REGULAR);
-        Draw.text(g, "You", hx + Draw.width("Hello, ", 13, Draw.REGULAR), 29, 13, WHITE, Draw.SEMIBOLD);
+        Draw.text(g, username(), hx + Draw.width("Hello, ", 13, Draw.REGULAR), 29, 13, WHITE, Draw.SEMIBOLD);
 
-        Draw.roundBordered(g, 753, 17, 251, 24, 9, surface(0xFF0B0D12), 0xFF1F2128);
-        Draw.icon(g, I_SEARCH, 771, 29, 13, 0xFFA4A6AD);
-        Draw.text(g, "Search modules...", 787, 29, 12.5f, 0xFFA4A6AD, Draw.REGULAR);
-        Draw.roundBordered(g, 960, 20, 38, 18, 6, 0xFF15171D, 0xFF2E3038);
-        Draw.icon(g, I_COMMAND, 973, 29, 10, 0xFFC8C9CE);
-        Draw.text(g, "K", 982, 29, 11.5f, 0xFFC8C9CE, Draw.MEDIUM);
-        hotspot(753, 17, 251, 24, null);
     }
 
     private void drawScrollbar(GuiGraphicsExtractor g, float contentHeight, float offset) {
@@ -313,8 +338,8 @@ public class LethalScreen extends Screen {
 
     private final TextBox search = TextBox.any(40);
     private final TextBox minBid = TextBox.amount(12);
-    private final TextBox quantity = TextBox.digits("1", 5);
-    private final TextBox timer = TextBox.digits("60", 5);
+    private final TextBox quantity = TextBox.digits(LethalConfig.formQuantity, 5);
+    private final TextBox timer = TextBox.digits(LethalConfig.formTimer, 5);
     private final TextBox worth = TextBox.amount(12);
     private final List<TextBox> fieldOrder = List.of(search, minBid, quantity, timer, worth);
     private TextBox focused;
@@ -491,6 +516,7 @@ public class LethalScreen extends Screen {
         if (ready) {
             button(g, 652, 420, 361, 32, "Start Auction", accentDark, Draw.lerpColor(accent, 0xFF000000, 0.15f), accentLight, () -> {
                 Auctions.start(selected, qty, bid, each, secs);
+                saveState();
                 startedMessageUntil = System.currentTimeMillis() + 3000;
                 resetForm();
             });
@@ -659,10 +685,9 @@ public class LethalScreen extends Screen {
         int bw = Math.max(26, Math.round(Draw.width(count, 11.5f, Draw.SEMIBOLD) + 16));
         Draw.round(g, bx, t + 66, bw, 18, 9, accentDark);
         Draw.textCentered(g, count, bx + bw / 2f, t + 75, 11.5f, WHITE, Draw.SEMIBOLD);
-        Draw.text(g, "Auctions you started this session", 272, t + 94, 10.5f, SUBTLE, Draw.REGULAR);
-        if (!recent.isEmpty()) {
-            button(g, 912, t + 69, 88, 26, "Clear", BUTTON, BUTTON_BORDER, WHITE, Auctions::clear);
-        }
+        Draw.text(g, "Your auction history. Press Redo to run one again.", 272, t + 94, 10.5f, SUBTLE, Draw.REGULAR);
+        button(g, 892, t + 69, 108, 26, "Clear History", BUTTON, BUTTON_BORDER, recent.isEmpty() ? 0xFF6E6A78 : WHITE,
+                recent.isEmpty() ? null : Auctions::clear);
 
         if (recent.isEmpty()) {
             Draw.roundBordered(g, 241, t + 105, 765, 135, 8, surface(0xFF0F1319), 0xFF201A2C);
@@ -691,15 +716,30 @@ public class LethalScreen extends Screen {
             g.item(a.item(), 0, 0);
             pose.popMatrix();
 
-            String name = fit(a.item().getHoverName().getString(), 230, 13, Draw.SEMIBOLD);
+            String name = fit(a.item().getHoverName().getString(), 200, 13, Draw.SEMIBOLD);
             Draw.text(g, name, 301, y + 20, 13, WHITE, Draw.SEMIBOLD);
             String sub = "x" + a.quantity() + "  ·  " + (a.hasBid()
                     ? (live ? "top bid by " : "won by ") + a.topBidder() : a.timerSeconds() + "s timer");
-            Draw.text(g, fit(sub, 240, 11.5f, Draw.REGULAR), 301, y + 37, 11.5f, SUBTLE, Draw.REGULAR);
+            Draw.text(g, fit(sub, 205, 11.5f, Draw.REGULAR), 301, y + 37, 11.5f, SUBTLE, Draw.REGULAR);
 
-            stat(g, 560, y, "MIN BID", a.minimumBid() > 0 ? Auctions.formatMoney(a.minimumBid()) : "None");
-            stat(g, 670, y, "TOP BID", a.hasBid() ? Auctions.formatMoney(a.topBid()) : "-");
-            stat(g, 780, y, "WORTH EACH", a.worthEach() > 0 ? Auctions.formatMoney(a.worthEach()) : "-");
+            stat(g, 515, y, "MIN BID", a.minimumBid() > 0 ? Auctions.formatMoney(a.minimumBid()) : "None");
+            stat(g, 612, y, "TOP BID", a.hasBid() ? Auctions.formatMoney(a.topBid()) : "-");
+            stat(g, 709, y, "WORTH EACH", a.worthEach() > 0 ? Auctions.formatMoney(a.worthEach()) : "-");
+
+            if (live) {
+                Draw.roundBordered(g, 806, y + 15, 74, 24, 6, surface(0xFF15141B), 0xFF23212A);
+                Draw.textCentered(g, "Redo", 843, y + 27.5f, 12, 0xFF5E5C66, Draw.SEMIBOLD);
+            } else {
+                Auction again = a;
+                boolean busy = Auctions.running() != null;
+                if (busy) {
+                    Draw.roundBordered(g, 806, y + 15, 74, 24, 6, surface(0xFF15141B), 0xFF23212A);
+                    Draw.textCentered(g, "Redo", 843, y + 27.5f, 12, 0xFF5E5C66, Draw.SEMIBOLD);
+                } else {
+                    button(g, 806, y + 15, 74, 24, "Redo", accentDark, Draw.lerpColor(accent, 0xFF000000, 0.15f), accentLight,
+                            () -> Auctions.redo(again));
+                }
+            }
 
             if (live) {
                 Draw.round(g, 888, y + 15, 76, 24, 12, accentDark);

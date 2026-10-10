@@ -33,7 +33,8 @@ public class LethalAuctionClient implements ClientModInitializer {
 
     // Dev-only: -Dlethalauction.devcycle=true opens the menu on the title screen and steps through every page.
     private static final boolean DEV_CYCLE = Boolean.getBoolean("lethalauction.devcycle");
-    private static final String[] DEV_PAGES = {"hud:bid", "hud:low", "hud:win"};
+    private static final String[] DEV_PAGES =
+            System.getProperty("lethalauction.devpages", "hud:bid,hud:low,hud:win").split(",");
     private int devTicks = -1;
     private boolean devWorldRequested;
 
@@ -56,6 +57,7 @@ public class LethalAuctionClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         LethalConfig.load();
+        Auctions.load();
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("lethalauction", "auction"), new AuctionHud());
         openMenu = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.lethalauction.open", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, CATEGORY));
@@ -118,6 +120,13 @@ public class LethalAuctionClient implements ClientModInitializer {
                 } else if (parts.length > 1 && parts[1].equals("low")) {
                     Auctions.clear();
                     Auctions.start(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ELYTRA), 1, 0, 0, 7);
+                } else if (parts.length > 1 && parts[1].equals("seed")) {
+                    Auctions.clear();
+                    Auctions.start(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIAMOND), 64, 10_000, 500, 1);
+                    Auctions.onServerMessage("You received $12,500 from 7SullV");
+                    Auctions.start(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ELYTRA), 1, 45_000_000, 0, 1);
+                    LethalConfig.preset = 4;
+                    LethalConfig.save();
                 } else if (parts.length > 1 && parts[1].equals("win")) {
                     Auctions.clear();
                     Auctions.start(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ELYTRA), 1, 0, 0, 1);
@@ -126,7 +135,6 @@ public class LethalAuctionClient implements ClientModInitializer {
                 mc.gui.setScreen(parts[0].equals("hud") ? null : screen);
                 System.out.println("LA_PAGE " + DEV_PAGES[i].replace(':', '-'));
             } else if (i == DEV_PAGES.length) {
-                LethalConfig.resetTheme();
                 System.out.println("LA_DONE");
             }
         }

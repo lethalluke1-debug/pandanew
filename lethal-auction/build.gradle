@@ -41,6 +41,9 @@ loom {
             programArgs '--width', '1827', '--height', '970'
             if (project.hasProperty('devcycle')) {
                 vmArg '-Dlethalauction.devcycle=true'
+                if (project.hasProperty('devpages')) {
+                    vmArg "-Dlethalauction.devpages=${project.property('devpages')}"
+                }
                 programArgs '--quickPlaySingleplayer', 'LethalTest'
             }
         }
