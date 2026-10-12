@@ -1,0 +1,1308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PreView</title>
+<meta name="description" content="Upload a YouTube Short or TikTok and get a predicted view range before you post.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: app shell — fixed rail on the left, dashboard of panels on the right; stacks to one column on phones. */
+:root {
+  --bg: #f4f5f8;
+  --panel: #ffffff;
+  --panel-2: #eef0f5;
+  --line: #dfe2ea;
+  --fg: #12141b;
+  --fg-2: #4a5062;
+  --muted: #7b8194;
+  --accent: #e8590c;        /* "on air" signal orange */
+  --accent-ink: #ffffff;
+  --accent-soft: #fde8dc;
+  --data: #1c7ed6;          /* chart series */
+  --data-soft: rgba(28,126,214,.14);
+  --good: #2b8a3e; --good-soft: #e3f4e6;
+  --warn: #b35c00; --warn-soft: #fff1db;
+  --bad: #c92a2a;  --bad-soft: #fde4e4;
+  --shadow: 0 1px 2px rgba(18,20,27,.05), 0 8px 24px rgba(18,20,27,.06);
+  --f-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Geist", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 14px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0c10; --panel: #14161d; --panel-2: #1b1e27; --line: #262a35;
+    --fg: #eef0f6; --fg-2: #b3b8c7; --muted: #7d8396;
+    --accent: #ff7a2e; --accent-ink: #160a03; --accent-soft: rgba(255,122,46,.14);
+    --data: #5ab0ff; --data-soft: rgba(90,176,255,.16);
+    --good: #51cf66; --good-soft: rgba(81,207,102,.13);
+    --warn: #ffb44a; --warn-soft: rgba(255,180,74,.13);
+    --bad: #ff6b6b; --bad-soft: rgba(255,107,107,.13);
+    --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 10px 30px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0c10; --panel: #14161d; --panel-2: #1b1e27; --line: #262a35;
+  --fg: #eef0f6; --fg-2: #b3b8c7; --muted: #7d8396;
+  --accent: #ff7a2e; --accent-ink: #160a03; --accent-soft: rgba(255,122,46,.14);
+  --data: #5ab0ff; --data-soft: rgba(90,176,255,.16);
+  --good: #51cf66; --good-soft: rgba(81,207,102,.13);
+  --warn: #ffb44a; --warn-soft: rgba(255,180,74,.13);
+  --bad: #ff6b6b; --bad-soft: rgba(255,107,107,.13);
+  --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 10px 30px rgba(0,0,0,.35);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 400 14px/1.5 var(--f-body);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-family: var(--f-display); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--f-mono); }
+.eyebrow { font: 500 11px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* ---------- shell ---------- */
+.shell { display: grid; grid-template-columns: 232px minmax(0,1fr); min-height: 100%; }
+.rail {
+  position: sticky; top: env(safe-area-inset-top, 0px); align-self: start; height: 100vh;
+  display: flex; flex-direction: column; gap: 24px;
+  padding: 22px 16px; border-right: 1px solid var(--line); background: var(--panel);
+}
+.brand { display: flex; align-items: center; gap: 10px; padding: 0 6px; }
+.brand-mark {
+  width: 32px; height: 32px; border-radius: 9px; background: var(--accent); color: var(--accent-ink);
+  display: grid; place-items: center;
+}
+.brand-name { font: 800 20px/1 var(--f-display); letter-spacing: -.02em; }
+.brand-name b { color: var(--accent); font-weight: 800; }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav a {
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px;
+  color: var(--fg-2); text-decoration: none; font-weight: 500;
+}
+.nav a:hover { background: var(--panel-2); color: var(--fg); }
+.nav a.on { background: var(--accent-soft); color: var(--fg); }
+.nav a.on svg { color: var(--accent); }
+.nav svg { width: 18px; height: 18px; flex: none; }
+.rail-foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+.quota { padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); display: grid; gap: 8px; }
+.quota-bar { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.quota-bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+
+.main { min-width: 0; padding-inline: 28px; padding-block: 22px 48px; display: flex; flex-direction: column; gap: 22px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.topbar h1 { font-size: clamp(24px, 3vw, 32px); font-weight: 800; }
+.topbar p { margin: 4px 0 0; color: var(--fg-2); }
+.top-actions { display: flex; gap: 8px; align-items: center; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--fg); font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { border-color: var(--muted); }
+.btn svg { width: 16px; height: 16px; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover { filter: brightness(1.06); border-color: var(--accent); }
+.btn-primary:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+.btn-lg { height: 46px; padding: 0 20px; font-size: 15px; border-radius: 12px; }
+.icon-btn { width: 38px; padding: 0; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); min-width: 0; }
+.panel-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px 0; }
+.panel-h h2 { font-size: 16px; font-weight: 700; }
+.panel-b { padding: 16px 18px 18px; }
+
+/* KPI strip */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; }
+.kpi { padding: 14px 16px; display: grid; gap: 6px; }
+.kpi-v { font: 700 26px/1.1 var(--f-display); letter-spacing: -.02em; }
+.kpi-s { color: var(--muted); font-size: 12px; }
+
+/* Studio: player + inputs */
+.studio { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0,1fr); gap: 22px; }
+.source-tabs { display: inline-flex; padding: 3px; background: var(--panel-2); border-radius: 10px; gap: 2px; }
+.source-tabs button {
+  border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; cursor: pointer; color: var(--fg-2); font-weight: 600; font-size: 13px;
+}
+.source-tabs button[aria-selected="true"] { background: var(--panel); color: var(--fg); box-shadow: var(--shadow); }
+
+.phone {
+  position: relative; width: 100%; max-width: 100%; aspect-ratio: 9 / 16; border-radius: 26px; overflow: hidden;
+  background: #000; border: 6px solid var(--panel-2); outline: 1px solid var(--line);
+}
+.phone video, .phone iframe, .phone img.thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; border: 0; background: #000; }
+.phone img.thumb { object-fit: cover; }
+.drop {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  padding: 24px; text-align: center; cursor: pointer; color: #e9ebf2;
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(255,122,46,.22), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 22px),
+    #0d0e13;
+}
+.drop.over { outline: 2px dashed #ff7a2e; outline-offset: -14px; }
+.drop-ic { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; background: rgba(255,122,46,.16); color: #ff9a5c; }
+.drop strong { font: 700 18px/1.2 var(--f-display); }
+.drop small { color: #a2a7b6; }
+.pill-file { font: 500 11px var(--f-mono); color: #a2a7b6; border: 1px solid rgba(255,255,255,.14); padding: 4px 8px; border-radius: 99px; }
+
+.overlay-ui { position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; gap: 8px; justify-content: space-between; align-items: center; pointer-events: none; }
+.chip-dark { pointer-events: auto; font: 500 11px var(--f-mono); color: #fff; background: rgba(0,0,0,.55); backdrop-filter: blur(6px); padding: 5px 9px; border-radius: 99px; border: 1px solid rgba(255,255,255,.12); }
+button.chip-dark { cursor: pointer; }
+
+.scan { position: absolute; inset: 0; pointer-events: none; }
+.scan::before {
+  content: ""; position: absolute; left: 0; right: 0; height: 30%;
+  background: linear-gradient(180deg, transparent, rgba(255,122,46,.28), transparent);
+  animation: sweep 1.6s linear infinite;
+}
+@keyframes sweep { from { top: -30%; } to { top: 100%; } }
+
+.upload-row { display: grid; gap: 6px; margin-top: 12px; }
+.bar { height: 6px; border-radius: 99px; background: var(--panel-2); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .2s; }
+.row-between { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.small { font-size: 12px; color: var(--muted); }
+
+.link-box { display: grid; gap: 8px; margin-bottom: 12px; }
+.link-in { display: flex; gap: 8px; }
+.link-in input { flex: 1; min-width: 0; }
+
+.form { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px 16px; }
+.field { display: grid; gap: 6px; min-width: 0; }
+.field.full { grid-column: 1 / -1; }
+.field label { font-weight: 600; font-size: 13px; }
+.field .hint { font-size: 12px; color: var(--muted); }
+input[type="text"], input[type="number"], input[type="url"], select, textarea {
+  width: 100%; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2);
+}
+textarea { height: auto; padding: 10px 12px; resize: vertical; min-height: 64px; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg label {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; font-weight: 600;
+}
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.plat-ic { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; color: #fff; flex: none; }
+.plat-yt { background: #e01e1e; }
+.plat-tt { background: #111; box-shadow: inset 2px 0 0 #25f4ee, inset -2px 0 0 #fe2c55; }
+
+.cta-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 18px; }
+
+/* Steps */
+.steps { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 8px; margin-top: 16px; }
+.step { display: grid; gap: 6px; font-size: 12px; color: var(--muted); }
+.step i { display: block; height: 4px; border-radius: 99px; background: var(--panel-2); position: relative; overflow: hidden; }
+.step.done i { background: var(--accent); }
+.step.live i::after { content: ""; position: absolute; inset: 0; width: 40%; background: var(--accent); border-radius: 99px; animation: slide 1s ease-in-out infinite alternate; }
+.step.done, .step.live { color: var(--fg); }
+@keyframes slide { from { transform: translateX(-10%); } to { transform: translateX(160%); } }
+
+/* Results */
+.results { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 22px; }
+.hero-range { display: grid; gap: 10px; }
+.range-line { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.range-big { font: 800 clamp(34px, 5vw, 52px)/1 var(--f-display); letter-spacing: -.03em; }
+.range-big span { color: var(--muted); font-weight: 500; }
+.range-unit { color: var(--fg-2); font-weight: 600; }
+.tags { display: flex; gap: 8px; flex-wrap: wrap; }
+.tag { display: inline-flex; align-items: center; gap: 6px; font: 600 12px/1 var(--f-body); padding: 6px 10px; border-radius: 99px; background: var(--panel-2); color: var(--fg-2); border: 1px solid var(--line); }
+.tag .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.tag.good { background: var(--good-soft); color: var(--good); border-color: transparent; }
+.tag.warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.tag.bad  { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+.tag.accent { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+
+.pctl { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+.pctl div { padding: 10px 12px; border-radius: 10px; background: var(--panel-2); display: grid; gap: 2px; }
+.pctl b { font: 700 18px/1.2 var(--f-display); }
+
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { fill: var(--muted); font: 500 10.5px var(--f-mono); }
+.tip {
+  position: absolute; pointer-events: none; transform: translate(-50%, calc(-100% - 10px));
+  background: var(--fg); color: var(--bg); font: 500 12px/1.35 var(--f-body); padding: 6px 9px; border-radius: 8px; white-space: nowrap;
+}
+
+.score-wrap { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.gauge { width: 132px; flex: none; }
+.gauge text { font-family: var(--f-display); }
+.score-copy { flex: 1; min-width: 180px; display: grid; gap: 6px; }
+.score-copy h3 { font-size: 20px; }
+.score-copy p { margin: 0; color: var(--fg-2); }
+
+.factors { display: grid; gap: 12px; }
+.factor { display: grid; grid-template-columns: 120px minmax(0,1fr) 40px; gap: 12px; align-items: center; }
+.factor-n { font-weight: 600; font-size: 13px; }
+.factor-n small { display: block; font-weight: 400; color: var(--muted); font-size: 11.5px; line-height: 1.3; }
+.factor-bar { height: 8px; border-radius: 99px; background: var(--panel-2); position: relative; }
+.factor-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: var(--data); }
+.factor-bar i.lo { background: var(--warn); }
+.factor-bar::after { content: ""; position: absolute; left: 60%; top: -3px; bottom: -3px; width: 1px; background: var(--muted); opacity: .5; }
+.factor-v { text-align: right; font: 600 13px var(--f-mono); }
+
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 0 18px; }
+.stat { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.stat span { color: var(--fg-2); }
+.stat b { font: 500 13px var(--f-mono); text-align: right; }
+
+.tips { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.tips li { display: grid; grid-template-columns: 26px minmax(0,1fr); gap: 10px; align-items: start; padding: 10px 12px; border-radius: 10px; background: var(--panel-2); }
+.tips .ic { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; }
+.tips .ic.warn { background: var(--warn-soft); color: var(--warn); }
+.tips .ic.good { background: var(--good-soft); color: var(--good); }
+.tips b { display: block; font-size: 13px; }
+.tips p { margin: 2px 0 0; color: var(--fg-2); font-size: 13px; }
+
+.col { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+
+/* History */
+.hist { width: 100%; border-collapse: collapse; font-size: 13px; }
+.hist th { text-align: left; font: 500 11px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 0 10px 10px; border-bottom: 1px solid var(--line); }
+.hist td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.hist tr:last-child td { border-bottom: 0; }
+.hist .t { display: flex; align-items: center; gap: 10px; min-width: 200px; }
+.hist .t img, .hist .t .ph { width: 32px; height: 56px; border-radius: 6px; object-fit: cover; background: var(--panel-2); flex: none; }
+.hist .t .ph { background: linear-gradient(160deg, var(--accent-soft), var(--data-soft)); }
+.table-wrap { overflow-x: auto; }
+.empty { padding: 28px; text-align: center; color: var(--muted); }
+
+.example-flag { font: 600 11px var(--f-mono); color: var(--warn); background: var(--warn-soft); padding: 4px 8px; border-radius: 99px; letter-spacing: .04em; text-transform: uppercase; }
+.note { font-size: 12px; color: var(--muted); max-width: 70ch; }
+
+.how { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
+.how div { padding: 14px; border-radius: 12px; background: var(--panel-2); display: grid; gap: 6px; }
+.how b { font: 700 15px var(--f-display); }
+.how p { margin: 0; color: var(--fg-2); font-size: 13px; }
+
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 14px; border-radius: 10px; font-weight: 600; box-shadow: var(--shadow); z-index: 20; }
+
+/* Mobile */
+.mob-top { display: none; }
+@media (max-width: 1100px) {
+  .results { grid-template-columns: minmax(0,1fr); }
+  .kpis { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 860px) {
+  .shell { grid-template-columns: minmax(0,1fr); }
+  .rail { display: none; }
+  .mob-top {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10;
+    padding: 12px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .main { padding-inline: 16px; padding-block: 18px 40px; }
+  .studio { grid-template-columns: minmax(0,1fr); }
+  .phone { max-width: 320px; margin-inline: auto; }
+  .how { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 520px) {
+  .form, .stats { grid-template-columns: minmax(0,1fr); }
+  .steps { grid-template-columns: repeat(5, minmax(0,1fr)); }
+  .step span { display: none; }
+  .factor { grid-template-columns: 96px minmax(0,1fr) 34px; }
+  .top-actions .btn-text { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="rail" aria-label="Main navigation">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-6 4 3 5-7 4 4"/></svg>
+      </div>
+      <div class="brand-name">Pre<b>View</b></div>
+    </div>
+    <nav class="nav">
+      <a href="#predict" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</a>
+      <a href="#forecast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/></svg>Forecast</a>
+      <a href="#history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>History</a>
+      <a href="#how"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17.5h.01"/></svg>How it works</a>
+    </nav>
+    <div class="rail-foot">
+      <div class="quota">
+        <div class="row-between"><span class="eyebrow">This session</span><b class="num" id="q-count">0</b></div>
+        <div class="quota-bar"><i id="q-bar" style="width:0%"></i></div>
+        <span class="small">Videos never leave your browser.</span>
+      </div>
+    </div>
+  </aside>
+
+  <header class="mob-top">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-6 4 3 5-7 4 4"/></svg>
+      </div>
+      <div class="brand-name">Pre<b>View</b></div>
+    </div>
+    <button class="btn icon-btn theme-toggle" type="button" aria-label="Switch light or dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+  </header>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Will your Short pop off?</h1>
+        <p>Drop in a vertical video and get a view range for YouTube Shorts or TikTok before you post.</p>
+      </div>
+      <div class="top-actions">
+        <button class="btn" type="button" id="new-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span class="btn-text">New prediction</span></button>
+        <button class="btn icon-btn theme-toggle" type="button" aria-label="Switch light or dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+      </div>
+    </div>
+
+    <section class="kpis" aria-label="Your stats">
+      <div class="panel kpi"><span class="eyebrow">Predictions</span><span class="kpi-v num" id="k-count">0</span><span class="kpi-s">saved on this device</span></div>
+      <div class="panel kpi"><span class="eyebrow">Median forecast</span><span class="kpi-v num" id="k-median">–</span><span class="kpi-s">across your uploads</span></div>
+      <div class="panel kpi"><span class="eyebrow">Best Viral Score</span><span class="kpi-v num" id="k-best">–</span><span class="kpi-s" id="k-best-s">out of 100</span></div>
+      <div class="panel kpi"><span class="eyebrow">Avg hook strength</span><span class="kpi-v num" id="k-hook">–</span><span class="kpi-s">first 3 seconds</span></div>
+    </section>
+
+    <section class="panel" id="predict" aria-labelledby="predict-h">
+      <div class="panel-h">
+        <h2 id="predict-h">New prediction</h2>
+        <div class="source-tabs" role="tablist" aria-label="Video source">
+          <button type="button" role="tab" aria-selected="true" id="tab-upload">Upload file</button>
+          <button type="button" role="tab" aria-selected="false" id="tab-link">Import link</button>
+        </div>
+      </div>
+      <div class="panel-b">
+        <div class="studio">
+          <div>
+            <div class="link-box" id="link-box" hidden>
+              <label for="link-url" class="small">Paste a YouTube Shorts or TikTok link</label>
+              <div class="link-in">
+                <input type="url" id="link-url" placeholder="https://youtube.com/shorts/…">
+                <button class="btn" type="button" id="link-go">Import</button>
+              </div>
+            </div>
+            <div class="phone" id="phone">
+              <div class="drop" id="drop" role="button" tabindex="0" aria-label="Upload a video file">
+                <div class="drop-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
+                <strong>Drop your Short here</strong>
+                <small>or tap to choose a file</small>
+                <span class="pill-file">MP4 · MOV · WEBM · up to 3 min</span>
+              </div>
+              <input type="file" id="file" accept="video/*" hidden>
+            </div>
+            <div class="upload-row" id="upload-row" hidden>
+              <div class="row-between small"><span id="up-name" class="mono" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">clip.mp4</span><span id="up-pct" class="num">0%</span></div>
+              <div class="bar"><i id="up-bar"></i></div>
+            </div>
+          </div>
+
+          <form class="form" id="form" autocomplete="off">
+            <div class="field full">
+              <span class="field-l" style="font-weight:600;font-size:13px">Platform</span>
+              <div class="seg" role="radiogroup" aria-label="Platform">
+                <label><input type="radio" name="platform" value="yt" id="plat-yt" checked><span class="plat-ic plat-yt"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>YouTube Shorts</label>
+                <label><input type="radio" name="platform" value="tt" id="plat-tt"><span class="plat-ic plat-tt"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M14 3h3a4 4 0 0 0 4 4v3a7 7 0 0 1-4-1.3V15a6 6 0 1 1-6-6v3a3 3 0 1 0 3 3z"/></svg></span>TikTok</label>
+              </div>
+            </div>
+            <div class="field full">
+              <label for="title">Title / caption</label>
+              <input type="text" id="title" maxlength="150" placeholder="I tried the 3-ingredient pasta everyone's talking about">
+            </div>
+            <div class="field">
+              <label for="subs" id="subs-l">Subscribers</label>
+              <input type="number" id="subs" min="0" step="1" placeholder="e.g. 12000">
+            </div>
+            <div class="field">
+              <label for="avg">Avg views on last 10 Shorts</label>
+              <input type="number" id="avg" min="0" step="1" placeholder="optional, improves accuracy">
+            </div>
+            <div class="field">
+              <label for="niche">Niche</label>
+              <select id="niche">
+                <option value="comedy">Comedy / skits</option>
+                <option value="food">Food & cooking</option>
+                <option value="gaming">Gaming</option>
+                <option value="fitness">Fitness</option>
+                <option value="beauty">Beauty & fashion</option>
+                <option value="edu">Education / facts</option>
+                <option value="tech">Tech & gadgets</option>
+                <option value="sports">Sports</option>
+                <option value="music">Music & dance</option>
+                <option value="vlog">Lifestyle / vlog</option>
+                <option value="finance">Finance & business</option>
+                <option value="pets">Pets & animals</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="when">Posting time</label>
+              <select id="when">
+                <option value="peak">Evening, 5–9 pm</option>
+                <option value="mid">Afternoon, 12–5 pm</option>
+                <option value="morning">Morning, 7–12</option>
+                <option value="late">Late night, 9 pm–2 am</option>
+                <option value="dead">Overnight, 2–7 am</option>
+              </select>
+            </div>
+            <div class="field full">
+              <label for="tags">Hashtags</label>
+              <input type="text" id="tags" placeholder="#shorts #pasta #easyrecipe">
+            </div>
+            <div class="field" id="dur-field" hidden>
+              <label for="dur">Length (seconds)</label>
+              <input type="number" id="dur" min="1" max="600" step="1" placeholder="e.g. 28">
+              <span class="hint">Links can't be scanned, so tell us the length.</span>
+            </div>
+            <div class="field full">
+              <div class="cta-row">
+                <button class="btn btn-primary btn-lg" type="submit" id="go" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-6 4 3 5-7 4 4"/></svg>
+                  Predict views
+                </button>
+                <span class="small" id="go-hint">Add a video to start.</span>
+              </div>
+              <div class="steps" id="steps" hidden>
+                <div class="step" data-s="0"><i></i><span>Upload</span></div>
+                <div class="step" data-s="1"><i></i><span>Frames</span></div>
+                <div class="step" data-s="2"><i></i><span>Hook</span></div>
+                <div class="step" data-s="3"><i></i><span>Audio</span></div>
+                <div class="step" data-s="4"><i></i><span>Forecast</span></div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="results" id="forecast" aria-label="Forecast">
+      <div class="col">
+        <div class="panel">
+          <div class="panel-h">
+            <h2 id="res-title">Forecast</h2>
+            <span class="example-flag" id="example-flag">Example</span>
+          </div>
+          <div class="panel-b hero-range">
+            <span class="eyebrow" id="res-sub">Likely views after 7 days</span>
+            <div class="range-line">
+              <div class="range-big num" id="r-range">18K <span>–</span> 96K</div>
+              <span class="range-unit">views</span>
+            </div>
+            <div class="tags" id="r-tags"></div>
+            <div class="pctl">
+              <div><span class="eyebrow">Floor · P10</span><b class="num" id="r-p10">–</b></div>
+              <div><span class="eyebrow">Most likely</span><b class="num" id="r-p50">–</b></div>
+              <div><span class="eyebrow">Breakout · P90</span><b class="num" id="r-p90">–</b></div>
+            </div>
+            <div class="chart" id="dist-chart"></div>
+            <p class="note" id="r-note"></p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h"><h2>First 7 days</h2><span class="small">cumulative views, most-likely path</span></div>
+          <div class="panel-b"><div class="chart" id="curve-chart"></div></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h"><h2>What to fix before posting</h2></div>
+          <div class="panel-b"><ul class="tips" id="tips"></ul></div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="panel">
+          <div class="panel-h"><h2>Viral Score</h2></div>
+          <div class="panel-b score-wrap">
+            <svg class="gauge" id="gauge" viewBox="0 0 132 132" role="img" aria-label="Viral score"></svg>
+            <div class="score-copy">
+              <h3 id="tier">Solid</h3>
+              <p id="tier-copy"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h"><h2>Score breakdown</h2><span class="small">line = typical Short</span></div>
+          <div class="panel-b"><div class="factors" id="factors"></div></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h"><h2>Video scan</h2></div>
+          <div class="panel-b"><div class="stats" id="stats"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="history" aria-labelledby="hist-h">
+      <div class="panel-h"><h2 id="hist-h">History</h2><button class="btn" type="button" id="clear-hist">Clear</button></div>
+      <div class="panel-b table-wrap" id="hist-body"></div>
+    </section>
+
+    <section class="panel" id="how" aria-labelledby="how-h">
+      <div class="panel-h"><h2 id="how-h">How the prediction works</h2></div>
+      <div class="panel-b" style="display:grid;gap:14px">
+        <div class="how">
+          <div><span class="eyebrow">Scan</span><b>We watch it frame by frame</b><p>Your browser samples the video every half second to measure motion, scene cuts, brightness, contrast, color and how hard the first 3 seconds hit. Audio is checked for loudness and dead air.</p></div>
+          <div><span class="eyebrow">Score</span><b>Eight signals, one score</b><p>Hook, pacing, visuals, audio, length, format, caption and timing are weighted the way the Shorts and For You feeds reward them: retention first, everything else after.</p></div>
+          <div><span class="eyebrow">Forecast</span><b>Your channel sets the baseline</b><p>Subscribers and recent average views set where you start. The score moves the forecast up or down from there, and the range widens when we have less to go on.</p></div>
+        </div>
+        <p class="note">PreView is an estimate built from signals the algorithms are known to reward. It is not connected to YouTube or TikTok and can't see your real analytics, so treat the range as a guide. Short-form views are very uneven, and a video can land well outside it.</p>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  };
+
+  /* ---------- theme ---------- */
+  const savedTheme = store.get("pv-theme", null);
+  if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+  $$(".theme-toggle").forEach(b => b.addEventListener("click", () => {
+    const cur = document.documentElement.dataset.theme
+      || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const next = cur === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    store.set("pv-theme", next);
+  }));
+
+  function toast(msg) {
+    const t = $("#toast"); t.textContent = msg; t.hidden = false;
+    clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2600);
+  }
+
+  const fmt = n => {
+    if (!isFinite(n)) return "–";
+    if (n >= 1e9) return (n / 1e9).toFixed(n >= 1e10 ? 0 : 1).replace(/\.0$/, "") + "B";
+    if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1).replace(/\.0$/, "") + "M";
+    if (n >= 1e3) return (n / 1e3).toFixed(n >= 1e4 ? 0 : 1).replace(/\.0$/, "") + "K";
+    return Math.round(n).toString();
+  };
+  const roundNice = n => {
+    if (n < 100) return Math.round(n);
+    const p = Math.pow(10, Math.floor(Math.log10(n)) - 1);
+    return Math.round(n / p) * p;
+  };
+
+  /* ---------- source handling ---------- */
+  let source = null;   // { kind: 'file'|'link', file, url, name, video, platformHint, embed, thumb, meta }
+  const phone = $("#phone"), drop = $("#drop"), fileIn = $("#file");
+
+  function setTab(which) {
+    $("#tab-upload").setAttribute("aria-selected", which === "upload");
+    $("#tab-link").setAttribute("aria-selected", which === "link");
+    $("#link-box").hidden = which !== "link";
+    $("#dur-field").hidden = which !== "link";
+  }
+  $("#tab-upload").onclick = () => setTab("upload");
+  $("#tab-link").onclick = () => setTab("link");
+
+  drop.addEventListener("click", () => fileIn.click());
+  drop.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileIn.click(); } });
+  ["dragenter", "dragover"].forEach(ev => phone.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(ev => phone.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+  phone.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+  fileIn.addEventListener("change", () => { if (fileIn.files[0]) loadFile(fileIn.files[0]); });
+
+  function clearPhone() {
+    $$("video, iframe, img.thumb, .overlay-ui, .scan", phone).forEach(n => {
+      if (n.tagName === "VIDEO" && n.src.startsWith("blob:")) URL.revokeObjectURL(n.src);
+      n.remove();
+    });
+  }
+
+  async function fakeUpload(name, sizeMB) {
+    // Files stay local; this shows the read progress so large files don't feel frozen.
+    $("#upload-row").hidden = false;
+    $("#up-name").textContent = name;
+    const steps = clamp(Math.round(sizeMB * 1.2), 12, 40);
+    for (let i = 1; i <= steps; i++) {
+      const p = Math.round(i / steps * 100);
+      $("#up-bar").style.width = p + "%"; $("#up-pct").textContent = p + "%";
+      await sleep(18 + Math.random() * 22);
+    }
+  }
+
+  async function loadFile(f) {
+    if (!f.type.startsWith("video/") && !/\.(mp4|mov|webm|m4v|mkv)$/i.test(f.name)) {
+      toast("That file isn't a video. Try an MP4, MOV or WEBM."); return;
+    }
+    setTab("upload");
+    clearPhone();
+    drop.hidden = true;
+    await fakeUpload(f.name, f.size / 1048576);
+    const url = URL.createObjectURL(f);
+    const v = document.createElement("video");
+    v.src = url; v.controls = true; v.playsInline = true; v.loop = true; v.muted = true; v.autoplay = true; v.preload = "auto";
+    phone.prepend(v);
+    addOverlay(f.name.replace(/\.[^.]+$/, ""));
+    try { await new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = rej; }); }
+    catch { toast("Your browser can't play this file. Try exporting it as MP4 (H.264)."); resetSource(); return; }
+    v.play().catch(() => {});
+    source = { kind: "file", file: f, url, name: f.name, video: v };
+    if (!$("#title").value) $("#title").value = prettify(f.name);
+    readyToGo(`${Math.round(v.duration)}s · ${v.videoWidth}×${v.videoHeight}`);
+  }
+
+  function prettify(name) {
+    return name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 100);
+  }
+
+  function addOverlay(label) {
+    const o = document.createElement("div"); o.className = "overlay-ui";
+    o.innerHTML = `<span class="chip-dark" style="max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><button type="button" class="chip-dark" id="swap">Replace</button>`;
+    o.firstChild.textContent = label;
+    phone.append(o);
+    $("#swap", o).onclick = e => { e.stopPropagation(); resetSource(); fileIn.value = ""; fileIn.click(); };
+    // keep the overlay above native controls only at the top so they stay usable
+    o.style.bottom = "auto"; o.style.top = "10px";
+  }
+
+  function resetSource() {
+    clearPhone(); drop.hidden = false; source = null;
+    $("#upload-row").hidden = true; $("#up-bar").style.width = "0";
+    $("#go").disabled = true; $("#go-hint").textContent = "Add a video to start.";
+  }
+  $("#new-btn").onclick = () => { resetSource(); $("#form").reset(); $("#predict").scrollIntoView({ behavior: "smooth" }); };
+
+  function readyToGo(hint) {
+    $("#go").disabled = false;
+    $("#go-hint").textContent = hint ? `Loaded: ${hint}` : "Ready.";
+  }
+
+  function parseLink(raw) {
+    let u; try { u = new URL(raw.trim()); } catch { return null; }
+    const h = u.hostname.replace(/^www\.|^m\./, "");
+    if (h === "youtu.be") return { platform: "yt", id: u.pathname.slice(1).split("/")[0] };
+    if (h.endsWith("youtube.com")) {
+      const m = u.pathname.match(/\/(shorts|embed|live)\/([\w-]{6,})/);
+      if (m) return { platform: "yt", id: m[2] };
+      if (u.searchParams.get("v")) return { platform: "yt", id: u.searchParams.get("v") };
+    }
+    if (h.endsWith("tiktok.com")) {
+      const m = u.pathname.match(/\/video\/(\d+)/);
+      return { platform: "tt", id: m ? m[1] : null, url: u.href };
+    }
+    return null;
+  }
+
+  async function importLink() {
+    const raw = $("#link-url").value;
+    const p = parseLink(raw);
+    if (!p) { toast("Paste a full YouTube or TikTok video link."); return; }
+    if (p.platform === "tt" && !p.id) { toast("Short TikTok links can't be read. Open it and copy the full link with /video/ in it."); return; }
+    clearPhone(); drop.hidden = true;
+    await fakeUpload(raw.replace(/^https?:\/\//, "").slice(0, 60), 4);
+    const embed = p.platform === "yt"
+      ? `https://www.youtube.com/embed/${p.id}?autoplay=1&mute=1&loop=1&playlist=${p.id}&playsinline=1`
+      : `https://www.tiktok.com/embed/v2/${p.id}`;
+    const thumb = p.platform === "yt" ? `https://i.ytimg.com/vi/${p.id}/hqdefault.jpg` : null;
+    const fr = document.createElement("iframe");
+    fr.src = embed; fr.allow = "autoplay; encrypted-media; picture-in-picture"; fr.allowFullscreen = true; fr.title = "Imported video";
+    phone.prepend(fr);
+    const o = document.createElement("div"); o.className = "overlay-ui"; o.style.top = "10px"; o.style.bottom = "auto";
+    o.innerHTML = `<a class="chip-dark" target="_blank" rel="noopener">Open original ↗</a><button type="button" class="chip-dark">Replace</button>`;
+    o.firstChild.href = raw.trim();
+    o.lastChild.onclick = () => { resetSource(); $("#link-url").focus(); };
+    phone.append(o);
+    document.getElementById(p.platform === "yt" ? "plat-yt" : "plat-tt").checked = true;
+    source = { kind: "link", url: raw.trim(), name: raw.trim(), platform: p.platform, id: p.id, thumb };
+    // Try oEmbed for the title; it's fine if this is blocked.
+    try {
+      const oe = p.platform === "yt"
+        ? `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent("https://www.youtube.com/watch?v=" + p.id)}`
+        : `https://www.tiktok.com/oembed?url=${encodeURIComponent(raw.trim())}`;
+      const r = await fetch(oe); if (r.ok) {
+        const j = await r.json();
+        if (j.title && !$("#title").value) $("#title").value = j.title.slice(0, 150);
+        if (j.thumbnail_url) source.thumb = j.thumbnail_url;
+      }
+    } catch {}
+    readyToGo(p.platform === "yt" ? "YouTube link" : "TikTok link");
+    if (!$("#dur").value) $("#dur").focus();
+  }
+  $("#link-go").onclick = importLink;
+  $("#link-url").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); importLink(); } });
+
+  $("#form").addEventListener("change", e => {
+    if (e.target.name === "platform") $("#subs-l").textContent = e.target.value === "tt" ? "Followers" : "Subscribers";
+  });
+
+  /* ---------- video analysis ---------- */
+  const W = 36, H = 64; // analysis raster: tiny on purpose; we need statistics, not detail
+
+  function seek(v, t) {
+    return new Promise(res => {
+      const done = () => { v.removeEventListener("seeked", done); res(); };
+      v.addEventListener("seeked", done);
+      v.currentTime = t;
+      setTimeout(done, 1500);
+    });
+  }
+
+  function frameStats(ctx) {
+    const d = ctx.getImageData(0, 0, W, H).data;
+    let sum = 0, sum2 = 0, rgSum = 0, ybSum = 0, rg2 = 0, yb2 = 0;
+    const lum = new Float32Array(W * H);
+    for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+      const r = d[i], g = d[i + 1], b = d[i + 2];
+      const y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      lum[p] = y; sum += y; sum2 += y * y;
+      const rg = r - g, yb = 0.5 * (r + g) - b;
+      rgSum += rg; ybSum += yb; rg2 += rg * rg; yb2 += yb * yb;
+    }
+    const n = W * H, mean = sum / n;
+    const std = Math.sqrt(Math.max(0, sum2 / n - mean * mean));
+    const sRG = Math.sqrt(Math.max(0, rg2 / n - (rgSum / n) ** 2)), sYB = Math.sqrt(Math.max(0, yb2 / n - (ybSum / n) ** 2));
+    const color = Math.sqrt(sRG ** 2 + sYB ** 2) + 0.3 * Math.sqrt((rgSum / n) ** 2 + (ybSum / n) ** 2);
+    return { mean, std, color, lum };
+  }
+
+  async function analyzeVideo(src, onStep) {
+    const v = document.createElement("video");
+    v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = src.url;
+    await new Promise((res, rej) => { v.onloadeddata = res; v.onerror = rej; setTimeout(res, 4000); });
+    const dur = v.duration || 0;
+    const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+    const ctx = cv.getContext("2d", { willReadFrequently: true });
+    const thumbCv = document.createElement("canvas"); thumbCv.width = 90; thumbCv.height = 160;
+    const tctx = thumbCv.getContext("2d");
+
+    const step = Math.max(0.5, dur / 80);
+    const times = [];
+    for (let t = 0.05; t < dur - 0.05; t += step) times.push(t);
+    // denser sampling of the hook
+    for (let t = 0.25; t < Math.min(3, dur); t += 0.25) times.push(t);
+    times.sort((a, b) => a - b);
+
+    const frames = [];
+    let thumb = null;
+    for (let i = 0; i < times.length; i++) {
+      await seek(v, times[i]);
+      // draw "cover" into the 9:16 raster
+      const vw = v.videoWidth || W, vh = v.videoHeight || H;
+      const s = Math.max(W / vw, H / vh), dw = vw * s, dh = vh * s;
+      ctx.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      let st; try { st = frameStats(ctx); } catch { st = null; }
+      if (st) frames.push({ t: times[i], ...st });
+      if (!thumb && times[i] >= Math.min(1, dur / 3)) {
+        const ts = Math.max(90 / vw, 160 / vh);
+        tctx.drawImage(v, (90 - vw * ts) / 2, (160 - vh * ts) / 2, vw * ts, vh * ts);
+        try { thumb = thumbCv.toDataURL("image/jpeg", 0.7); } catch {}
+      }
+      onStep(i / times.length);
+    }
+
+    // motion between consecutive frames, normalised per second of gap
+    let cuts = 0, motionSum = 0, motionN = 0, hookMotion = 0, hookN = 0;
+    for (let i = 1; i < frames.length; i++) {
+      const a = frames[i - 1].lum, b = frames[i].lum;
+      let diff = 0; for (let p = 0; p < a.length; p++) diff += Math.abs(a[p] - b[p]);
+      diff = diff / a.length / 255;
+      const gap = frames[i].t - frames[i - 1].t;
+      if (gap <= 0) continue;
+      const m = diff / Math.sqrt(gap / 0.5);
+      motionSum += m; motionN++;
+      if (diff > 0.16 && gap <= step + 0.01) cuts++;
+      if (frames[i].t <= 3) { hookMotion += m; hookN++; }
+    }
+    const avg = k => frames.reduce((s, f) => s + f[k], 0) / Math.max(1, frames.length);
+    const early = frames.filter(f => f.t <= 3);
+    const avgE = k => early.reduce((s, f) => s + f[k], 0) / Math.max(1, early.length);
+    const blackStart = frames.length && frames[0].mean < 14;
+
+    return {
+      duration: dur, width: v.videoWidth, height: v.videoHeight,
+      brightness: avg("mean"), contrast: avg("std"), color: avg("color"),
+      motion: motionN ? motionSum / motionN : 0,
+      hookMotion: hookN ? hookMotion / hookN : 0,
+      hookContrast: avgE("std"), hookColor: avgE("color"), hookBright: avgE("mean"),
+      cutsPerMin: dur ? cuts / (dur / 60) : 0, blackStart, thumb, scanned: true
+    };
+  }
+
+  async function analyzeAudio(file) {
+    if (!file || file.size > 250 * 1048576) return { known: false };
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ac = new AC();
+      const buf = await ac.decodeAudioData(await file.arrayBuffer());
+      const ch = buf.getChannelData(0), sr = buf.sampleRate;
+      const win = Math.floor(sr * 0.1);
+      let loud = 0, silent = 0, n = 0, peak = 0, early = 0, earlyN = 0;
+      for (let i = 0; i + win < ch.length; i += win) {
+        let s = 0; for (let j = i; j < i + win; j += 4) s += ch[j] * ch[j];
+        const rms = Math.sqrt(s / (win / 4));
+        loud += rms; n++; if (rms < 0.01) silent++; if (rms > peak) peak = rms;
+        if (i / sr < 3) { early += rms; earlyN++; }
+      }
+      ac.close?.();
+      const avg = loud / Math.max(1, n);
+      return { known: true, has: avg > 0.004, rms: avg, db: 20 * Math.log10(avg || 1e-6), silence: silent / Math.max(1, n), earlyDb: 20 * Math.log10((early / Math.max(1, earlyN)) || 1e-6) };
+    } catch {
+      return { known: false };
+    }
+  }
+
+  /* ---------- scoring model ---------- */
+  const NICHE = { // reach multiplier and typical retention bias
+    comedy: 1.35, food: 1.15, gaming: 0.95, fitness: 1.0, beauty: 1.05, edu: 1.1,
+    tech: 0.9, sports: 1.15, music: 1.2, vlog: 0.85, finance: 0.8, pets: 1.3
+  };
+  const NICHE_NAME = Object.fromEntries($$("#niche option").map(o => [o.value, o.textContent]));
+  const WHEN = { peak: 1.12, mid: 1.04, morning: 0.97, late: 1.0, dead: 0.84 };
+
+  const ramp = (x, a, b) => clamp((x - a) / (b - a), 0, 1);
+  const bell = (x, lo, hiLo, hiHi, hi) => x < hiLo ? ramp(x, lo, hiLo) : x > hiHi ? 1 - ramp(x, hiHi, hi) : 1;
+
+  function score(input) {
+    const { scan, audio, platform, title, tags, niche, when } = input;
+    const f = {};
+    const known = scan && scan.scanned;
+    const d = scan ? scan.duration : 0;
+
+    // Hook: movement + punchy contrast + color in the first 3s, minus a black opening
+    if (known) {
+      const hm = ramp(scan.hookMotion, 0.015, 0.11);
+      const hc = ramp(scan.hookContrast, 25, 70);
+      const hcol = ramp(scan.hookColor, 15, 60);
+      const ha = audio.known ? ramp(audio.earlyDb, -42, -18) : 0.5;
+      f.hook = 100 * (0.42 * hm + 0.2 * hc + 0.16 * hcol + 0.22 * ha) - (scan.blackStart ? 18 : 0);
+    } else f.hook = null;
+
+    // Pacing: scene cuts per minute + general motion
+    if (known) {
+      const c = bell(scan.cutsPerMin, 2, 10, 32, 70);
+      const m = bell(scan.motion, 0.006, 0.03, 0.12, 0.25);
+      f.pacing = 100 * (0.55 * c + 0.45 * m);
+    } else f.pacing = null;
+
+    // Visuals: exposure, contrast, colour, resolution
+    if (known) {
+      const ex = bell(scan.brightness, 30, 85, 175, 235);
+      const ct = ramp(scan.contrast, 20, 62);
+      const col = ramp(scan.color, 12, 55);
+      const res = ramp(Math.min(scan.width, scan.height), 480, 1080);
+      f.visuals = 100 * (0.3 * ex + 0.25 * ct + 0.2 * col + 0.25 * res);
+    } else f.visuals = null;
+
+    // Audio
+    if (audio && audio.known) {
+      if (!audio.has) f.audio = 18;
+      else f.audio = 100 * (0.6 * bell(audio.db, -48, -30, -12, -4) + 0.4 * (1 - ramp(audio.silence, 0.08, 0.5)));
+    } else f.audio = null;
+
+    // Length: sweet spot 13–35s on Shorts, 15–45s on TikTok
+    if (d > 0) {
+      f.length = platform === "tt" ? 100 * bell(d, 5, 15, 45, 180) : 100 * bell(d, 5, 13, 35, 180);
+      if (platform === "yt" && d > 180) f.length = 5;
+      f.length = Math.max(f.length, 12);
+    } else f.length = null;
+
+    // Format: vertical 9:16, resolution
+    if (known && scan.width && scan.height) {
+      const ar = scan.width / scan.height;
+      f.format = ar < 0.6 ? 100 : ar < 0.85 ? 72 : ar < 1.05 ? 42 : 18;
+    } else f.format = source && source.kind === "link" ? 90 : null;
+
+    // Caption / metadata
+    {
+      const t = (title || "").trim();
+      let s = 0;
+      s += 40 * bell(t.length, 6, 22, 70, 120);
+      if (/\?|!/.test(t)) s += 10;
+      if (/\d/.test(t)) s += 8;
+      if (/\b(how|why|what|this|never|stop|secret|tried|vs|best|worst|i |you)\b/i.test(t)) s += 14;
+      if (t && t === t.toUpperCase() && /[A-Z]/.test(t)) s -= 10;
+      const tg = (tags || "").match(/#[\wÀ-￿]+/g) || [];
+      s += 20 * bell(tg.length, 0, 2, 5, 15);
+      if (platform === "yt" && tg.some(x => /^#shorts$/i.test(x))) s += 4;
+      if (platform === "tt" && tg.some(x => /^#(fyp|foryou|foryoupage)$/i.test(x))) s += 2;
+      s += 4;
+      f.caption = clamp(s, 0, 100);
+    }
+
+    // Timing
+    f.timing = 100 * clamp((WHEN[when] - 0.8) / 0.34, 0, 1);
+
+    const W8 = { hook: 0.26, pacing: 0.15, visuals: 0.12, audio: 0.12, length: 0.12, format: 0.09, caption: 0.08, timing: 0.06 };
+    let tot = 0, wsum = 0;
+    for (const k in W8) if (f[k] != null) { f[k] = clamp(f[k], 0, 100); tot += f[k] * W8[k]; wsum += W8[k]; }
+    // fill unknown factors with an average Short so links still get a fair score
+    const missing = 1 - wsum;
+    const viral = Math.round(clamp((tot + missing * 55), 1, 99));
+    return { factors: f, viral, coverage: wsum };
+  }
+
+  function forecast(input, sc) {
+    const { subs, avg, platform, niche, when } = input;
+    const S = Math.max(0, subs || 0);
+    // Where a channel of this size usually lands with an average Short
+    let base = platform === "tt"
+      ? 320 + 4.2 * Math.pow(S, 0.86)
+      : 260 + 3.4 * Math.pow(S, 0.84);
+    let sigma = platform === "tt" ? 1.12 : 0.98;
+    if (avg > 0) { base = Math.exp(0.7 * Math.log(avg) + 0.3 * Math.log(base)); sigma -= 0.2; }
+    if (!S && !avg) sigma += 0.12;
+    sigma += (1 - sc.coverage) * 0.35;
+    base *= NICHE[niche] || 1;
+    base *= WHEN[when] || 1;
+    // The score shifts the median exponentially: a 75 roughly triples an average Short
+    const mult = Math.exp((sc.viral - 55) / 18);
+    const p50 = base * mult;
+    // great videos have a fatter right tail
+    const up = sigma * (1 + (sc.viral - 55) / 160), dn = sigma * 0.92;
+    const z = 1.2816;
+    return {
+      p10: Math.max(40, p50 * Math.exp(-z * dn)),
+      p25: Math.max(60, p50 * Math.exp(-0.674 * dn)),
+      p50: Math.max(80, p50),
+      p75: p50 * Math.exp(0.674 * up),
+      p90: p50 * Math.exp(z * up),
+      sigmaUp: up, sigmaDn: dn
+    };
+  }
+
+  function tier(v) {
+    if (v >= 82) return ["Viral potential", "good", "Everything the feed rewards is here. If the first viewers stay, this one can travel well past your usual reach."];
+    if (v >= 68) return ["Breakout", "good", "Stronger than a typical Short. Expect it to beat your average and get pushed to non-subscribers."];
+    if (v >= 52) return ["Solid", "accent", "Right around a typical Short. Fixing the lowest bar below is the fastest way to move the range up."];
+    if (v >= 38) return ["Needs work", "warn", "Viewers are likely to swipe early. Tighten the opening and pacing before posting."];
+    return ["Swipe-past risk", "bad", "Several signals are well below what the feed favors. Rework the hook and length first."];
+  }
+
+  function tipsFor(sc, input) {
+    const f = sc.factors, out = [];
+    const s = input.scan, a = input.audio;
+    if (f.hook != null && f.hook < 60) out.push(["warn", "Hit harder in the first second", s && s.blackStart ? "The video opens on a dark frame. Start on your most interesting shot instead." : "The opening is calm. Start mid-action, add on-screen text, or cut straight to the payoff."]);
+    if (f.pacing != null && f.pacing < 55) out.push(["warn", s && s.cutsPerMin < 8 ? "Add more cuts" : "Slow the cutting down a little", s && s.cutsPerMin < 8 ? `About ${Math.round(s.cutsPerMin)} cuts a minute. Most top Shorts change shot every 2–4 seconds.` : "Very fast cutting can hurt comprehension. Let key moments breathe."]);
+    if (f.length != null && f.length < 70) out.push(["warn", "Trim the length", input.platform === "yt" ? `At ${Math.round(s ? s.duration : input.dur)}s this is outside the 13–35s range where Shorts hold viewers best.` : `At ${Math.round(s ? s.duration : input.dur)}s this is outside the 15–45s range that does best on TikTok.`]);
+    if (f.format != null && f.format < 70) out.push(["warn", "Export as vertical 9:16", "Horizontal or square video gets letterboxed in the feed and loses screen space to the UI."]);
+    if (f.visuals != null && f.visuals < 55) out.push(["warn", "Brighten and sharpen", s && s.brightness < 70 ? "The footage is dark. Raise exposure or film near a window." : "Low contrast or resolution. Export at 1080×1920 and add a touch of contrast."]);
+    if (a && a.known && !a.has) out.push(["warn", "Add sound", "No audio detected. A trending sound or voiceover helps retention and discovery."]);
+    else if (f.audio != null && f.audio < 55) out.push(["warn", "Fix the audio level", a.silence > 0.25 ? "There are long silent stretches. Cut the dead air or add music under it." : "The mix is quiet. Normalize your voice to around -14 LUFS."]);
+    if (f.caption < 55) out.push(["warn", "Write a sharper caption", "Use 20–70 characters with a question, number or bold claim, plus 2–5 relevant hashtags" + (input.platform === "yt" ? " including #shorts." : ".")]);
+    if (f.timing < 60) out.push(["warn", "Post at a better time", "Evenings (5–9 pm in your audience's time zone) give a new video the most first-hour viewers."]);
+    const best = Object.entries(f).filter(([, v]) => v != null).sort((x, y) => y[1] - x[1])[0];
+    if (best && best[1] >= 70) out.push(["good", `Keep: ${FACT[best[0]][0].toLowerCase()}`, FACT[best[0]][2]]);
+    if (out.length === 1 || !out.length) out.unshift(["good", "Ready to post", "No major issues found. Reply to early comments to push it further."]);
+    return out.slice(0, 5);
+  }
+
+  const FACT = {
+    hook: ["Hook", "first 3 seconds", "Your opening grabs attention fast. That is the biggest driver of swipe-away rate."],
+    pacing: ["Pacing", "cuts & motion", "The edit keeps moving, which keeps average view duration high."],
+    visuals: ["Visuals", "light, contrast, color", "Clean, bright footage that reads well on a small screen."],
+    audio: ["Audio", "level & dead air", "Clear, consistent sound with no dead air."],
+    length: ["Length", "sweet-spot fit", "The length sits in the range where completion rates peak."],
+    format: ["Format", "9:16 vertical", "Full-screen vertical, so nothing is wasted in the feed."],
+    caption: ["Caption", "title & hashtags", "The caption gives viewers a reason to stay."],
+    timing: ["Timing", "posting window", "You're posting when the most viewers are scrolling."]
+  };
+
+  /* ---------- charts ---------- */
+  // Split-normal in log space, so both halves meet smoothly at the peak.
+  function logDens(x, mu, s) { return Math.exp(-((Math.log(x) - mu) ** 2) / (2 * s * s)); }
+
+  function drawDist(el, fc) {
+    const Wd = 560, Ht = 170, pl = 8, pr = 8, pt = 14, pb = 26;
+    const lo = Math.log10(fc.p10) - 0.55, hi = Math.log10(fc.p90) + 0.45;
+    const X = lx => pl + (lx - lo) / (hi - lo) * (Wd - pl - pr);
+    const mu = Math.log(fc.p50);
+    const pts = [];
+    let maxY = 0;
+    for (let i = 0; i <= 120; i++) {
+      const lx = lo + (hi - lo) * i / 120, x = 10 ** lx;
+      const s = x < fc.p50 ? fc.sigmaDn : fc.sigmaUp;
+      const y = logDens(x, mu, s); // density per log-unit
+      pts.push([lx, y]); if (y > maxY) maxY = y;
+    }
+    const Y = y => pt + (1 - y / maxY) * (Ht - pt - pb);
+    const line = pts.map(([lx, y], i) => (i ? "L" : "M") + X(lx).toFixed(1) + "," + Y(y).toFixed(1)).join("");
+    const inBand = pts.filter(([lx]) => lx >= Math.log10(fc.p10) && lx <= Math.log10(fc.p90));
+    const band = "M" + X(inBand[0][0]) + "," + Y(0) + inBand.map(([lx, y]) => "L" + X(lx).toFixed(1) + "," + Y(y).toFixed(1)).join("") + "L" + X(inBand.at(-1)[0]) + "," + Y(0) + "Z";
+    // ticks at 1/2/5 × 10^n within the window
+    const ticks = [];
+    for (let e = Math.floor(lo); e <= Math.ceil(hi); e++) for (const m of [1, 3]) { const lx = Math.log10(m) + e; if (lx > lo + 0.05 && lx < hi - 0.05) ticks.push(lx); }
+    const mk = (v, label) => {
+      const x = X(Math.log10(v));
+      const s = v < fc.p50 ? fc.sigmaDn : fc.sigmaUp;
+      const y = Y(logDens(v, mu, s));
+      return `<line x1="${x}" x2="${x}" y1="${y}" y2="${Y(0)}" stroke="var(--fg)" stroke-width="1" stroke-dasharray="${label === "Most likely" ? "0" : "3 3"}" opacity=".55"/>
+              <circle cx="${x}" cy="${y}" r="4" fill="var(--panel)" stroke="var(--data)" stroke-width="2"/>`;
+    };
+    el.innerHTML = `<svg viewBox="0 0 ${Wd} ${Ht}" role="img" aria-label="Probability of view counts, ${fmt(fc.p10)} to ${fmt(fc.p90)} covers 80%">
+      ${ticks.map(lx => `<line x1="${X(lx)}" x2="${X(lx)}" y1="${pt}" y2="${Y(0)}" stroke="var(--line)" stroke-width="1"/><text x="${X(lx)}" y="${Ht - 8}" text-anchor="middle">${fmt(10 ** lx)}</text>`).join("")}
+      <path d="${band}" fill="var(--data-soft)"/>
+      <path d="${line}" fill="none" stroke="var(--data)" stroke-width="2" stroke-linejoin="round"/>
+      <line x1="${pl}" x2="${Wd - pr}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line)"/>
+      ${mk(fc.p10, "P10")}${mk(fc.p90, "P90")}${mk(fc.p50, "Most likely")}
+      <rect class="hit" x="${pl}" y="0" width="${Wd - pl - pr}" height="${Ht - pb}" fill="transparent"/>
+      <line class="cross" x1="0" x2="0" y1="${pt}" y2="${Y(0)}" stroke="var(--fg)" stroke-width="1" opacity="0"/>
+    </svg><div class="tip" hidden></div>`;
+    hover(el, Wd, lx => {
+      const x = 10 ** lx;
+      // chance of at least x views from the two-sided lognormal
+      const z = (Math.log(x) - mu) / (x < fc.p50 ? fc.sigmaDn : fc.sigmaUp);
+      const pAbove = 1 - normCdf(z);
+      return { x: X(lx), text: `${Math.round(pAbove * 100)}% chance of ${fmt(roundNice(x))}+ views` };
+    }, px => lo + (px - pl) / (Wd - pl - pr) * (hi - lo));
+  }
+
+  function normCdf(z) { // Abramowitz–Stegun
+    const t = 1 / (1 + 0.2316419 * Math.abs(z)), d = 0.3989423 * Math.exp(-z * z / 2);
+    const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+    return z > 0 ? 1 - p : p;
+  }
+
+  function hover(el, Wd, at, invert) {
+    const svg = $("svg", el), tip = $(".tip", el), cross = $(".cross", el);
+    const move = e => {
+      const r = svg.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width * Wd;
+      const res = at(invert(px));
+      if (!res) return;
+      cross.setAttribute("x1", res.x); cross.setAttribute("x2", res.x); cross.setAttribute("opacity", ".35");
+      tip.hidden = false; tip.textContent = res.text;
+      tip.style.left = clamp(res.x / Wd * r.width, 70, r.width - 70) + "px";
+      tip.style.top = (res.y != null ? res.y / Wd * r.width : 18) + "px";
+    };
+    svg.addEventListener("pointermove", move);
+    svg.addEventListener("pointerleave", () => { tip.hidden = true; cross.setAttribute("opacity", "0"); });
+  }
+
+  function drawCurve(el, fc, platform) {
+    // Shorts/TikTok views front-load: most land in the first 48 hours.
+    const k = platform === "tt" ? 0.85 : 0.6;
+    const days = [...Array(29)].map((_, i) => i * 0.25);
+    const share = t => (1 - Math.exp(-k * t)) / (1 - Math.exp(-k * 7));
+    const Wd = 560, Ht = 190, pl = 44, pr = 12, pt = 12, pb = 26;
+    const max = fc.p50 * 1.08;
+    const X = t => pl + t / 7 * (Wd - pl - pr), Y = v => pt + (1 - v / max) * (Ht - pt - pb);
+    const pts = days.map(t => [t, fc.p50 * share(t)]);
+    const line = pts.map(([t, v], i) => (i ? "L" : "M") + X(t).toFixed(1) + "," + Y(v).toFixed(1)).join("");
+    const area = line + `L${X(7)},${Y(0)}L${X(0)},${Y(0)}Z`;
+    const yt = [0, 0.25, 0.5, 0.75, 1].map(f => f * fc.p50);
+    const end = pts.at(-1);
+    el.innerHTML = `<svg viewBox="0 0 ${Wd} ${Ht}" role="img" aria-label="Views climb to about ${fmt(fc.p50)} by day 7">
+      ${yt.map(v => `<line x1="${pl}" x2="${Wd - pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${pl - 8}" y="${Y(v) + 3.5}" text-anchor="end">${fmt(roundNice(v))}</text>`).join("")}
+      ${[0, 1, 2, 3, 4, 5, 6, 7].map(d => `<text x="${X(d)}" y="${Ht - 8}" text-anchor="middle">${d === 0 ? "Post" : "D" + d}</text>`).join("")}
+      <path d="${area}" fill="var(--data-soft)"/>
+      <path d="${line}" fill="none" stroke="var(--data)" stroke-width="2" stroke-linejoin="round"/>
+      <circle cx="${X(end[0])}" cy="${Y(end[1])}" r="5" fill="var(--data)" stroke="var(--panel)" stroke-width="2"/>
+      <rect class="hit" x="${pl}" y="0" width="${Wd - pl - pr}" height="${Ht - pb}" fill="transparent"/>
+      <line class="cross" x1="0" x2="0" y1="${pt}" y2="${Y(0)}" stroke="var(--fg)" stroke-width="1" opacity="0"/>
+    </svg><div class="tip" hidden></div>`;
+    hover(el, Wd, t => {
+      t = clamp(t, 0, 7);
+      const v = fc.p50 * share(t);
+      const hrs = Math.round(t * 24);
+      return { x: X(t), y: Y(v), text: `${hrs < 48 ? hrs + " h" : "Day " + t.toFixed(1).replace(/\.0$/, "")}: ~${fmt(roundNice(v))} views` };
+    }, px => (px - pl) / (Wd - pl - pr) * 7);
+  }
+
+  function drawGauge(v, cls) {
+    const r = 54, c = 2 * Math.PI * r, arc = c * 0.75;
+    const color = { good: "var(--good)", accent: "var(--accent)", warn: "var(--warn)", bad: "var(--bad)" }[cls];
+    $("#gauge").innerHTML = `
+      <circle cx="66" cy="66" r="${r}" fill="none" stroke="var(--panel-2)" stroke-width="12" stroke-linecap="round" stroke-dasharray="${arc} ${c}" transform="rotate(135 66 66)"/>
+      <circle cx="66" cy="66" r="${r}" fill="none" stroke="${color}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${arc * v / 100} ${c}" transform="rotate(135 66 66)"/>
+      <text x="66" y="72" text-anchor="middle" fill="var(--fg)" font-size="36" font-weight="800">${v}</text>
+      <text x="66" y="98" text-anchor="middle" fill="var(--muted)" font-size="11" font-family="var(--f-mono)">/ 100</text>`;
+    $("#gauge").setAttribute("aria-label", `Viral score ${v} out of 100`);
+  }
+
+  /* ---------- render ---------- */
+  function render(res, isExample) {
+    const { fc, sc, input } = res;
+    $("#example-flag").hidden = !isExample;
+    $("#res-title").textContent = isExample ? "Forecast" : (input.title ? `Forecast · ${input.title}` : "Forecast");
+    $("#res-title").style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0";
+    $("#res-sub").textContent = `Likely ${input.platform === "tt" ? "TikTok" : "YouTube Shorts"} views after 7 days`;
+    $("#r-range").innerHTML = `${fmt(roundNice(fc.p10))} <span>–</span> ${fmt(roundNice(fc.p90))}`;
+    $("#r-p10").textContent = fmt(roundNice(fc.p10));
+    $("#r-p50").textContent = fmt(roundNice(fc.p50));
+    $("#r-p90").textContent = fmt(roundNice(fc.p90));
+    const [tName, tCls, tCopy] = tier(sc.viral);
+    const conf = sc.coverage > 0.9 && (input.subs || input.avg) ? ["High confidence", "good"] : sc.coverage > 0.6 ? ["Medium confidence", "warn"] : ["Low confidence", "bad"];
+    const vsAvg = input.avg > 0 ? fc.p50 / input.avg : null;
+    $("#r-tags").innerHTML = [
+      `<span class="tag ${tCls}"><span class="dot"></span>${tName}</span>`,
+      `<span class="tag ${conf[1]}"><span class="dot"></span>${conf[0]}</span>`,
+      vsAvg ? `<span class="tag">${vsAvg >= 1 ? "▲ " + vsAvg.toFixed(1) + "× your average" : "▼ " + Math.round((1 - vsAvg) * 100) + "% under your average"}</span>` : "",
+      `<span class="tag">${NICHE_NAME[input.niche]}</span>`
+    ].join("");
+    $("#r-note").textContent = `80% of the time a video like this lands between ${fmt(roundNice(fc.p10))} and ${fmt(roundNice(fc.p90))} views in its first week. Hover the curve to see the odds of any number.`;
+    drawDist($("#dist-chart"), fc);
+    drawCurve($("#curve-chart"), fc, input.platform);
+    drawGauge(sc.viral, tCls);
+    $("#tier").textContent = tName;
+    $("#tier-copy").textContent = tCopy;
+
+    $("#factors").innerHTML = Object.keys(FACT).map(k => {
+      const v = sc.factors[k];
+      const [n, sub] = FACT[k];
+      return `<div class="factor"><div class="factor-n">${n}<small>${sub}</small></div>
+        <div class="factor-bar" role="img" aria-label="${n} ${v == null ? "not measured" : Math.round(v) + " of 100"}">${v == null ? "" : `<i class="${v < 50 ? "lo" : ""}" style="width:${v}%"></i>`}</div>
+        <div class="factor-v num">${v == null ? "n/a" : Math.round(v)}</div></div>`;
+    }).join("");
+
+    const s = input.scan, a = input.audio;
+    const rows = [];
+    if (s && s.scanned) {
+      const ar = s.width / s.height;
+      rows.push(["Length", `${s.duration.toFixed(1)} s`], ["Resolution", `${s.width}×${s.height}`],
+        ["Aspect", ar < 0.6 ? "9:16 vertical" : ar < 0.85 ? "4:5 portrait" : ar < 1.05 ? "1:1 square" : "16:9 horizontal"],
+        ["Cuts / min", Math.round(s.cutsPerMin)], ["Motion", (s.motion * 100).toFixed(1)],
+        ["Brightness", `${Math.round(s.brightness / 255 * 100)}%`], ["Contrast", Math.round(s.contrast)],
+        ["Colorfulness", Math.round(s.color)]);
+    } else {
+      rows.push(["Source", input.platform === "tt" ? "TikTok link" : "YouTube link"], ["Length", input.dur ? `${input.dur} s` : "not given"], ["Frame scan", "upload the file to enable"], ["Audio scan", "upload the file to enable"]);
+    }
+    if (a && a.known) rows.push(["Loudness", a.has ? `${a.db.toFixed(1)} dBFS` : "silent"], ["Dead air", `${Math.round(a.silence * 100)}%`]);
+    else if (s && s.scanned) rows.push(["Audio", "couldn't decode"], ["Dead air", "n/a"]);
+    $("#stats").innerHTML = rows.map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join("");
+
+    $("#tips").innerHTML = tipsFor(sc, input).map(([cls, t, p]) => `<li><span class="ic ${cls}">${cls === "good"
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>'
+      : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 7v6"/><path d="M12 17h.01"/></svg>'}</span><div><b></b><p></p></div></li>`).join("");
+    $$("#tips li").forEach((li, i) => { const t = tipsFor(sc, input)[i]; $("b", li).textContent = t[1]; $("p", li).textContent = t[2]; });
+  }
+
+  /* ---------- history ---------- */
+  let hist = store.get("pv-history", []);
+  function renderHistory() {
+    const body = $("#hist-body");
+    if (!hist.length) {
+      body.innerHTML = `<div class="empty">No predictions yet. Upload a Short above and it will show up here.</div>`;
+    } else {
+      body.innerHTML = `<table class="hist"><thead><tr><th>Video</th><th>Platform</th><th>Range</th><th>Most likely</th><th>Score</th><th>Date</th></tr></thead><tbody>${
+        hist.map((h, i) => `<tr><td><div class="t">${h.thumb ? `<img alt="" src="${h.thumb}">` : `<span class="ph"></span>`}<span class="ttl"></span></div></td>
+          <td>${h.platform === "tt" ? "TikTok" : "Shorts"}</td>
+          <td class="num mono">${fmt(roundNice(h.p10))}–${fmt(roundNice(h.p90))}</td>
+          <td class="num mono">${fmt(roundNice(h.p50))}</td>
+          <td><span class="tag ${tier(h.viral)[1]}">${h.viral}</span></td>
+          <td class="small">${new Date(h.at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</td></tr>`).join("")
+      }</tbody></table>`;
+      $$(".ttl", body).forEach((n, i) => n.textContent = hist[i].title || "Untitled");
+    }
+    $("#k-count").textContent = hist.length;
+    $("#q-count").textContent = hist.length;
+    $("#q-bar").style.width = Math.min(100, hist.length * 10) + "%";
+    if (hist.length) {
+      const med = [...hist].map(h => h.p50).sort((a, b) => a - b)[Math.floor(hist.length / 2)];
+      $("#k-median").textContent = fmt(roundNice(med));
+      const best = hist.reduce((a, b) => b.viral > a.viral ? b : a);
+      $("#k-best").textContent = best.viral;
+      $("#k-best-s").textContent = (best.title || "Untitled").slice(0, 32);
+      const hooks = hist.filter(h => h.hook != null);
+      $("#k-hook").textContent = hooks.length ? Math.round(hooks.reduce((s, h) => s + h.hook, 0) / hooks.length) : "–";
+    } else {
+      ["#k-median", "#k-best", "#k-hook"].forEach(s => $(s).textContent = "–");
+      $("#k-best-s").textContent = "out of 100";
+    }
+  }
+  $("#clear-hist").onclick = () => {
+    if ($("#clear-hist").dataset.armed) {
+      hist = []; store.set("pv-history", hist); renderHistory();
+      delete $("#clear-hist").dataset.armed; $("#clear-hist").textContent = "Clear"; toast("History cleared");
+    } else {
+      $("#clear-hist").dataset.armed = "1"; $("#clear-hist").textContent = "Tap again to clear";
+      setTimeout(() => { delete $("#clear-hist").dataset.armed; $("#clear-hist").textContent = "Clear"; }, 3000);
+    }
+  };
+
+  /* ---------- run ---------- */
+  function setStep(i, live) {
+    $$("#steps .step").forEach((s, j) => { s.classList.toggle("done", j < i || (j === i && !live)); s.classList.toggle("live", j === i && live); });
+  }
+
+  function readInput() {
+    return {
+      platform: $("input[name=platform]:checked").value,
+      title: $("#title").value, tags: $("#tags").value,
+      subs: +$("#subs").value || 0, avg: +$("#avg").value || 0,
+      niche: $("#niche").value, when: $("#when").value,
+      dur: +$("#dur").value || 0
+    };
+  }
+
+  $("#form").addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!source) return;
+    const go = $("#go"); go.disabled = true;
+    $("#steps").hidden = false;
+    const input = readInput();
+    const scanEl = document.createElement("div"); scanEl.className = "scan"; phone.append(scanEl);
+    try {
+      setStep(0, true); await sleep(350); setStep(1, true);
+      if (source.kind === "file") {
+        input.scan = await analyzeVideo(source, p => { $("#go-hint").textContent = `Scanning frames… ${Math.round(p * 100)}%`; if (p > 0.15) setStep(p < 0.4 ? 1 : 2, true); });
+        setStep(3, true); $("#go-hint").textContent = "Listening to the audio…";
+        input.audio = await analyzeAudio(source.file);
+      } else {
+        input.scan = { scanned: false, duration: input.dur };
+        input.audio = { known: false };
+        await sleep(500); setStep(2, true); await sleep(400); setStep(3, true); await sleep(400);
+      }
+      setStep(4, true); await sleep(450);
+      const sc = score(input);
+      const fc = forecast(input, sc);
+      setStep(5, false);
+      render({ fc, sc, input }, false);
+      hist.unshift({ title: input.title || prettify(source.name), platform: input.platform, p10: fc.p10, p50: fc.p50, p90: fc.p90, viral: sc.viral, hook: sc.factors.hook, thumb: (input.scan && input.scan.thumb) || source.thumb || null, at: Date.now() });
+      hist = hist.slice(0, 30);
+      store.set("pv-history", hist);
+      renderHistory();
+      $("#go-hint").textContent = "Done. Scroll down for the full forecast.";
+      $("#forecast").scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      console.error(err);
+      toast("We couldn't read that video. Try re-exporting it as MP4.");
+      $("#go-hint").textContent = "Scan failed.";
+    } finally {
+      scanEl.remove(); go.disabled = false;
+    }
+  });
+
+  // nav highlight
+  $$(".nav a").forEach(a => a.addEventListener("click", () => { $$(".nav a").forEach(x => x.classList.remove("on")); a.classList.add("on"); }));
+
+  /* ---------- example state so the dashboard isn't blank ---------- */
+  const exInput = {
+    platform: "yt", title: "I tried the 3-ingredient pasta everyone's talking about", tags: "#shorts #pasta #easyrecipe",
+    subs: 12400, avg: 6800, niche: "food", when: "peak", dur: 27,
+    scan: { scanned: true, duration: 27.4, width: 1080, height: 1920, brightness: 132, contrast: 52, color: 41, motion: 0.052, hookMotion: 0.074, hookContrast: 58, hookColor: 47, hookBright: 140, cutsPerMin: 17, blackStart: false },
+    audio: { known: true, has: true, db: -21.5, rms: 0.08, silence: 0.07, earlyDb: -20 }
+  };
+  const exScore = score(exInput);
+  render({ fc: forecast(exInput, exScore), sc: exScore, input: exInput }, true);
+  renderHistory();
+})();
+</script>
+</body>
+</html>
