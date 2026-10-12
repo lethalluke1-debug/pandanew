@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Now Playing Overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --accent: #ff4fd8;
+    --accent2: #6b8cff;
+    --scale: 1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: transparent; font-family: 'Outfit', system-ui, sans-serif; color: #fff; overflow: hidden; }
+
+  /* ---------- Overlay widget ---------- */
+  #widget {
+    position: fixed; top: 20px; left: 20px;
+    transform-origin: top left;
+    transform: scale(var(--scale));
+    width: 460px; height: 128px;
+    display: flex; align-items: center; gap: 18px;
+    padding: 14px 22px 14px 14px;
+    border-radius: 24px;
+    overflow: hidden;
+    isolation: isolate;
+    background: rgba(12, 12, 20, .72);
+    box-shadow: 0 10px 40px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.08) inset;
+    transition: opacity .6s ease, transform .6s cubic-bezier(.2,.9,.3,1.2), filter .6s;
+  }
+  #widget.right { left: auto; right: 20px; transform-origin: top right; }
+  #widget.hidden { opacity: 0; transform: scale(var(--scale)) translateY(-30px); filter: blur(8px); }
+
+  /* blurred album art backdrop */
+  #bg {
+    position: absolute; inset: -40px; z-index: -2;
+    background-size: cover; background-position: center;
+    filter: blur(34px) saturate(1.6) brightness(.55);
+    transition: background-image .8s;
+  }
+  /* animated glow border */
+  #widget::before {
+    content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; padding: 2px;
+    background: conic-gradient(from var(--ang, 0deg), var(--accent), var(--accent2), transparent 40%, var(--accent));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    animation: spin 4s linear infinite;
+  }
+  @property --ang { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+  @keyframes spin { to { --ang: 360deg; } }
+
+  #art-wrap { position: relative; flex: 0 0 100px; height: 100px; }
+  #art {
+    width: 100px; height: 100px; border-radius: 16px; object-fit: cover;
+    box-shadow: 0 6px 24px rgba(0,0,0,.5), 0 0 30px color-mix(in srgb, var(--accent) 45%, transparent);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    transition: box-shadow .8s;
+  }
+  #art.swap { animation: pop .7s cubic-bezier(.2,.9,.3,1.3); }
+  @keyframes pop { 0% { transform: scale(.6) rotate(-8deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
+
+  #info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  #label {
+    font-size: 11px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--accent); display: flex; align-items: center; gap: 8px;
+    text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 70%, transparent);
+  }
+  .marquee { overflow: hidden; white-space: nowrap; mask-image: linear-gradient(90deg, #000 85%, transparent); }
+  .marquee span { display: inline-block; padding-right: 48px; }
+  .marquee.scroll span { animation: scroll var(--dur, 10s) linear infinite; }
+  @keyframes scroll { 0%, 15% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+  #title { font-size: 24px; font-weight: 800; line-height: 1.15; }
+  #artist { font-size: 16px; font-weight: 400; opacity: .85; }
+  #album { font-size: 12px; opacity: .55; }
+
+  /* equalizer bars */
+  #eq { display: flex; align-items: flex-end; gap: 2px; height: 12px; }
+  #eq i { width: 3px; background: var(--accent); border-radius: 2px; animation: eq 1s ease-in-out infinite; }
+  #eq i:nth-child(1) { animation-delay: -.2s; } #eq i:nth-child(2) { animation-delay: -.5s; }
+  #eq i:nth-child(3) { animation-delay: -.8s; } #eq i:nth-child(4) { animation-delay: -.35s; }
+  @keyframes eq { 0%,100% { height: 25%; } 50% { height: 100%; } }
+  #widget.paused #eq i { animation-play-state: paused; height: 25%; }
+
+  #text-in.swap { animation: slide .6s ease; }
+  @keyframes slide { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- Setup page (shown when no params) ---------- */
+  body.setup { background: #0d0d14; overflow: auto; min-height: 100vh; }
+  #setup { display: none; max-width: 560px; margin: 0 auto; padding: 200px 16px 40px; }
+  body.setup #setup { display: block; }
+  #setup h1 { font-size: 28px; margin-bottom: 6px; }
+  #setup p { opacity: .7; margin-bottom: 18px; line-height: 1.5; font-size: 14px; }
+  #setup a { color: var(--accent); }
+  #setup label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+  #setup input[type=text], #setup select {
+    width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #333; background: #181822; color: #fff; font: inherit;
+  }
+  #setup .row { display: flex; gap: 12px; } #setup .row > div { flex: 1; }
+  #setup input[type=color] { width: 100%; height: 40px; border: none; background: none; }
+  #out { margin-top: 20px; padding: 12px; border-radius: 10px; background: #181822; word-break: break-all; font-size: 13px; font-family: monospace; }
+  #setup button { margin-top: 12px; padding: 12px 18px; border: 0; border-radius: 10px; background: var(--accent); color: #000; font: 600 15px 'Outfit', sans-serif; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div id="widget" class="hidden">
+  <div id="bg"></div>
+  <div id="art-wrap"><img id="art" alt=""></div>
+  <div id="info">
+    <div id="label"><div id="eq"><i></i><i></i><i></i><i></i></div><span id="status">Now Playing</span></div>
+    <div id="text-in">
+      <div id="title" class="marquee"><span></span></div>
+      <div id="artist" class="marquee"><span></span></div>
+      <div id="album" class="marquee"><span></span></div>
+    </div>
+  </div>
+</div>
+
+<div id="setup">
+  <h1>Now Playing overlay</h1>
+  <p>Shows your current song from <a href="https://www.last.fm" target="_blank">Last.fm</a>. <b>Apple Music:</b> install a scrobbler that sends your plays to Last.fm (Mac: <a href="https://apps.apple.com/app/scrobbles-for-last-fm/id1344679160" target="_blank">Scrobbles for Last.fm</a> or NepTunes, Windows: the <a href="https://www.last.fm/about/trackmymusic" target="_blank">Last.fm desktop scrobbler</a>, iPhone: Marvis Pro or QuietScrobble),
+     then get a free API key at <a href="https://www.last.fm/api/account/create" target="_blank">last.fm/api/account/create</a>.</p>
+  <label>Last.fm username</label><input type="text" id="f-user" placeholder="your_username">
+  <label>Last.fm API key</label><input type="text" id="f-key" placeholder="32 character key">
+  <div class="row">
+    <div><label>Accent</label><input type="color" id="f-accent" value="#ff4fd8"></div>
+    <div><label>Accent 2</label><input type="color" id="f-accent2" value="#6b8cff"></div>
+  </div>
+  <div class="row">
+    <div><label>Corner</label><select id="f-pos"><option value="left">Top left</option><option value="right">Top right</option></select></div>
+    <div><label>When nothing is playing</label><select id="f-idle"><option value="1">Hide</option><option value="0">Show last song</option></select></div>
+    <div><label>Album colors</label><select id="f-auto"><option value="1">Auto from art</option><option value="0">Use my colors</option></select></div>
+  </div>
+  <div id="out">Fill in your username and key...</div>
+  <button id="copy">Copy OBS link</button>
+  <p style="margin-top:16px">In OBS: <b>Sources → + → Browser</b>, paste the link, set width <b>520</b> and height <b>170</b>.</p>
+</div>
+
+<script>
+(() => {
+  const q = new URLSearchParams(location.search);
+  const $ = id => document.getElementById(id);
+  const root = document.documentElement.style;
+  const widget = $('widget');
+
+  const cfg = {
+    user: q.get('user'),
+    key: q.get('key'),
+    demo: q.has('demo'),
+    hideIdle: q.get('hideidle') !== '0',
+    auto: q.get('auto') !== '0',
+    accent: q.get('accent') ? '#' + q.get('accent') : null,
+    accent2: q.get('accent2') ? '#' + q.get('accent2') : null,
+    scale: parseFloat(q.get('scale')) || 1,
+    interval: Math.max(3, parseInt(q.get('interval')) || 5) * 1000,
+  };
+  if (cfg.accent) root.setProperty('--accent', cfg.accent);
+  if (cfg.accent2) root.setProperty('--accent2', cfg.accent2);
+  root.setProperty('--scale', cfg.scale);
+  if (q.get('pos') === 'right') widget.classList.add('right');
+
+  // ---------- rendering ----------
+  let current = null;
+
+  function setMarquee(id, text) {
+    const el = $(id);
+    el.classList.remove('scroll');
+    el.innerHTML = '';
+    const span = document.createElement('span');
+    span.textContent = text || '';
+    el.appendChild(span);
+    requestAnimationFrame(() => {
+      if (span.scrollWidth > el.clientWidth) {
+        const copy = span.cloneNode(true);
+        el.appendChild(copy);
+        el.style.setProperty('--dur', (span.scrollWidth / 35) + 's');
+        el.classList.add('scroll');
+      }
+    });
+  }
+
+  function replay(el) { el.classList.remove('swap'); void el.offsetWidth; el.classList.add('swap'); }
+
+  function pickColors(img) {
+    if (!cfg.auto) return;
+    try {
+      const c = document.createElement('canvas');
+      c.width = c.height = 24;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, 24, 24);
+      const d = ctx.getImageData(0, 0, 24, 24).data;
+      // pick the two most vivid pixels from different hues
+      const px = [];
+      for (let i = 0; i < d.length; i += 4) {
+        const [r, g, b] = [d[i], d[i + 1], d[i + 2]];
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        const sat = max ? (max - min) / max : 0;
+        const hue = Math.atan2(Math.sqrt(3) * (g - b), 2 * r - g - b);
+        px.push({ r, g, b, score: sat * (max / 255), hue });
+      }
+      px.sort((a, b) => b.score - a.score);
+      const a = px[0];
+      if (!a || a.score < 0.15) return;
+      const b = px.find(p => Math.abs(p.hue - a.hue) > 0.8 && p.score > 0.1) || a;
+      const boost = p => `rgb(${[p.r, p.g, p.b].map(v => Math.min(255, Math.round(v * 255 / Math.max(p.r, p.g, p.b, 1)))).join(',')})`;
+      root.setProperty('--accent', boost(a));
+      root.setProperty('--accent2', boost(b));
+    } catch (e) { /* cross-origin image, keep default colors */ }
+  }
+
+  function show(track) {
+    if (!track || (!track.playing && cfg.hideIdle)) {
+      widget.classList.add('hidden');
+      current = track;
+      return;
+    }
+    widget.classList.toggle('paused', !track.playing);
+    $('status').textContent = track.playing ? 'Now Playing' : 'Last Played';
+
+    const id = track.title + '|' + track.artist;
+    if (!current || current.title + '|' + current.artist !== id) {
+      setMarquee('title', track.title);
+      setMarquee('artist', track.artist);
+      setMarquee('album', track.album);
+      replay($('text-in'));
+
+      const art = $('art');
+      if (track.art) {
+        art.crossOrigin = 'anonymous';
+        art.onload = () => pickColors(art);
+        art.src = track.art;
+        art.style.visibility = 'visible';
+        $('bg').style.backgroundImage = `url("${track.art}")`;
+      } else {
+        art.removeAttribute('src');
+        $('bg').style.backgroundImage = 'none';
+      }
+      replay(art);
+    }
+    current = track;
+    widget.classList.remove('hidden');
+  }
+
+  // ---------- sources ----------
+  async function fetchLastfm() {
+    const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${encodeURIComponent(cfg.user)}&api_key=${encodeURIComponent(cfg.key)}&format=json&limit=1`;
+    const res = await fetch(url, { cache: 'no-store' });
+    const data = await res.json();
+    const t = data?.recenttracks?.track?.[0];
+    if (!t) return null;
+    const img = (t.image || []).map(i => i['#text']).filter(Boolean).pop() || '';
+    return {
+      title: t.name,
+      artist: t.artist?.['#text'] || t.artist?.name || '',
+      album: t.album?.['#text'] || '',
+      art: img.includes('2a96cbd8b46e442fc41c2b86b821562f') ? '' : img.replace(/\/\d+x\d+\//, '/600x600/'),
+      playing: t['@attr']?.nowplaying === 'true',
+    };
+  }
+
+  const demoTracks = [
+    { title: 'Midnight City', artist: 'M83', album: "Hurry Up, We're Dreaming", art: '' , playing: true },
+    { title: 'A Really Long Song Title That Has To Scroll Across The Card', artist: 'Some Artist feat. Another Artist', album: 'Deluxe Edition', art: '', playing: true },
+    { title: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', art: '', playing: true },
+  ];
+  let demoIdx = 0;
+
+  async function tick() {
+    try {
+      show(cfg.demo ? demoTracks[demoIdx++ % demoTracks.length] : await fetchLastfm());
+    } catch (e) {
+      console.warn('Now playing fetch failed', e);
+    }
+  }
+
+  // ---------- setup page ----------
+  if (!cfg.user && !cfg.demo) {
+    document.body.classList.add('setup');
+    cfg.demo = true;
+    cfg.hideIdle = false;
+    const fields = ['user', 'key', 'accent', 'accent2', 'pos', 'idle', 'auto'].reduce((o, k) => (o[k] = $('f-' + k), o), {});
+    const build = () => {
+      const p = new URLSearchParams();
+      p.set('user', fields.user.value.trim());
+      p.set('key', fields.key.value.trim());
+      if (fields.auto.value === '0') {
+        p.set('auto', '0');
+        p.set('accent', fields.accent.value.slice(1));
+        p.set('accent2', fields.accent2.value.slice(1));
+      }
+      if (fields.pos.value === 'right') p.set('pos', 'right');
+      if (fields.idle.value === '0') p.set('hideidle', '0');
+      root.setProperty('--accent', fields.accent.value);
+      root.setProperty('--accent2', fields.accent2.value);
+      const ready = fields.user.value.trim() && fields.key.value.trim();
+      $('out').textContent = ready ? location.origin + location.pathname + '?' + p : 'Fill in your username and key...';
+      return ready;
+    };
+    Object.values(fields).forEach(f => f.addEventListener('input', build));
+    $('copy').onclick = () => {
+      if (!build()) return;
+      navigator.clipboard?.writeText($('out').textContent);
+      $('copy').textContent = 'Copied!';
+      setTimeout(() => $('copy').textContent = 'Copy OBS link', 1500);
+    };
+  } else if (!cfg.demo && !cfg.key) {
+    show({ title: 'Missing API key', artist: 'Add &key=YOUR_LASTFM_KEY to the link', album: '', art: '', playing: true });
+    return;
+  }
+
+  tick();
+  setInterval(tick, cfg.demo ? 5000 : cfg.interval);
+})();
+</script>
+</body>
+</html>
