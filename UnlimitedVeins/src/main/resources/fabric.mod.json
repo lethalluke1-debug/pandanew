@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "unlimited_veins",
+  "version": "${version}",
+  "name": "Unlimited Veins",
+  "description": "Mines connected ore blocks in every direction with a configurable high safety cap.",
+  "authors": ["Lethal Luke"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.lethalluke.unlimitedveins.UnlimitedVeins"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "26.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
