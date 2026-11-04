@@ -48,7 +48,7 @@ const KEY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Bump this every time the file changes. Open https://lethalclient.com/api/version on the live site:
 // if it shows this exact string, your paste-and-Deploy worked and the newest code is live. If it shows
 // something older (or 404s), Cloudflare is still running an old file and the deploy didn't take.
-const BUILD_VERSION = "2026-11-04-admin-player-version-status";
+const BUILD_VERSION = "2026-11-04-targeted-builds-and-total-only";
 
 // ---------- launch countdown + early-access key ----------
 // Launch: Saturday, October 31 2026 at 1:00 PM Pacific. On that date Pacific is PDT (UTC-7, since
@@ -276,7 +276,8 @@ async function verify(request, env) {
     let latestVer = "", latestSha = "";
     if (mcL && mcL.sha) { latestVer = mcL.version; latestSha = mcL.sha; }
     else if (clientMc === "26.2" && settings.update.sha) { latestVer = settings.update.version; latestSha = settings.update.sha; }
-    const update = latestSha && compareVersions(latestVer, String(body.version || "0")) > 0 ? { updateSha: latestSha, updateVersion: latestVer } : {};
+    const update = targetUpdateFor(settings, name, uuid, body.version)
+      || (latestSha && compareVersions(latestVer, String(body.version || "0")) > 0 ? { updateSha: latestSha, updateVersion: latestVer } : {});
     const freeOwned = COSMETICS_CATALOG.map((c) => c.id);
     const base = { key: rawKey, hwid: rawHwid, nonce, issued: now };
     // Tamper check: the mod sends a SHA-256 fingerprint of its own jar. If a fingerprint we recognise for
@@ -378,8 +379,9 @@ async function verify(request, env) {
   } else if (clientMc === "26.2" && settings.update.sha) {
     latestVer = settings.update.version; latestSha = settings.update.sha;
   }
-  const update = latestSha && compareVersions(latestVer, String(body.version || "0")) > 0
-    ? { updateSha: latestSha, updateVersion: latestVer } : {};
+  const update = targetUpdateFor(settings, user, body.uuid, body.version)
+    || (latestSha && compareVersions(latestVer, String(body.version || "0")) > 0
+      ? { updateSha: latestSha, updateVersion: latestVer } : {});
 
   // Games check in every minute; only save "last seen" every few minutes to keep database writes low.
   if (rec.firstUsed === now || rec.user !== (user || rec.user) || now - (rec.lastSeen || 0) > 5 * 60000) {
@@ -522,6 +524,15 @@ async function admin(action, request, env) {
     if (!uuid) return json({ error: "No player." }, 400);
     await env.DB.prepare("UPDATE players SET role = ? WHERE uuid = ?").bind(role, uuid).run();
     return json({ ok: true, uuid, role });
+  }
+
+  if (action === "untarget") {
+    // Remove a targeted build so those players fall back to the public version again.
+    const ver = String(body.version || "");
+    const prior = await getSettings(env);
+    const targets = (prior.targets || []).filter((t) => t && t.version !== ver);
+    await env.DB.prepare("INSERT OR REPLACE INTO settings (name, value) VALUES ('targets', ?)").bind(JSON.stringify(targets)).run();
+    return json({ ok: true, settings: await getSettings(env) });
   }
 
   if (action === "list") {
@@ -687,10 +698,11 @@ async function putKey(env, rec) {
 async function getSettings(env) {
   const { results } = await env.DB.prepare("SELECT name, value FROM settings").all();
   const map = Object.fromEntries(results.map(row => [row.name, row.value]));
-  let versionList = [], mcAvailable = [], mcLatest = {};
+  let versionList = [], mcAvailable = [], mcLatest = {}, targets = [];
   try { versionList = JSON.parse(map.versions || "[]"); } catch (_) { versionList = []; }
   try { mcAvailable = JSON.parse(map.mc_available || "[]"); } catch (_) { mcAvailable = []; }
   try { mcLatest = JSON.parse(map.mc_latest || "{}"); } catch (_) { mcLatest = {}; }
+  try { targets = JSON.parse(map.targets || "[]"); } catch (_) { targets = []; }
   return {
     maintenance: map.maintenance === "1",
     requiredVersion: map.required_version || "",
@@ -698,7 +710,25 @@ async function getSettings(env) {
     versionList,
     mcAvailable,
     mcLatest,
+    targets,
   };
+}
+
+/** If this player is on a targeted-build list and that build is newer than what they're running, return the
+ *  update to hand them (overrides the public auto-update). Matches by Minecraft name or UUID. */
+function targetUpdateFor(settings, name, uuid, curVer) {
+  const nm = String(name || "").trim().toLowerCase();
+  const id = String(uuid || "").replace(/-/g, "").toLowerCase();
+  for (const t of (settings.targets || [])) {
+    if (!t || !t.sha || !t.version) continue;
+    const names = (t.names || []).map((s) => String(s).trim().toLowerCase());
+    const uuids = (t.uuids || []).map((s) => String(s).replace(/-/g, "").toLowerCase());
+    const hit = (nm && names.includes(nm)) || (id && uuids.includes(id));
+    if (hit && compareVersions(t.version, String(curVer || "0")) > 0) {
+      return { updateSha: t.sha, updateVersion: t.version };
+    }
+  }
+  return null;
 }
 
 /** Compares versions like 1.0.10 and 1.0.9 number by number. */
@@ -812,10 +842,28 @@ async function uploadUpdate(request, env) {
     return m ? m[0] : "";
   })();
   const sha = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map(b => b.toString(16).padStart(2, "0")).join("");
-  // Store the file: "update:jar" is always the newest (the mod auto-updates to it), and a per-version
-  // copy "jar:<version>" so the dashboard can offer older versions for download too.
-  await env.LICENSES.put("update:jar", bytes);
+  // Every uploaded build is stored by its fingerprint too, so it can be served directly by sha — this is
+  // how a targeted build reaches exactly the right person (the client asks /api/update?sha=<its sha>).
+  await env.LICENSES.put("jar:sha:" + sha, bytes);
   await env.LICENSES.put("jar:" + version, bytes);
+
+  // Targeted upload: "x-target" is a comma-separated list of Minecraft names (and/or UUIDs). The build goes
+  // ONLY to those people (they get auto-updated to it); it does NOT become the public latest for everyone.
+  const targetRaw = String(request.headers.get("x-target") || "").trim();
+  if (targetRaw) {
+    const ids = targetRaw.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 200);
+    const uuids = ids.filter((s) => /^[0-9a-fA-F-]{32,36}$/.test(s)).map((s) => s.replace(/-/g, "").toLowerCase());
+    const names = ids.filter((s) => !/^[0-9a-fA-F-]{32,36}$/.test(s));
+    const prior = await getSettings(env);
+    let targets = (prior.targets || []).filter((t) => t && t.version !== version);
+    targets.unshift({ version, sha, size: bytes.length, mc: mcVersion, names, uuids, at: Date.now() });
+    targets = targets.slice(0, 50);
+    await env.DB.prepare("INSERT OR REPLACE INTO settings (name, value) VALUES ('targets', ?)").bind(JSON.stringify(targets)).run();
+    return json({ settings: await getSettings(env), targeted: { version, count: names.length + uuids.length } });
+  }
+
+  // Normal upload: this build becomes the public newest for its Minecraft version.
+  await env.LICENSES.put("update:jar", bytes);
   if (mcVersion) await env.LICENSES.put("jar:mc:" + mcVersion, bytes);
   const now = String(Date.now());
   // Keep a newest-first list of downloadable client builds (deduped, capped).
@@ -849,6 +897,14 @@ async function uploadUpdate(request, env) {
 async function downloadUpdate(request, env) {
   // The client is free: anyone may download the newest build (this is also how old keyed clients, whose
   // keys were wiped when we went free, pull the keyless update and restart into it).
+  // If the client asks for a specific build by fingerprint (?sha=...), serve exactly that one. This is how a
+  // targeted person pulls their assigned build instead of the public latest.
+  const wantSha = String(new URL(request.url).searchParams.get("sha") || "").toLowerCase().replace(/[^a-f0-9]/g, "").slice(0, 64);
+  if (wantSha) {
+    const byShaBuf = env.LICENSES && await env.LICENSES.get("jar:sha:" + wantSha, "arrayBuffer");
+    if (byShaBuf) return new Response(byShaBuf, { headers: { "content-type": "application/java-archive", "cache-control": "no-store" } });
+    // fall through to the normal latest if we don't have that fingerprint stored
+  }
   // Serve the build for this game's own Minecraft version. Old clients send no version → treat as 26.2.
   const clientMc = String(request.headers.get("x-mc") || "").trim() || "26.2";
   let jar = env.LICENSES && await env.LICENSES.get("jar:mc:" + clientMc, "arrayBuffer");
@@ -2914,10 +2970,6 @@ const STORE_HTML = `<title>Lethal Client</title>
     </div>
     <div style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:28px;">
       <div style="background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:26px 40px;min-width:220px;text-align:center;">
-        <div id="dlToday" style="font-family:var(--display);font-weight:700;font-size:44px;letter-spacing:-.02em;line-height:1;">—</div>
-        <div style="color:var(--muted);font-size:14px;margin-top:10px;">Downloads Today</div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:26px 40px;min-width:220px;text-align:center;">
         <div id="dlTotal" style="font-family:var(--display);font-weight:700;font-size:44px;letter-spacing:-.02em;line-height:1;">—</div>
         <div style="color:var(--muted);font-size:14px;margin-top:10px;">Downloads Total</div>
       </div>
@@ -3176,6 +3228,16 @@ const ADMIN_HTML = `<!doctype html>
     </div>
 
     <div class="card">
+      <div><b>Send a build to specific people</b><div class="muted">Only the players you list auto-update to this jar — everyone else keeps the public version. Great for testing a build first.</div></div>
+      <div class="row" style="margin-top:12px">
+        <input id="tjar" type="file" accept=".jar" class="grow">
+        <button id="tUploadBtn" class="primary">Send to people</button>
+      </div>
+      <input id="tNames" class="grow" style="margin-top:8px" placeholder="Minecraft names or UUIDs, comma-separated (e.g. LethalLukeYT, Notch)">
+      <div id="targetsBox" class="muted" style="margin-top:10px">No targeted builds.</div>
+    </div>
+
+    <div class="card">
       <div><b>Minimum version</b><div class="muted" id="verText">Any version can be used.</div></div>
       <div class="row" style="margin-top:12px">
         <input id="reqVer" class="grow" placeholder="Minimum version, e.g. 1.0.2 (blank = any)">
@@ -3264,6 +3326,7 @@ function renderSettings() {
   if (document.activeElement !== $("reqVer")) $("reqVer").value = v;
   var up = settings.update;
   $("updText").textContent = up && up.version ? ("Current upload: " + up.version) : "No update uploaded yet.";
+  renderTargets();
 }
 
 async function loadPlayers() {
@@ -3333,6 +3396,43 @@ $("uploadBtn").addEventListener("click", async function () {
     toast("Uploaded " + (data.settings && data.settings.update ? data.settings.update.version : "") + " — games get it within a minute");
   } finally { b.disabled = false; b.textContent = "Upload"; }
 });
+
+$("tUploadBtn").addEventListener("click", async function () {
+  var file = $("tjar").files[0];
+  var names = ($("tNames").value || "").trim();
+  if (!file) { toast("Pick the .jar first", true); return; }
+  if (!names) { toast("List at least one player name", true); return; }
+  var b = $("tUploadBtn"); b.disabled = true; b.textContent = "Sending…";
+  try {
+    var r = await fetch("/api/admin/upload", { method: "POST", headers: { authorization: "Bearer " + pw, "x-target": names }, body: file });
+    var data = await r.json().catch(function () { return {}; });
+    if (!r.ok) { toast(data.error || "Upload failed", true); return; }
+    settings = data.settings || settings; renderSettings(); $("tjar").value = ""; $("tNames").value = "";
+    var n = data.targeted ? data.targeted.count : 0;
+    toast("Sent to " + n + " player" + (n === 1 ? "" : "s") + " — they update within a minute");
+  } finally { b.disabled = false; b.textContent = "Send to people"; }
+});
+
+function renderTargets() {
+  var box = $("targetsBox");
+  if (!box) return;
+  var t = (settings && settings.targets) || [];
+  if (!t.length) { box.innerHTML = "No targeted builds."; return; }
+  box.innerHTML = t.map(function (x) {
+    var who = ((x.names || []).concat(x.uuids || [])).map(esc).join(", ");
+    return '<div class="row" style="justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line)">' +
+      '<div><b>v' + esc(x.version) + '</b> <span class="muted">→ ' + who + '</span></div>' +
+      '<button class="roleSel" data-ver="' + esc(x.version) + '" style="cursor:pointer">Remove</button></div>';
+  }).join("");
+  Array.prototype.forEach.call(box.querySelectorAll("button[data-ver]"), function (btn) {
+    btn.onclick = function () {
+      api("untarget", { version: btn.getAttribute("data-ver") }).then(function (d) {
+        if (d && d.settings) { settings = d.settings; renderSettings(); }
+        toast("Removed");
+      }).catch(function () {});
+    };
+  });
+}
 
 // Refresh players + last-seen every 20s while logged in.
 setInterval(function () { if (pw && $("app").style.display !== "none") { loadPlayers(); api("list").then(applyList).catch(function () {}); } }, 20000);
