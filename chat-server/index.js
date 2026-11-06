@@ -8,7 +8,7 @@ import { Innertube } from 'youtubei.js';
 
 const PORT = process.env.PORT || 10000;
 const RETRY_OFFLINE_MS = 60_000;
-const MAX_SOURCES = 30;
+const MAX_SOURCES = Number(process.env.MAX_SOURCES || 300);   // distinct live channels at once (set higher on a bigger plan)
 
 // ---------- debug info (open /debug on the server to see it) ----------
 const debug = new Map(); // key -> { log:[], counts:{} }
@@ -285,3 +285,7 @@ wss.on('connection', (ws, req) => {
 });
 
 server.listen(PORT, () => console.log('Lethal Chat server listening on ' + PORT));
+
+// Keep-alive: ping ourselves so a free host doesn't spin the server down while people are connected.
+const SELF = process.env.RENDER_EXTERNAL_URL || process.env.SELF_URL;
+if (SELF) setInterval(() => { fetch(SELF).catch(() => {}); }, 10 * 60 * 1000);
