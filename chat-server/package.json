@@ -1,0 +1,14 @@
+{
+  "name": "lethal-client-chat-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": { "start": "node index.js" },
+  "dependencies": {
+    "tiktok-live-connector": "2.5.0",
+    "ws": "8.22.0",
+    "youtubei.js": "18.1.0"
+  },
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" }
+}
