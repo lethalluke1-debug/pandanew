@@ -161,16 +161,48 @@ async function findLiveViaPage(input, K) {
   return canon[1];
 }
 
+// Pull a concurrent-viewer number out of a youtubei.js VideoInfo, tolerant of shape changes.
+function ytViewerCount(info) {
+  try {
+    const vc = info && info.primary_info && info.primary_info.view_count;
+    const candidates = [
+      vc && vc.view_count && vc.view_count.text,
+      vc && vc.short_view_count && vc.short_view_count.text,
+      vc && vc.original_view_count,
+      info && info.basic_info && info.basic_info.view_count
+    ];
+    for (const c of candidates) {
+      if (c == null) continue;
+      const s = String(c);
+      // Prefer live "watching now" counts; fall back to any number.
+      const digits = s.replace(/[^\d]/g, '');
+      if (digits) return Number(digits);
+    }
+  } catch (e) {}
+  return -1;
+}
+
 function youtubeSource(handle) {
   const K = 'youtube:' + handle.toLowerCase();
   return emit => {
-    let stopped = false, chat = null, timer = null;
+    let stopped = false, chat = null, timer = null, poll = null, yt = null, videoId = null;
     const status = (state, text) => { note(K, 'status ' + state + ': ' + text); emit({ type: 'status', platform: 'youtube', state, text }); };
+    const stopPoll = () => { clearInterval(poll); poll = null; };
     const retry = (ms = RETRY_OFFLINE_MS) => {
       clearTimeout(timer);
+      stopPoll();
+      emit({ type: 'viewers', platform: 'youtube', count: -1 });
       try { chat && chat.stop(); } catch (e) {}
       chat = null;
       if (!stopped) timer = setTimeout(start, ms);
+    };
+    const pollViewers = async () => {
+      if (stopped || !yt || !videoId) return;
+      try {
+        const vi = await yt.getInfo(videoId);
+        const n = ytViewerCount(vi);
+        if (n >= 0) emit({ type: 'viewers', platform: 'youtube', count: n });
+      } catch (e) { note(K, 'viewer poll: ' + String((e && e.message) || e).slice(0, 80)); }
     };
     const start = async () => {
       if (stopped) return;
@@ -179,8 +211,14 @@ function youtubeSource(handle) {
         const id = await findLiveVideoId(handle, K);
         note(K, 'using video ' + id);
         if (!id) { status('wait', 'Not live yet. Checking every minute'); return retry(); }
-        const yt = await getInnertube();
+        yt = await getInnertube();
+        videoId = id;
         const info = await yt.getInfo(id);
+        // First viewer reading + a 30s poll for the rest of the stream.
+        const first = ytViewerCount(info);
+        if (first >= 0) emit({ type: 'viewers', platform: 'youtube', count: first });
+        stopPoll();
+        poll = setInterval(pollViewers, 30_000);
         chat = info.getLiveChat();
         chat.on('start', () => {
           status('on', 'Live');
@@ -211,18 +249,47 @@ function youtubeSource(handle) {
       }
     };
     start();
-    return () => { stopped = true; clearTimeout(timer); try { chat && chat.stop(); } catch (e) {} };
+    return () => { stopped = true; clearTimeout(timer); stopPoll(); try { chat && chat.stop(); } catch (e) {} };
   };
 }
 
 // ---------- Twitch (anonymous IRC — no login needed) ----------
+// Public web Client-ID used read-only by many overlay tools to query stream state.
+const TWITCH_GQL_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
+
+// Live status + concurrent viewers without auth. Returns { live, viewers, roomId } or null on error.
+async function twitchStreamInfo(login) {
+  try {
+    const q = { query: `query{user(login:"${login}"){id stream{viewersCount type}}}` };
+    const r = await fetch('https://gql.twitch.tv/gql', {
+      method: 'POST',
+      headers: { 'Client-ID': TWITCH_GQL_ID, 'Content-Type': 'application/json' },
+      body: JSON.stringify(q)
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const u = j && j.data && j.data.user;
+    if (!u) return null;
+    const live = !!(u.stream && (u.stream.type === 'live' || u.stream.viewersCount != null));
+    return { live, viewers: live ? Number(u.stream.viewersCount || 0) : 0, roomId: u.id || '' };
+  } catch (e) { return null; }
+}
+
 function twitchSource(channel) {
   const chan = channel.toLowerCase();
   const K = 'twitch:' + chan;
   return emit => {
-    let stopped = false, ws = null, timer = null;
+    let stopped = false, ws = null, timer = null, poll = null, roomId = '';
     const status = (state, text) => { note(K, 'status ' + state + ': ' + text); emit({ type: 'status', platform: 'twitch', state, text }); };
     const retry = (ms = 15_000) => { clearTimeout(timer); try { ws && ws.close(); } catch (e) {} if (!stopped) timer = setTimeout(start, ms); };
+    // Poll real live status + viewer count (anonymous IRC alone can't tell if the channel is live).
+    const checkLive = async () => {
+      const info = await twitchStreamInfo(chan);
+      if (stopped || !info) return;
+      roomId = info.roomId || roomId;
+      emit({ type: 'viewers', platform: 'twitch', count: info.live ? info.viewers : -1 });
+      status(info.live ? 'on' : 'wait', info.live ? ('Live — ' + info.viewers + ' viewers') : 'Chat connected (offline)');
+    };
     const start = () => {
       if (stopped) return;
       status('wait', 'Connecting to Twitch #' + chan + '…');
@@ -231,7 +298,7 @@ function twitchSource(channel) {
         ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
         ws.send('NICK justinfan' + Math.floor(Math.random() * 90000 + 10000));
         ws.send('JOIN #' + chan);
-        status('on', 'Connected to #' + chan);
+        checkLive();
       });
       ws.on('message', buf => {
         for (const line of buf.toString().split('\r\n')) {
@@ -245,14 +312,21 @@ function twitchSource(channel) {
           const text = m[3];
           count(K, 'chat');
           if (dbg(K).counts.chat <= 5) note(K, 'chat from ' + name + ': ' + JSON.stringify(text).slice(0, 80) + ' -> ' + src_count(K) + ' page(s)');
-          if (text) emit({ type: 'chat', platform: 'twitch', name, text, color: tags['color'] || '' });
+          if (text) emit({
+            type: 'chat', platform: 'twitch', name, text,
+            color: tags['color'] || '',
+            badges: tags['badges'] || '',       // e.g. "broadcaster/1,subscriber/12"
+            emotes: tags['emotes'] || '',       // e.g. "25:0-4,12-16"
+            roomId: tags['room-id'] || roomId
+          });
         }
       });
       ws.on('close', () => { if (!stopped) { status('wait', 'Reconnecting…'); retry(); } });
       ws.on('error', e => note(K, 'error: ' + String((e && e.message) || e).slice(0, 120)));
     };
     start();
-    return () => { stopped = true; clearTimeout(timer); try { ws && ws.close(); } catch (e) {} };
+    poll = setInterval(checkLive, 30_000);
+    return () => { stopped = true; clearTimeout(timer); clearInterval(poll); try { ws && ws.close(); } catch (e) {} };
   };
 }
 
