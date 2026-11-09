@@ -276,7 +276,7 @@ async function verify(request, env) {
     let latestVer = "", latestSha = "";
     if (mcL && mcL.sha) { latestVer = mcL.version; latestSha = mcL.sha; }
     else if (clientMc === "26.2" && settings.update.sha) { latestVer = settings.update.version; latestSha = settings.update.sha; }
-    const update = targetUpdateFor(settings, name, uuid, body.version)
+    const update = targetUpdateFor(settings, name, uuid, body.version, clientMc)
       || (latestSha && compareVersions(latestVer, String(body.version || "0")) > 0 ? { updateSha: latestSha, updateVersion: latestVer } : {});
     const freeOwned = COSMETICS_CATALOG.map((c) => c.id);
     const base = { key: rawKey, hwid: rawHwid, nonce, issued: now };
@@ -379,7 +379,7 @@ async function verify(request, env) {
   } else if (clientMc === "26.2" && settings.update.sha) {
     latestVer = settings.update.version; latestSha = settings.update.sha;
   }
-  const update = targetUpdateFor(settings, user, body.uuid, body.version)
+  const update = targetUpdateFor(settings, user, body.uuid, body.version, clientMc)
     || (latestSha && compareVersions(latestVer, String(body.version || "0")) > 0
       ? { updateSha: latestSha, updateVersion: latestVer } : {});
 
@@ -619,6 +619,9 @@ function setup(env) {
         env.DB.prepare("CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, uid TEXT NOT NULL, created INTEGER NOT NULL)"),
         env.DB.prepare("CREATE TABLE IF NOT EXISTS entitlements (user_id TEXT NOT NULL, item TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (user_id, item))"),
         env.DB.prepare("CREATE TABLE IF NOT EXISTS dl_ips (ip TEXT PRIMARY KEY, first_day TEXT NOT NULL, last_day TEXT NOT NULL)"),
+        // One row per (who, Minecraft version): downloads are counted once each, so a re-download never
+        // re-counts. "who" is "u:<account id>" for signed-in downloads or "ip:<address>" for public ones.
+        env.DB.prepare("CREATE TABLE IF NOT EXISTS dl_log (ident TEXT NOT NULL, mc TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (ident, mc))"),
       ]);
       // Older databases don't have the cosmetics / role columns yet.
       const cols = await env.DB.prepare("PRAGMA table_info(players)").all();
@@ -716,11 +719,15 @@ async function getSettings(env) {
 
 /** If this player is on a targeted-build list and that build is newer than what they're running, return the
  *  update to hand them (overrides the public auto-update). Matches by Minecraft name or UUID. */
-function targetUpdateFor(settings, name, uuid, curVer) {
+function targetUpdateFor(settings, name, uuid, curVer, clientMc) {
   const nm = String(name || "").trim().toLowerCase();
   const id = String(uuid || "").replace(/-/g, "").toLowerCase();
+  const mc = String(clientMc || "").trim();
   for (const t of (settings.targets || [])) {
     if (!t || !t.sha || !t.version) continue;
+    // A targeted build only goes to players on the same Minecraft version it was built for — never hand a
+    // 26.2 jar to a 1.21.11 player (or the reverse). When either side's MC is unknown, fall through.
+    if (mc && t.mc && String(t.mc) !== mc) continue;
     const names = (t.names || []).map((s) => String(s).trim().toLowerCase());
     const uuids = (t.uuids || []).map((s) => String(s).replace(/-/g, "").toLowerCase());
     const hit = (nm && names.includes(nm)) || (id && uuids.includes(id));
@@ -1472,6 +1479,8 @@ async function accountInfo(request, env) {
   if (versions.length === 0 && settings.update.version) versions = [{ v: settings.update.version, size: settings.update.size || 0 }];
   let mcAvailable = (settings.mcAvailable || []).map((x) => x.mc);
   if (mcAvailable.length === 0 && settings.update.sha) mcAvailable = ["26.2"];
+  // Versions this account has already downloaded — each is offered only once.
+  const downloaded = await downloadedVersions(env, "u:" + user.id);
   return json({
     username: user.username,
     email: user.email,
@@ -1479,9 +1488,10 @@ async function accountInfo(request, env) {
     canDownload: linked && status === "active",
     version: settings.update.version || "",
     size: settings.update.size || 0,
-    hasJar: !!settings.update.sha,
+    hasJar: mcAvailable.length > 0,
     versions,
     mcAvailable,
+    downloaded,
   });
 }
 async function redeemKey(request, env) {
@@ -1641,35 +1651,53 @@ async function upgradeKeyToLifetime(env, session) {
 
 /** Record a download as a UNIQUE person: one row per IP, so the same IP downloading many times counts once.
  *  Best-effort — never fail a download over counting. */
-async function bumpDownloads(env, ip) {
-  if (!ip) return;
+/** Records one download of a given Minecraft version by a given identity, counted at most once
+ *  (a re-download of the same version by the same person never re-counts). */
+async function recordDownload(env, ident, mc) {
+  if (!ident || !mc) return;
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    await env.DB.prepare(
-      "INSERT INTO dl_ips (ip, first_day, last_day) VALUES (?, ?, ?) ON CONFLICT(ip) DO UPDATE SET last_day = excluded.last_day"
-    ).bind(ip, today, today).run();
+    await env.DB.prepare("INSERT OR IGNORE INTO dl_log (ident, mc, at) VALUES (?, ?, ?)").bind(ident, mc, Date.now()).run();
   } catch (_) {
     // counting is non-critical
   }
 }
 
-/** Public download counters for the website: { today, total } — counted as UNIQUE people (distinct IPs).
- *  "total" = distinct IPs ever; "today" = distinct IPs whose latest download was today. */
-async function downloadStats(env) {
-  const today = new Date().toISOString().slice(0, 10);
-  let total = 0, todayN = 0, base = 0;
+/** Which Minecraft versions this identity has already downloaded (so each can be offered only once). */
+async function downloadedVersions(env, ident) {
+  if (!ident) return [];
   try {
-    const t = await env.DB.prepare("SELECT COUNT(*) AS c FROM dl_ips").first();
-    const d = await env.DB.prepare("SELECT COUNT(*) AS c FROM dl_ips WHERE last_day = ?").bind(today).first();
-    const b = await env.DB.prepare("SELECT value FROM settings WHERE name = 'dl_base'").first();
-    total = (t && t.c) || 0;
-    todayN = (d && d.c) || 0;
-    base = b ? (parseInt(b.value, 10) || 0) : 0;
+    const rows = await env.DB.prepare("SELECT mc FROM dl_log WHERE ident = ?").bind(ident).all();
+    return (rows.results || []).map((r) => String(r.mc));
   } catch (_) {
-    // table may not exist yet on a brand-new DB
+    return [];
   }
-  // Total = historical base (the old 77) + new unique people. Today is just new unique people today.
-  return json({ total: total + base, today: todayN });
+}
+
+/** Download counters for the website, counted ONCE per (person, Minecraft version):
+ *  { counts: {"26.2": n, "1.21.11": m}, total, available }. The old IP counts + the historical
+ *  base all predate per-MC tracking, so they fold into 26.2. */
+async function downloadStats(env) {
+  const counts = {};
+  let base = 0, ipTotal = 0;
+  try {
+    const rows = await env.DB.prepare("SELECT mc, COUNT(*) AS c FROM dl_log GROUP BY mc").all();
+    (rows.results || []).forEach((r) => { counts[String(r.mc)] = (counts[String(r.mc)] || 0) + (r.c || 0); });
+    const b = await env.DB.prepare("SELECT value FROM settings WHERE name = 'dl_base'").first();
+    base = b ? (parseInt(b.value, 10) || 0) : 0;
+    const t = await env.DB.prepare("SELECT COUNT(*) AS c FROM dl_ips").first();
+    ipTotal = (t && t.c) || 0;
+  } catch (_) {
+    // tables may not exist yet on a brand-new DB
+  }
+  counts["26.2"] = (counts["26.2"] || 0) + base + ipTotal;
+  let available = [];
+  try {
+    const settings = await getSettings(env);
+    available = (settings.mcAvailable || []).map((x) => x.mc);
+    if (available.length === 0 && settings.update && settings.update.sha) available = ["26.2"];
+  } catch (_) {}
+  const total = Object.keys(counts).reduce((a, k) => a + (counts[k] || 0), 0);
+  return json({ counts, total, available, "26.2": counts["26.2"] || 0, "1.21.11": counts["1.21.11"] || 0 });
 }
 
 /** The client is free with no account — anyone can download the newest jar straight from the site. */
@@ -1682,7 +1710,7 @@ async function publicDownload(request, env, url) {
   let jar = env.LICENSES && await env.LICENSES.get("jar:mc:" + mc, "arrayBuffer");
   if (!jar && mc === "26.2") jar = env.LICENSES && await env.LICENSES.get("update:jar", "arrayBuffer");
   if (!jar) return json({ error: "That version isn't available for download yet." }, 404);
-  await bumpDownloads(env, request.headers.get("cf-connecting-ip") || "");
+  await recordDownload(env, "ip:" + (request.headers.get("cf-connecting-ip") || "0.0.0.0"), mc);
   return new Response(jar, {
     headers: {
       "content-type": "application/java-archive",
@@ -1710,7 +1738,7 @@ async function dashDownload(request, env) {
     let jar = env.LICENSES && await env.LICENSES.get("jar:mc:" + mc, "arrayBuffer");
     if (!jar && mc === "26.2") jar = env.LICENSES && await env.LICENSES.get("update:jar", "arrayBuffer");
     if (!jar) return json({ error: "That version isn't available for download." }, 404);
-    await bumpDownloads(env, request.headers.get("cf-connecting-ip") || "");
+    await recordDownload(env, "u:" + user.id, mc);
     return new Response(jar, {
       headers: {
         "content-type": "application/java-archive",
@@ -1728,7 +1756,7 @@ async function dashDownload(request, env) {
   else if (want && want === latest) { ver = latest; kvKey = "update:jar"; }
   const jar = env.LICENSES && await env.LICENSES.get(kvKey, "arrayBuffer");
   if (!jar) return json({ error: "That version isn't available for download." }, 404);
-  await bumpDownloads(env, request.headers.get("cf-connecting-ip") || "");
+  await recordDownload(env, "u:" + user.id, "26.2");
   const fname = "lethal-client-" + ver + ".jar";
   return new Response(jar, {
     headers: {
@@ -2119,9 +2147,10 @@ const DASHBOARD_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-
     el("latestBadge").style.display=a.hasJar?"inline-flex":"none";
     var box=el("dlbox");
     if(!a.hasJar){
-      box.innerHTML='<div class="locked"><div class="lk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>No build available yet</div></div>';
+      box.innerHTML='<div class="locked"><div class="lk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Coming soon</div></div>';
     } else if(a.canDownload){
-      var avail={}; (a.mcAvailable||[]).forEach(function(m){avail[m]=1;});
+      var avail=(a.mcAvailable||[]);
+      var done={}; (a.downloaded||[]).forEach(function(m){done[m]=1;});
       box.innerHTML=''
         +'<div class="dlpick">'
           +'<button class="dlbtn" id="dlTrigger" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Download<span class="caret">&#9662;</span></button>'
@@ -2129,9 +2158,10 @@ const DASHBOARD_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-
         +'</div>'
         +'<div class="fname">Pick your Minecraft version to download</div>';
       var list=el("dlList");
-      list.innerHTML=MC_VERSIONS.map(function(v,i){
-        var on=!!avail[v];
-        return '<div class="dlitem'+(on?'':' soon')+'" data-mc="'+v+'" style="animation-delay:'+(i*0.022)+'s"><span class="mc-dot"></span>Minecraft '+v+'<span class="tag">'+(on?'Available':'Soon')+'</span></div>';
+      // Only the versions that have a build uploaded show up; one you already grabbed is disabled.
+      list.innerHTML=avail.map(function(v,i){
+        var dl=!!done[v];
+        return '<div class="dlitem'+(dl?' soon':'')+'" data-mc="'+v+'" data-done="'+(dl?1:0)+'" style="animation-delay:'+(i*0.022)+'s"><span class="mc-dot"></span>Minecraft '+v+'<span class="tag">'+(dl?'Downloaded':'Download')+'</span></div>';
       }).join("");
       var trg=el("dlTrigger"), menu=el("dlMenu");
       function openMenu(o){ menu.classList.toggle("open",o); trg.classList.toggle("open",o); }
@@ -2140,9 +2170,10 @@ const DASHBOARD_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-
       menu.addEventListener("click",function(e){ e.stopPropagation(); });
       list.querySelectorAll(".dlitem").forEach(function(it){
         it.addEventListener("click",function(){
-          if(it.classList.contains("soon")) return;
+          if(it.getAttribute("data-done")==="1") return;   // already downloaded — only once each
           openMenu(false);
           window.location.href="/api/download?mc="+encodeURIComponent(it.getAttribute("data-mc"));
+          setTimeout(load, 1800);                           // refresh so this version shows as Downloaded
         });
       });
     } else {
@@ -2965,13 +2996,21 @@ const STORE_HTML = `<title>Lethal Client</title>
       <p style="margin-left:auto;margin-right:auto;">The whole client, every feature, every future update. No account, no payment — just download and play.</p>
     </div>
     <div style="text-align:center;margin-top:30px;">
-      <a class="btn btn-primary btn-lg" href="/download" style="font-size:18px;padding:16px 44px;">Download — it's free</a>
+      <div id="dlPick"><a class="btn btn-primary btn-lg" href="/download" style="font-size:18px;padding:16px 44px;">Download — it's free</a></div>
       <p class="guarantee" style="margin-top:18px;">No account · Windows · drop the .jar in your mods folder and play.</p>
     </div>
     <div style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:28px;">
-      <div style="background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:26px 40px;min-width:220px;text-align:center;">
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:26px 40px;min-width:200px;text-align:center;">
+        <div id="dl26" style="font-family:var(--display);font-weight:700;font-size:44px;letter-spacing:-.02em;line-height:1;">—</div>
+        <div style="color:var(--muted);font-size:14px;margin-top:10px;">26.2 Downloads</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:26px 40px;min-width:200px;text-align:center;">
+        <div id="dl1211" style="font-family:var(--display);font-weight:700;font-size:44px;letter-spacing:-.02em;line-height:1;">—</div>
+        <div style="color:var(--muted);font-size:14px;margin-top:10px;">1.21.11 Downloads</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:26px 40px;min-width:200px;text-align:center;">
         <div id="dlTotal" style="font-family:var(--display);font-weight:700;font-size:44px;letter-spacing:-.02em;line-height:1;">—</div>
-        <div style="color:var(--muted);font-size:14px;margin-top:10px;">Downloads Total</div>
+        <div style="color:var(--muted);font-size:14px;margin-top:10px;">Total Downloads</div>
       </div>
     </div>
   </div>
@@ -3040,9 +3079,10 @@ const STORE_HTML = `<title>Lethal Client</title>
 <script>
   document.getElementById("yr").textContent = new Date().getFullYear();
 
-  // Live download counters — refresh on their own, no page reload needed.
+  // Live download counters (per Minecraft version + total) and the version picker — refresh on their own.
   (function(){
-    var cur = { today:0, total:0 };
+    var cur = { "26.2":0, "1.21.11":0, total:0 };
+    var pickKey = "";
     function animate(el, from, to){
       if(from===to){ el.textContent = to.toLocaleString(); return; }
       var start = null, dur = 700;
@@ -3051,15 +3091,34 @@ const STORE_HTML = `<title>Lethal Client</title>
         if(k<1) requestAnimationFrame(step); }
       requestAnimationFrame(step);
     }
+    function label(v){ return v==="26.2" ? "26.2" : v; }
+    function buildPicker(avail){
+      var key = (avail||[]).join(",");
+      if(key===pickKey) return;                   // only rebuild when the available set changes
+      pickKey = key;
+      var pick=document.getElementById("dlPick");
+      if(!pick) return;
+      if(!avail || avail.length===0){
+        pick.innerHTML='<button class="btn btn-primary btn-lg" style="font-size:18px;padding:16px 44px;opacity:.6;cursor:not-allowed" disabled>Coming soon</button>';
+        return;
+      }
+      pick.innerHTML = avail.map(function(v){
+        return '<a class="btn btn-primary btn-lg" href="/download?mc='+encodeURIComponent(v)+'" style="font-size:18px;padding:16px 34px;margin:6px;">Download for '+label(v)+'</a>';
+      }).join("");
+    }
     function refresh(){
       fetch("/api/stats",{cache:"no-store"}).then(function(r){return r.json();}).then(function(d){
-        var t=document.getElementById("dlToday"), a=document.getElementById("dlTotal");
-        var nt=d.today||0, na=d.total||0;
-        if(t) animate(t, cur.today, nt); if(a) animate(a, cur.total, na);
-        cur = { today:nt, total:na };
+        var c26=d["26.2"]||(d.counts&&d.counts["26.2"])||0;
+        var c1211=d["1.21.11"]||(d.counts&&d.counts["1.21.11"])||0;
+        var na=d.total||0;
+        var e26=document.getElementById("dl26"), e1211=document.getElementById("dl1211"), a=document.getElementById("dlTotal");
+        if(e26) animate(e26, cur["26.2"], c26);
+        if(e1211) animate(e1211, cur["1.21.11"], c1211);
+        if(a) animate(a, cur.total, na);
+        cur = { "26.2":c26, "1.21.11":c1211, total:na };
+        buildPicker(d.available||[]);
       }).catch(function(){
-        var t=document.getElementById("dlToday"), a=document.getElementById("dlTotal");
-        if(t&&t.textContent==="—") t.textContent="0"; if(a&&a.textContent==="—") a.textContent="0";
+        ["dl26","dl1211","dlTotal"].forEach(function(id){ var x=document.getElementById(id); if(x&&x.textContent==="—") x.textContent="0"; });
       });
     }
     refresh();
@@ -3429,8 +3488,9 @@ function renderTargets() {
   if (!t.length) { box.innerHTML = "No targeted builds."; return; }
   box.innerHTML = t.map(function (x) {
     var who = ((x.names || []).concat(x.uuids || [])).map(esc).join(", ");
+    var mcTag = x.mc ? ' <span class="muted" style="font-size:11px">MC ' + esc(x.mc) + ' only</span>' : '';
     return '<div class="row" style="justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line)">' +
-      '<div><b>v' + esc(x.version) + '</b> <span class="muted">→ ' + who + '</span></div>' +
+      '<div><b>v' + esc(x.version) + '</b>' + mcTag + ' <span class="muted">→ ' + who + '</span></div>' +
       '<button class="roleSel" data-ver="' + esc(x.version) + '" style="cursor:pointer">Remove</button></div>';
   }).join("");
   Array.prototype.forEach.call(box.querySelectorAll("button[data-ver]"), function (btn) {
