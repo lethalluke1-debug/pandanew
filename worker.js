@@ -2036,7 +2036,7 @@ const DASHBOARD_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-
     {v:"1.0.4x", notes:["New sky presets with previews","Removed music hotkeys","Beat-pulse lyrics by default"]}
   ];
   // The Minecraft versions we support, newest first. Ones with a real build show "Available".
-  var MC_VERSIONS=["26.2"];
+  var MC_VERSIONS=["26.2","1.21.11"];
   function el(id){return document.getElementById(id);}
   function fmtSize(b){ if(!b) return ""; return " · "+Math.round(b/1024)+" KB"; }
   document.querySelectorAll(".nav button").forEach(function(btn){
@@ -3219,7 +3219,8 @@ const ADMIN_HTML = `<!doctype html>
     </div>
 
     <div class="card">
-      <div><b>Update the mod</b><div class="muted" id="updText">No update uploaded yet.</div></div>
+      <div><b>Update the mod</b><div class="muted" id="updText">No update uploaded yet.</div>
+        <div class="muted" style="margin-top:4px;font-size:12px">Upload each Minecraft version's jar (26.2 and 1.21.11) — it's filed under its own version automatically, so just upload them one at a time.</div></div>
       <div class="row" style="margin-top:12px">
         <input id="jar" type="file" accept=".jar" class="grow">
         <label class="muted row" style="gap:6px"><input id="req" type="checkbox" checked style="width:auto"> Make everyone update</label>
@@ -3325,7 +3326,15 @@ function renderSettings() {
   $("verText").textContent = v ? ("Players must be on " + v + " or newer.") : "Any version can be used.";
   if (document.activeElement !== $("reqVer")) $("reqVer").value = v;
   var up = settings.update;
-  $("updText").textContent = up && up.version ? ("Current upload: " + up.version) : "No update uploaded yet.";
+  var ml = settings.mcLatest || {};
+  var mcs = Object.keys(ml).filter(function (k) { return ml[k] && ml[k].version; }).sort();
+  if (mcs.length) {
+    $("updText").innerHTML = mcs.map(function (mc) {
+      return 'MC ' + esc(mc) + ': <b>v' + esc(ml[mc].version) + '</b>';
+    }).join(' &nbsp;·&nbsp; ');
+  } else {
+    $("updText").textContent = up && up.version ? ("Current upload: " + up.version) : "No update uploaded yet.";
+  }
   renderTargets();
 }
 
