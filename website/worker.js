@@ -255,8 +255,9 @@ async function verify(request, env) {
     // The mini figure this player has equipped and is sharing ("" if none / sharing turned off).
     const rawFig = String(body.fig || "");
     const fig = /^[a-z0-9_]{1,24}$/.test(rawFig) ? rawFig : "";
-    const me = await env.DB.prepare("SELECT cape, cos, fig, seen, role, ver, mc FROM players WHERE uuid = ?").bind(uuid).first();
+    const me = await env.DB.prepare("SELECT cape, cos, fig, seen, role, role2, ver, mc FROM players WHERE uuid = ?").bind(uuid).first();
     const myRole = me ? me.role : null;
+    const myRole2 = me ? me.role2 : null;
     const pVer = String(body.version || "").slice(0, 32);
     const pMc = (String(body.mc || "").trim() || "26.2").slice(0, 16);
     if (!me || me.cape !== cape || (me.cos || "") !== cos || (me.fig || "") !== fig || (me.ver || "") !== pVer || (me.mc || "") !== pMc || now - (me.seen || 0) > 5 * 60000) {
@@ -268,9 +269,10 @@ async function verify(request, env) {
     }
     let needCape = false;
     if (/^[0-9a-f]{64}$/.test(cape)) needCape = !(await env.DB.prepare("SELECT sha FROM capes WHERE sha = ?").bind(cape).first());
-    const { players, ranks, cosmetics, figures } = await modUsers(env, Array.isArray(body.nearby) ? body.nearby : [], now);
+    const { players, ranks, ranks2, cosmetics, figures } = await modUsers(env, Array.isArray(body.nearby) ? body.nearby : [], now);
     const settings = await getSettings(env);
     const rank = cleanRank(myRole || "");
+    const rank2 = cleanRank(myRole2 || "");
     const clientMc = String(body.mc || "").trim() || "26.2";
     const mcL = (settings.mcLatest || {})[clientMc];
     let latestVer = "", latestSha = "";
@@ -301,13 +303,13 @@ async function verify(request, env) {
       }
     }
     if (settings.requiredVersion && compareVersions(String(body.version || "0"), settings.requiredVersion) < 0) {
-      return signed(env, { ok: false, status: "outdated", message: "A new version of Lethal Client is out. You need it to keep using the client.", ...base, required: settings.requiredVersion, rank, ...update }, { players, ranks, cosmetics, figures, needCape });
+      return signed(env, { ok: false, status: "outdated", message: "A new version of Lethal Client is out. You need it to keep using the client.", ...base, required: settings.requiredVersion, rank, rank2, ...update }, { players, ranks, ranks2, cosmetics, figures, needCape });
     }
     return signed(env, {
       ok: true, status: "active", message: "Lethal Client active.", ...base,
       validUntil: now + GRACE_MS, expires: 0, owned: freeOwned,
-      maintenance: settings.maintenance, rank, ...update,
-    }, { players, ranks, cosmetics, figures, needCape });
+      maintenance: settings.maintenance, rank, rank2, ...update,
+    }, { players, ranks, ranks2, cosmetics, figures, needCape });
   }
 
   if (!key || !hwid) return reply("invalid", "Invalid license key.");
@@ -412,9 +414,11 @@ async function verify(request, env) {
   const fig = /^[a-z0-9_]{1,24}$/.test(rawFig) ? rawFig : "";
   let needCape = false;
   let myRole = null;
+  let myRole2 = null;
   if (uuid) {
-    const me = await env.DB.prepare("SELECT cape, cos, fig, seen, role, ver, mc FROM players WHERE uuid = ?").bind(uuid).first();
+    const me = await env.DB.prepare("SELECT cape, cos, fig, seen, role, role2, ver, mc FROM players WHERE uuid = ?").bind(uuid).first();
     myRole = me ? me.role : null;
+    myRole2 = me ? me.role2 : null;
     const pVer = String(body.version || "").slice(0, 32);
     const pMc = (String(body.mc || "").trim() || "26.2").slice(0, 16);
     if (!me || me.cape !== cape || (me.cos || "") !== cos || (me.fig || "") !== fig || (me.ver || "") !== pVer || (me.mc || "") !== pMc || now - me.seen > 5 * 60000) {
@@ -426,22 +430,23 @@ async function verify(request, env) {
     }
     if (/^[0-9a-f]{64}$/.test(cape)) needCape = !(await env.DB.prepare("SELECT sha FROM capes WHERE sha = ?").bind(cape).first());
   }
-  const { players, ranks, cosmetics, figures } = await modUsers(env, Array.isArray(body.nearby) ? body.nearby : [], now);
+  const { players, ranks, ranks2, cosmetics, figures } = await modUsers(env, Array.isArray(body.nearby) ? body.nearby : [], now);
   // The player's own badge: their admin-assigned role if they have one, otherwise their key's rank.
   const rank = cleanRank(myRole || rec.rank);
+  const rank2 = cleanRank(myRole2 || "");
 
   // Too old a version: lock it until the new one is in.
   if (settings.requiredVersion && compareVersions(String(body.version || "0"), settings.requiredVersion) < 0) {
     return reply("outdated", "A new version of Lethal Client is out. You need it to keep using the client.", {
-      required: settings.requiredVersion, rank, ...update,
-    }, { players, ranks, cosmetics, figures, needCape });
+      required: settings.requiredVersion, rank, rank2, ...update,
+    }, { players, ranks, ranks2, cosmetics, figures, needCape });
   }
 
   const validUntil = rec.expires ? Math.min(rec.expires, now + GRACE_MS) : now + GRACE_MS;
   return reply("active", "License active.", {
     validUntil, expires: rec.expires || 0, owned: [...owned],
-    maintenance: settings.maintenance, rank, ...update,
-  }, { players, ranks, cosmetics, figures, needCape });
+    maintenance: settings.maintenance, rank, rank2, ...update,
+  }, { players, ranks, ranks2, cosmetics, figures, needCape });
 }
 
 // ---------- admin endpoints ----------
@@ -494,7 +499,7 @@ async function admin(action, request, env) {
   if (action === "players") {
     // Everyone who has run the client (their Minecraft name + uuid), newest first.
     const { results } = await env.DB.prepare(
-      "SELECT uuid, name, seen, role, ver, mc FROM players ORDER BY seen DESC LIMIT 500"
+      "SELECT uuid, name, seen, role, role2, ver, mc FROM players ORDER BY seen DESC LIMIT 500"
     ).all();
     const settings = await getSettings(env);
     // The newest uploaded client version for a given Minecraft version.
@@ -513,15 +518,21 @@ async function admin(action, request, env) {
         // up to date if we know both versions and the player's is >= the newest; unknown if we lack data.
         let uptodate = null;
         if (ver && latest) uptodate = compareVersions(ver, latest) >= 0;
-        return { uuid: p.uuid, name: p.name || "", seen: p.seen || 0, role: cleanRank(p.role), ver, mc, latest, uptodate };
+        return { uuid: p.uuid, name: p.name || "", seen: p.seen || 0, role: cleanRank(p.role), role2: cleanRank(p.role2), ver, mc, latest, uptodate };
       }),
     });
   }
 
   if (action === "setrole") {
     const uuid = cleanUuid(body.uuid);
-    const role = cleanRank(String(body.role || ""));
     if (!uuid) return json({ error: "No player." }, 400);
+    // Two role slots: {uuid, role2} sets the second badge, {uuid, role} sets the first.
+    if (body.role2 !== undefined) {
+      const role2 = cleanRank(String(body.role2 || ""));
+      await env.DB.prepare("UPDATE players SET role2 = ? WHERE uuid = ?").bind(role2, uuid).run();
+      return json({ ok: true, uuid, role2 });
+    }
+    const role = cleanRank(String(body.role || ""));
     await env.DB.prepare("UPDATE players SET role = ? WHERE uuid = ?").bind(role, uuid).run();
     return json({ ok: true, uuid, role });
   }
@@ -630,6 +641,10 @@ function setup(env) {
       }
       if (!cols.results.some(c => c.name === "role")) {
         await env.DB.prepare("ALTER TABLE players ADD COLUMN role TEXT").run();
+      }
+      // Second role slot (a player can hold two roles, e.g. Staff + Manager, and show both badges).
+      if (!cols.results.some(c => c.name === "role2")) {
+        await env.DB.prepare("ALTER TABLE players ADD COLUMN role2 TEXT").run();
       }
       // The equipped mini figure, shared so other Lethal Client users can see it follow you.
       if (!cols.results.some(c => c.name === "fig")) {
@@ -762,7 +777,7 @@ function cleanUuid(u) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(s) ? s : "";
 }
 
-const RANKS = ["member", "vip", "creator", "owner"];
+const RANKS = ["member", "vip", "staff", "manager", "creator", "owner"];
 
 function cleanRank(r) {
   return RANKS.includes(r) ? r : "member";
@@ -776,23 +791,26 @@ async function modUsers(env, list, now) {
   const uuids = [...new Set(list.slice(0, 300).map(cleanUuid).filter(Boolean))];
   const players = {};
   const ranks = {};
+  const ranks2 = {};
   const cosmetics = {};
   const figures = {};
   for (let i = 0; i < uuids.length; i += 90) {
     const part = uuids.slice(i, i + 90);
     const { results } = await env.DB.prepare(
-      "SELECT p.uuid, p.cape, p.cos, p.fig, COALESCE(p.role, json_extract(k.data, '$.rank')) AS rank FROM players p LEFT JOIN keys k ON k.key = p.key " +
+      "SELECT p.uuid, p.cape, p.cos, p.fig, p.role2, COALESCE(p.role, json_extract(k.data, '$.rank')) AS rank FROM players p LEFT JOIN keys k ON k.key = p.key " +
       "WHERE p.seen > ? AND p.uuid IN (" + part.map(() => "?").join(",") + ")"
     ).bind(now - PLAYER_FRESH_MS, ...part).all();
     for (const row of results) {
       players[row.uuid] = row.cape || "";
       const rank = cleanRank(row.rank);
       if (rank !== "member") ranks[row.uuid] = rank;
+      const r2 = cleanRank(row.role2);
+      if (r2 !== "member") ranks2[row.uuid] = r2;
       if (row.cos) cosmetics[row.uuid] = row.cos;
       if (row.fig) figures[row.uuid] = row.fig;
     }
   }
-  return { players, ranks, cosmetics, figures };
+  return { players, ranks, ranks2, cosmetics, figures };
 }
 
 async function uploadCape(request, env) {
@@ -3405,7 +3423,9 @@ function verCell(p) {
   var mc = p.mc || "";
   var mcTag = mc ? '<span class="muted" style="font-size:11px">MC ' + esc(mc) + '</span>' : '';
   if (!ver) return '<span class="muted">unknown</span>' + (mcTag ? ' ' + mcTag : '');
-  var label = 'v' + esc(ver);
+  // The build suffix (e.g. "1.0.213-1.21.11" or "1.0.271+1.21.11") already carries the MC version, which
+  // we show separately, so trim it off to avoid the doubled-up "v1.0.213-1.21.11 MC 1.21.11".
+  var label = 'v' + esc(String(ver).split(/[+\-]/)[0]);
   var badge = '';
   if (p.uptodate === true) {
     badge = '<span style="background:#11351f;color:#4ade80;border:1px solid #1e5c37;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:600">Up to date</span>';
@@ -3417,24 +3437,38 @@ function verCell(p) {
 function renderPlayers() {
   var q = (($("pSearch") && $("pSearch").value) || "").toLowerCase();
   var list = players.filter(function (p) { return !q || (p.name || "").toLowerCase().indexOf(q) >= 0; });
-  $("pCount").textContent = "· " + players.length;
+  // Online = checked in within the last 3 minutes (the client pings about once a minute).
+  var ONLINE_MS = 3 * 60 * 1000, now = Date.now();
+  var online = players.filter(function (p) { return now - (p.seen || 0) < ONLINE_MS; }).length;
+  var offline = players.length - online;
+  $("pCount").innerHTML = '· <span style="color:#4ade80">' + online + ' online</span> · <span style="color:#9ba1ac">' + offline + ' offline</span>';
   if (!list.length) { $("playersBox").innerHTML = '<div class="muted" style="padding:8px 0">No players yet — they appear here the first time they run the client.</div>'; return; }
-  var roles = ["member", "vip", "creator", "owner"];
-  $("playersBox").innerHTML = '<table><thead><tr><th>Player</th><th>Version</th><th>Last seen</th><th>Role</th></tr></thead><tbody>' +
+  var roles = ["member", "vip", "staff", "manager", "creator", "owner"];
+  function sel(p, slot) {
+    var cur = slot === 2 ? (p.role2 || "member") : (p.role || "member");
+    return '<select class="roleSel" data-uuid="' + esc(p.uuid) + '" data-slot="' + slot + '">' +
+      roles.map(function (r) { return '<option value="' + r + '"' + (cur === r ? " selected" : "") + '>' + (slot === 2 && r === "member" ? "— none —" : r.charAt(0).toUpperCase() + r.slice(1)) + '</option>'; }).join("") +
+      '</select>';
+  }
+  $("playersBox").innerHTML = '<table><thead><tr><th>Player</th><th>Version</th><th>Last seen</th><th>Role</th><th>2nd role</th></tr></thead><tbody>' +
     list.map(function (p) {
-      return '<tr><td><div class="row" style="gap:10px"><img class="avatar" src="https://mc-heads.net/avatar/' + encodeURIComponent(p.uuid || p.name) + '/28" onerror="this.style.visibility=\\'hidden\\'"><b>' + esc(p.name || "?") + '</b></div></td>' +
+      var dot = (now - (p.seen || 0) < ONLINE_MS)
+        ? '<span title="online" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#36d39a;box-shadow:0 0 7px #36d39a;flex:none"></span>'
+        : '<span title="offline" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#3a4660;flex:none"></span>';
+      return '<tr><td><div class="row" style="gap:10px">' + dot + '<img class="avatar" src="https://mc-heads.net/avatar/' + encodeURIComponent(p.uuid || p.name) + '/28" onerror="this.style.visibility=\\'hidden\\'"><b>' + esc(p.name || "?") + '</b></div></td>' +
         '<td>' + verCell(p) + '</td>' +
         '<td class="muted">' + ago(p.seen) + '</td>' +
-        '<td><select class="roleSel" data-uuid="' + esc(p.uuid) + '">' +
-        roles.map(function (r) { return '<option value="' + r + '"' + (p.role === r ? " selected" : "") + '>' + r.charAt(0).toUpperCase() + r.slice(1) + '</option>'; }).join("") +
-        '</select></td></tr>';
+        '<td>' + sel(p, 1) + '</td>' +
+        '<td>' + sel(p, 2) + '</td></tr>';
     }).join("") + '</tbody></table>';
-  Array.prototype.forEach.call(document.querySelectorAll(".roleSel"), function (sel) {
-    sel.onchange = function () {
-      var uuid = sel.getAttribute("data-uuid");
+  Array.prototype.forEach.call(document.querySelectorAll(".roleSel"), function (s) {
+    s.onchange = function () {
+      var uuid = s.getAttribute("data-uuid");
+      var slot = s.getAttribute("data-slot");
       var p = players.find(function (x) { return x.uuid === uuid; });
-      if (p) p.role = sel.value;
-      api("setrole", { uuid: uuid, role: sel.value }).then(function () { toast("Role updated"); }).catch(function () {});
+      var body = { uuid: uuid };
+      if (slot === "2") { if (p) p.role2 = s.value; body.role2 = s.value; } else { if (p) p.role = s.value; body.role = s.value; }
+      api("setrole", body).then(function () { toast("Role updated"); }).catch(function () {});
     };
   });
 }
