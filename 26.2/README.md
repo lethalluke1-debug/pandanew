@@ -1,8 +1,7 @@
 # Lethal Client — Minecraft 26.2
 
-The main build (Minecraft 26.2, Java 25, Fabric). Obfuscated, auto-update enabled.
+The main build (Minecraft 26.2, Java 25, Fabric). ProGuard-obfuscated, auto-update enabled.
 
-- `LethalClient.jar` — latest 26.2 build (currently v1.0.272)
-- `LethalClient-272.jar` — pinned copy of v1.0.272
+- `LethalClient-26.2.jar` — current 26.2 build (v1.0.273)
 
 Drop the jar into your `mods` folder.
