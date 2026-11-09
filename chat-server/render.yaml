@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: lethal-client-chat-server
-    runtime: node
-    plan: free
-    rootDir: chat-server
-    buildCommand: npm install
-    startCommand: node index.js
-    healthCheckPath: /
