@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "lethalauction",
+  "version": "1.0.281",
+  "name": "Lethal Client",
+  "description": "Lethal Client: auctions, capes, cosmetics and more.",
+  "authors": [
+    "lethalluke1"
+  ],
+  "license": "All-Rights-Reserved",
+  "icon": "assets/lethalauction/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.lethalauction.LethalAuctionClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.0",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  },
+  "mixins": [
+    "lethalauction.mixins.json"
+  ]
+}

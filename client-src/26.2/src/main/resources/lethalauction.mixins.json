@@ -1,0 +1,28 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.lethalauction.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "AbstractClientPlayerMixin",
+    "AvatarRendererMixin",
+    "CameraMixin",
+    "EntityRendererMixin",
+    "FogRendererMixin",
+    "HudMixin",
+    "LevelRendererMixin",
+    "LightmapMixin",
+    "MinecraftMixin",
+    "MouseHandlerMixin",
+    "PongMixin",
+    "SkyRendererMixin",
+    "TextDisplayRendererMixin",
+    "AbstractButtonMixin",
+    "ScreenMixin",
+    "TitleScreenMixin",
+    "TabOverlayAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
