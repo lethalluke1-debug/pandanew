@@ -1,10 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.google.gson.JsonObject
- *  com.google.gson.JsonParser
- */
 package com.lethalauction.m;
 
 import com.google.gson.JsonObject;
@@ -13,68 +6,87 @@ import com.lethalauction.m.K42;
 import com.lethalauction.m.K45;
 import com.lethalauction.m.K47;
 import com.lethalauction.m.K9;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import net.fabricmc.loader.api.FabricLoader;
 
+/**
+ * Now-playing source. The mod never launches a process or ships a script (that
+ * is what antivirus flagged before). Instead it polls a small local file that
+ * an optional, separately-distributed helper keeps up to date:
+ *   &lt;config&gt;/lethalauction/nowplaying.json  — one JSON object:
+ *   {"app":"Spotify","title":"...","artist":"...","status":"playing",
+ *    "pos":0,"dur":0,"art":"C:/path.jpg","t":&lt;epoch-ms&gt;}
+ * If the file is missing or its last write is stale, the now-playing card hides.
+ */
 public final class K48 {
-    private static final boolean a = System.getProperty("os.name", "").toLowerCase().contains("win");
-    private static final boolean b = true;
-    private static volatile boolean c;
-    private static Process d;
-    private static Thread e;
-    private static Path f;
-    private static Path g;
+    private static final Path FILE = FabricLoader.getInstance().getConfigDir()
+        .resolve("lethalauction").resolve("nowplaying.json");
+    private static volatile boolean c;   // running
+    private static Thread e;             // poll thread
 
     private K48() {
     }
 
+    // supported: reading a local file works anywhere, no native helper in the jar
     public static boolean a() {
-        if (a) {
-            // empty if block
-        }
-        return false;
+        return true;
     }
 
+    // running
     public static boolean b() {
-        Process p = d;
-        return c && p != null && p.isAlive();
+        return c;
     }
 
+    // start
     public static synchronized void c() {
+        if (c) {
+            return;
+        }
+        c = true;
+        Thread t = new Thread(K48::f, "Lethal now-playing");
+        t.setDaemon(true);
+        e = t;
+        t.start();
     }
 
+    // stop
     public static synchronized void d() {
         c = false;
         K47.m();
-        if (d != null) {
-            d.destroy();
-            d = null;
-        }
         e = null;
     }
 
-    /*
-     * WARNING - Removed try catching itself - possible behaviour change.
-     */
-    private static void e() {
-        Process p = d;
-        if (p == null) {
-            return;
-        }
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8));){
-            String line;
-            while (c && (line = r.readLine()) != null) {
-                K48.a(line);
+    // poll loop: read the file and feed it through the same parser as before
+    private static void f() {
+        while (c) {
+            try {
+                if (Files.exists(FILE)) {
+                    long age = System.currentTimeMillis() - Files.getLastModifiedTime(FILE).toMillis();
+                    if (age <= 8000L) {
+                        String content = Files.readString(FILE, StandardCharsets.UTF_8).trim();
+                        if (!content.isEmpty()) {
+                            K48.a(content);
+                        } else {
+                            K47.m();
+                        }
+                    } else {
+                        K47.m();
+                    }
+                } else {
+                    K47.m();
+                }
+            } catch (Exception exception) {
+                // ignore — just try again next tick
+            }
+            try {
+                Thread.sleep(700L);
+            } catch (InterruptedException interruptedException) {
+                return;
             }
         }
-        catch (Exception exception) {
-        }
-        finally {
-            c = false;
-            K47.m();
-        }
+        K47.m();
     }
 
     private static void a(String line) {
@@ -129,4 +141,3 @@ public final class K48 {
         return o.has(k) && !o.get(k).isJsonNull() ? o.get(k).getAsString() : "";
     }
 }
-
