@@ -75,6 +75,11 @@ tasks.register('obfuscate', ProGuardTask) {
     keep 'class com.lethalauction.LethalAuctionClient { *; }'
     keep 'class com.lethalauction.mixin.** { *; }'
     keepclassmembers 'enum * { public static **[] values(); public static ** valueOf(java.lang.String); }'
+    // Keep field names and enum constant names: they are the JSON keys used by
+    // Gson to persist settings/transactions/cosmetics. Renaming them would make
+    // the mod unable to read data saved by an earlier build (resetting it).
+    keepclassmembernames 'class com.lethalauction.** { <fields>; }'
+    keep 'enum com.lethalauction.** { *; }'
 }
 
 // Loom's remapJar consumes the obfuscated jar instead of the plain one.
