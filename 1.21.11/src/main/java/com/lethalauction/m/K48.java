@@ -99,11 +99,8 @@ while($true){
     // Launch the system-media reader (script via stdin, nothing written to disk).
     private static void h() {
         try {
-            Process p = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", "-").start();
+            Process p = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", SCRIPT).start();
             d = p;
-            try (OutputStream os = p.getOutputStream()) {
-                os.write(SCRIPT.getBytes(StandardCharsets.UTF_8));
-            }
             Thread r = new Thread(() -> K48.e(p), "Lethal now-playing");
             r.setDaemon(true);
             e = r;

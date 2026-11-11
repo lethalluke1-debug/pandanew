@@ -273,7 +273,7 @@ extends class_437 {
 
     private static C81 b() {
         for (C81 p : C81.values()) {
-            if (!p.name().equals(K9.ba)) continue;
+            if (p == C81.CROSSHAIR || !p.name().equals(K9.ba)) continue;
             return p;
         }
         return C81.AUCTION;
@@ -431,20 +431,24 @@ extends class_437 {
         K18.a(g, "LETHAL", 74.0f, 45.0f, 12.0f, -1186062, K18.d);
         K18.a(g, 26, 83, 178, 1, 0x66FFFFFF & this.a(-14013904, 0.3f));
         K18.a(g, "MODULES", 26.0f, 105.0f, 12.5f, -7568235, K18.a);
+        int ty = 130;
         for (C81 pg : C81.values()) {
+            if (pg == C81.CROSSHAIR) {
+                continue;
+            }
             boolean hover;
             boolean active = pg == this.O;
-            boolean bl = hover = mx >= 24.0f && mx < 212.0f && my >= (float)(pg.y - 12) && my < (float)(pg.y + 12);
+            boolean bl = hover = mx >= 24.0f && mx < 212.0f && my >= (float)(ty - 12) && my < (float)(ty + 12);
             if (active) {
-                K18.a(g, 24, pg.y - 12, 188, 24, 7, K18.a(this.a(-14013902, 0.22f), 0.6f));
-                K18.a(g, 20, pg.y - 7, 3, 14, 1, this.ak);
+                K18.a(g, 24, ty - 12, 188, 24, 7, K18.a(this.a(-14013902, 0.22f), 0.6f));
+                K18.a(g, 20, ty - 7, 3, 14, 1, this.ak);
             } else if (hover) {
-                K18.a(g, 24, pg.y - 12, 188, 24, 7, 1077289536);
+                K18.a(g, 24, ty - 12, 188, 24, 7, 1077289536);
             }
             int activeColor = K18.a(this.ak, -1, 0.08f);
-            K18.b(g, K22.a(pg.icon), 47.0f, (float)pg.y, 21.0f, active ? activeColor : -5924947, pg.iconFont);
-            K18.a(g, pg.label, 75.0f, (float)pg.y, 13.0f, active ? activeColor : -4477500, active ? K18.c : K18.b);
-            this.a(24, pg.y - 12, 188, 24, () -> {
+            K18.b(g, K22.a(pg.icon), 47.0f, (float)ty, 21.0f, active ? activeColor : -5924947, pg.iconFont);
+            K18.a(g, pg.label, 75.0f, (float)ty, 13.0f, active ? activeColor : -4477500, active ? K18.c : K18.b);
+            this.a(24, ty - 12, 188, 24, () -> {
                 if (this.O != pg) {
                     this.Y = System.currentTimeMillis();
                 }
@@ -452,6 +456,7 @@ extends class_437 {
                 N = pg;
                 K9.ba = pg.name();
             });
+            ty += 24;
         }
         K18.a(g, 26, 439, 178, 1, 0x66FFFFFF & this.a(-14013904, 0.3f));
         K18.a(g, 20, 449, 192, 50, 10, this.a(-15789287), -14411222);
