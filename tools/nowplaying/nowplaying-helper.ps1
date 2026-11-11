@@ -53,7 +53,7 @@ while ($true) {
         art    = ''
         t      = [long]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())
       }
-      ($o | ConvertTo-Json -Compress) | Set-Content -Path $OutFile -Encoding UTF8
+      [System.IO.File]::WriteAllText($OutFile, ($o | ConvertTo-Json -Compress), (New-Object System.Text.UTF8Encoding($false)))
     }
   } catch { }
   Start-Sleep -Milliseconds 1000

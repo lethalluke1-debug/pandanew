@@ -65,7 +65,11 @@ public final class K48 {
                 if (Files.exists(FILE)) {
                     long age = System.currentTimeMillis() - Files.getLastModifiedTime(FILE).toMillis();
                     if (age <= 8000L) {
-                        String content = Files.readString(FILE, StandardCharsets.UTF_8).trim();
+                        String content = Files.readString(FILE, StandardCharsets.UTF_8);
+                        if (!content.isEmpty() && content.charAt(0) == '\uFEFF') {
+                            content = content.substring(1);
+                        }
+                        content = content.trim();
                         if (!content.isEmpty()) {
                             K48.a(content);
                         } else {
