@@ -1,3 +1,8 @@
+buildscript {
+    repositories { mavenCentral() }
+    dependencies { classpath 'com.guardsquare:proguard-gradle:7.8.1' }
+}
+
 plugins {
     id 'fabric-loom' version '1.18.4'
     id 'java'
@@ -12,4 +17,61 @@ dependencies {
     mappings files("identity-mappings.jar")
     modImplementation "net.fabricmc:fabric-loader:0.20.1"
     modImplementation "net.fabricmc.fabric-api:fabric-api:0.161.0+26.2"
+}
+
+// ---- Obfuscation (ProGuard) ----------------------------------------------
+// Renames the mod's own classes/members to short names before Loom remaps.
+// Entrypoint and mixin package kept so fabric.mod.json / mixin config resolve.
+import proguard.gradle.ProGuardTask
+
+def obfJar = layout.buildDirectory.file("obf/${base.archivesName.get()}-obf.jar")
+
+// The JDK runtime classes ProGuard needs as library jars. Some JDKs ship a
+// jmods/ dir; others ship only lib/modules (a jimage). Extract from the
+// jimage so this works on either.
+def jdkModulesDir = layout.buildDirectory.dir("jdk-modules")
+tasks.register('extractJdkModules') {
+    def jh = System.getProperty('java.home')
+    def modulesFile = file("${jh}/lib/modules")
+    def jimage = file("${jh}/bin/jimage")
+    outputs.dir jdkModulesDir
+    onlyIf { modulesFile.exists() }
+    doLast {
+        def out = jdkModulesDir.get().asFile
+        out.deleteDir()
+        out.mkdirs()
+        def p = new ProcessBuilder(jimage.absolutePath, "extract", "--dir", out.absolutePath, modulesFile.absolutePath).inheritIO().start()
+        if (p.waitFor() != 0) throw new GradleException("jimage extract failed")
+    }
+}
+
+tasks.register('obfuscate', ProGuardTask) {
+    dependsOn tasks.named('jar'), tasks.named('extractJdkModules')
+    injars tasks.named('jar').flatMap { it.archiveFile }
+    outjars obfJar
+    libraryjars sourceSets.main.compileClasspath
+    def jm = jdkModulesDir.get().asFile
+    libraryjars "${jm}/java.base", filter: '!module-info.class'
+    libraryjars "${jm}/java.desktop", filter: '!module-info.class'
+    libraryjars "${jm}/java.net.http", filter: '!module-info.class'
+    libraryjars "${jm}/java.sql", filter: '!module-info.class'
+    libraryjars "${jm}/java.logging", filter: '!module-info.class'
+    libraryjars "${jm}/jdk.unsupported", filter: '!module-info.class'
+
+    dontshrink()
+    dontoptimize()
+    dontwarn()
+    ignorewarnings()
+    dontusemixedcaseclassnames()
+    keepattributes '*'
+
+    keep 'class com.lethalauction.LethalAuctionClient { *; }'
+    keep 'class com.lethalauction.mixin.** { *; }'
+    keepclassmembers 'enum * { public static **[] values(); public static ** valueOf(java.lang.String); }'
+}
+
+tasks.named('remapJar') {
+    dependsOn tasks.named('obfuscate')
+    mustRunAfter tasks.named('obfuscate')
+    inputFile.set(obfJar)
 }
