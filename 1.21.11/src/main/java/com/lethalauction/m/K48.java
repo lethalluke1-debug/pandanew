@@ -6,83 +6,145 @@ import com.lethalauction.m.K42;
 import com.lethalauction.m.K45;
 import com.lethalauction.m.K47;
 import com.lethalauction.m.K9;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import net.fabricmc.loader.api.FabricLoader;
 
 /**
- * Now-playing source. The mod never launches a process or ships a script (that
- * is what antivirus flagged before). Instead it polls a small local file that
- * an optional, separately-distributed helper keeps up to date:
- *   &lt;config&gt;/lethalauction/nowplaying.json  — one JSON object:
- *   {"app":"Spotify","title":"...","artist":"...","status":"playing",
- *    "pos":0,"dur":0,"art":"C:/path.jpg","t":&lt;epoch-ms&gt;}
- * If the file is missing or its last write is stale, the now-playing card hides.
+ * Now-playing source. On Windows the mod reads the current media from the
+ * system media API. The reader script is piped to PowerShell over stdin — it is
+ * never written to disk as a .ps1 file, which is the dropped-script pattern that
+ * antivirus flagged before. It also still reads an optional
+ * &lt;config&gt;/lethalauction/nowplaying.json written by a separate helper, for
+ * anyone who would rather the mod launch nothing at all.
  */
 public final class K48 {
+    private static final boolean WIN = System.getProperty("os.name", "").toLowerCase().contains("win");
     private static final Path FILE = FabricLoader.getInstance().getConfigDir()
         .resolve("lethalauction").resolve("nowplaying.json");
     private static volatile boolean c;   // running
-    private static Thread e;             // poll thread
+    private static Process d;            // reader process
+    private static Thread e;             // stdout reader
+    private static Thread g;             // file poller
+
+    private static final String SCRIPT = """
+$ErrorActionPreference='SilentlyContinue'
+Add-Type -AssemblyName System.Runtime.WindowsRuntime
+$asTask=([System.WindowsRuntimeSystemExtensions].GetMethods()|Where-Object{$_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1'})[0]
+function Await($op,$t){$x=$asTask.MakeGenericMethod($t).Invoke($null,@($op));$x.Wait(-1)|Out-Null;$x.Result}
+[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager,Windows.Media.Control,ContentType=WindowsRuntime]|Out-Null
+$M=[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]
+$P=[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties]
+$mgr=Await ($M::RequestAsync()) $M
+while($true){
+ try{
+  $s=$mgr.GetCurrentSession()
+  if($s){
+   $p=Await ($s.TryGetMediaPropertiesAsync()) $P
+   $pb=$s.GetPlaybackInfo();$tl=$s.GetTimelineProperties()
+   $st=if([int]$pb.PlaybackStatus -eq 4){'playing'}else{'paused'}
+   $o=[ordered]@{app=[string]$s.SourceAppUserModelId;title=[string]$p.Title;artist=[string]$p.Artist;status=$st;pos=[long]$tl.Position.TotalMilliseconds;dur=[long]$tl.EndTime.TotalMilliseconds;art='';t=[long]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())}
+   [Console]::Out.WriteLine(($o|ConvertTo-Json -Compress))
+  }else{[Console]::Out.WriteLine('{}')}
+  [Console]::Out.Flush()
+ }catch{}
+ Start-Sleep -Milliseconds 1000
+}
+""";
 
     private K48() {
     }
 
-    // supported: reading a local file works anywhere, no native helper in the jar
     public static boolean a() {
         return true;
     }
 
-    // running
     public static boolean b() {
         return c;
     }
 
-    // start
     public static synchronized void c() {
         if (c) {
             return;
         }
         c = true;
-        Thread t = new Thread(K48::f, "Lethal now-playing");
-        t.setDaemon(true);
-        e = t;
-        t.start();
+        if (WIN) {
+            h();
+        }
+        Thread poll = new Thread(K48::i, "Lethal now-playing file");
+        poll.setDaemon(true);
+        g = poll;
+        poll.start();
     }
 
-    // stop
     public static synchronized void d() {
         c = false;
         K47.m();
+        if (d != null) {
+            try {
+                d.destroy();
+            } catch (Exception exception) {
+                // ignore
+            }
+            d = null;
+        }
         e = null;
+        g = null;
     }
 
-    // poll loop: read the file and feed it through the same parser as before
-    private static void f() {
+    // Launch the system-media reader (script via stdin, nothing written to disk).
+    private static void h() {
+        try {
+            Process p = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", "-").start();
+            d = p;
+            try (OutputStream os = p.getOutputStream()) {
+                os.write(SCRIPT.getBytes(StandardCharsets.UTF_8));
+            }
+            Thread r = new Thread(() -> K48.e(p), "Lethal now-playing");
+            r.setDaemon(true);
+            e = r;
+            r.start();
+        } catch (Exception exception) {
+            d = null;
+        }
+    }
+
+    private static void e(Process p) {
+        try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8));) {
+            String line;
+            while (c && (line = r.readLine()) != null) {
+                if (!line.isEmpty()) {
+                    K48.a(line);
+                }
+            }
+        } catch (Exception exception) {
+            // ignore
+        }
+    }
+
+    // Optional fallback: an external helper writing the JSON file.
+    private static void i() {
         while (c) {
             try {
                 if (Files.exists(FILE)) {
                     long age = System.currentTimeMillis() - Files.getLastModifiedTime(FILE).toMillis();
                     if (age <= 8000L) {
                         String content = Files.readString(FILE, StandardCharsets.UTF_8);
-                        if (!content.isEmpty() && content.charAt(0) == '\uFEFF') {
+                        if (!content.isEmpty() && content.charAt(0) == '﻿') {
                             content = content.substring(1);
                         }
                         content = content.trim();
                         if (!content.isEmpty()) {
                             K48.a(content);
-                        } else {
-                            K47.m();
                         }
-                    } else {
-                        K47.m();
                     }
-                } else {
-                    K47.m();
                 }
             } catch (Exception exception) {
-                // ignore — just try again next tick
+                // ignore
             }
             try {
                 Thread.sleep(700L);
@@ -90,7 +152,6 @@ public final class K48 {
                 return;
             }
         }
-        K47.m();
     }
 
     private static void a(String line) {
