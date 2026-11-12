@@ -1765,55 +1765,6 @@ extends Screen {
             K9.V = !K9.V;
             K9.b();
         });
-        y += 62;
-        K18.a(g, "Sky Lyrics", 243.0f, (float)((y += 14) + 8), 12.5f, -789515, K18.c);
-        K18.a(g, 241, y += 22, 765, 50, 10, cardFill, cardBorder);
-        K18.a(g, "Show lyrics around you", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
-        K18.a(g, "Words from the current song float and fade in the world (needs music turned on above).", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
-        this.a(g, 960, y + 25, K9.ay, () -> {
-            K9.ay = !K9.ay;
-            K9.b();
-        });
-        y += 62;
-        if (K9.ay) {
-            int ph = 150;
-            K18.a(g, 241, y, 765, ph, 10, cardFill, cardBorder);
-            K18.a(g, "PREVIEW", 257.0f, (float)(y + 20), 10.0f, -7568235, K18.b);
-            this.a(g, 241, y, 765, ph);
-            int ch = 66;
-            K18.a(g, 241, y += ph + 12, 765, ch, 10, cardFill, cardBorder);
-            K18.a(g, "Colour", 257.0f, (float)(y + 20), 11.5f, -3947581, K18.b);
-            int n = K53.a();
-            sx = 360;
-            v = 0;
-            while (v < n) {
-                boolean on;
-                float dx = sx + v * 42;
-                float dy = (float)y + (float)ch / 2.0f + 4.0f;
-                boolean bl = on = v == K9.aC;
-                if (on) {
-                    K18.a(g, dx, dy, 14.0f, -1);
-                }
-                K18.a(g, dx, dy, 12.0f, 0xFF000000 | K53.a(v) & 0xFFFFFF);
-                int vv = v++;
-                this.a(Math.round(dx - 14.0f), Math.round(dy - 14.0f), 28, 28, () -> {
-                    K9.aC = vv;
-                    K9.b();
-                });
-            }
-            K18.a(g, 241, y += ch + 12, 765, 50, 10, cardFill, cardBorder);
-            K18.a(g, "Size", 257.0f, (float)(y + 28), 12.5f, -789515, K18.c);
-            this.a(g, 360, y + 13, 30, 24, "-", this.a(-15395813), -13356484, -789515, () -> {
-                K9.aD = Math.max(0.75f, (float)Math.round((K9.aD - 0.05f) * 100.0f) / 100.0f);
-                K9.b();
-            });
-            K18.b(g, String.format("%.2fx", Float.valueOf(K9.aD)), 420.0f, (float)(y + 28), 11.0f, -789515, K18.b);
-            this.a(g, 450, y + 13, 30, 24, "+", this.a(-15395813), -13356484, -789515, () -> {
-                K9.aD = Math.min(1.35f, (float)Math.round((K9.aD + 0.05f) * 100.0f) / 100.0f);
-                K9.b();
-            });
-            y += 62;
-        }
         K18.a(g, "Headphones", 243.0f, (float)((y += 14) + 8), 12.5f, -789515, K18.c);
         K18.a(g, 241, y += 22, 765, 50, 10, cardFill, cardBorder);
         K18.a(g, "Wear headphones while music plays", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);

@@ -64,7 +64,10 @@ while($true){
     }
 
     public static boolean b() {
-        return c;
+        // On Windows, report "running" only while the reader process is alive, so
+        // the controller relaunches it automatically if the first start flakes
+        // (no need to toggle off/on by hand).
+        return c && (!WIN || (d != null && d.isAlive()));
     }
 
     public static synchronized void c() {
@@ -175,9 +178,6 @@ while($true){
             boolean playing = status.equals("playing");
             String artKey = app + "|" + title + "|" + artist;
             K47.a(new K47.C96(which, title, artist, playing, pos, dur, sampledAt, artKey));
-            if (K9.ay) {
-                K45.a(artKey, title, artist, dur);
-            }
             if (!artPath.isEmpty()) {
                 K47.a(artKey, Path.of(artPath, new String[0]));
             } else {

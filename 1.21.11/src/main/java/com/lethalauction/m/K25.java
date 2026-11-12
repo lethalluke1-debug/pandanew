@@ -178,34 +178,6 @@ implements HudElement {
         K18.a(g, "NOW PLAYING", (float)tx, 22.0f, 8.0f, K18.a(accent, 0.85f), K18.c);
         K18.a(g, K25.a(t.d(), 15.0f, K18.c, (float)maxW), (float)tx, 42.0f, 15.0f, -1, K18.c);
         K18.a(g, K25.a(t.e().isEmpty() ? "Unknown artist" : t.e(), 11.0f, K18.b, (float)maxW), (float)tx, 60.0f, 11.0f, -7695450, K18.b);
-        if (K9.ay) {
-            String lt = null;
-            int lc = -7695450;
-            switch (K47.a()) {
-                case 1: {
-                    lt = "Finding lyrics\u2026";
-                    break;
-                }
-                case 2: {
-                    lt = "Lyrics ready";
-                    lc = -11938144;
-                    break;
-                }
-                case 3: {
-                    lt = "No lyrics for this song";
-                    lc = -2055606;
-                    break;
-                }
-                case 4: {
-                    lt = "Lyrics service unreachable";
-                    lc = -2074022;
-                    break;
-                }
-            }
-            if (lt != null) {
-                K18.a(g, K25.a(lt, 9.0f, K18.b, (float)maxW), (float)tx, 76.0f, 9.0f, lc, K18.b);
-            }
-        }
         K18.a(g, (float)ax + 4.0f, 92.0f, 3.5f, accent);
         K18.a(g, t.c().label.isEmpty() ? "Music" : t.c().label, (float)ax + 11.0f, 92.0f, 9.0f, -7695450, K18.b);
         long pos = t.b();
