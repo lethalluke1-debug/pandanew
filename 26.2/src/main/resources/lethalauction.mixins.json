@@ -20,7 +20,8 @@
     "AbstractButtonMixin",
     "ScreenMixin",
     "TitleScreenMixin",
-    "TabOverlayAccessor"
+    "TabOverlayAccessor",
+    "FontMixin"
   ],
   "injectors": {
     "defaultRequire": 1

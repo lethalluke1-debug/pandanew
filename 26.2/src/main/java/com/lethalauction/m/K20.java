@@ -273,7 +273,7 @@ extends Screen {
 
     private static C82 b() {
         for (C82 p : C82.values()) {
-            if (p == C82.CROSSHAIR || !p.name().equals(K9.ba)) continue;
+            if (!p.name().equals(K9.ba)) continue;
             return p;
         }
         return C82.AUCTION;
@@ -433,9 +433,6 @@ extends Screen {
         K18.a(g, "MODULES", 26.0f, 105.0f, 12.5f, -7568235, K18.a);
         int ty = 130;
         for (C82 pg : C82.values()) {
-            if (pg == C82.CROSSHAIR) {
-                continue;
-            }
             boolean hover;
             boolean active = pg == this.O;
             boolean bl = hover = mx >= 24.0f && mx < 212.0f && my >= (float)(ty - 12) && my < (float)(ty + 12);
@@ -3420,71 +3417,26 @@ extends Screen {
         int cardFill = this.a(this.a(-15462119, 0.07f));
         int cardBorder = this.a(-14804444, 0.12f);
         K18.b(g, K22.a(60478), 253.0f, (float)(t + 80), 17.0f, head, K22.a);
-        K18.a(g, "Crosshair", 272.0f, (float)(t + 77), 13.0f, -789515, K18.c);
-        K18.a(g, "Pick a crosshair, its colour and size. Default is Minecraft's normal one.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
-        int y = t + 112;
-        int cols = 6;
-        int gap = 10;
-        int cw = (778 - gap * (cols - 1)) / cols;
-        int ch = 120;
-        int i = 0;
-        while (i < K16.a.size()) {
-            int x = 235 + i * (cw + gap);
-            boolean on = K9.aP == i;
-            K18.a(g, x, y, cw, ch, 10, this.a(-15787476));
-            K18.a(g, x, y + ch - 46, cw, 46, 10, this.a(-14927318));
-            K18.a(g, x, y + ch - 46, cw, 10, this.a(-14927318));
-            if (on) {
-                K18.a(g, x - 1, y - 1, cw + 2, ch + 2, 11, 0, this.ak);
-                K18.a(g, x - 3, y - 3, cw + 6, ch + 6, 12, K18.a(this.ak, 0.15f));
+        K18.a(g, "Font", 272.0f, (float)(t + 77), 13.0f, -789515, K18.c);
+        K18.a(g, "Changes the font of all text in the game, like a resource pack.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
+        int y = t + 116;
+        String[][] opts = new String[][]{{"", "Default", "Minecraft's normal font."}, {"font_jersey10", "Jersey 10", "Chunky blocky pixels."}, {"font_silkscreen", "Silkscreen", "Tiny crisp pixels."}, {"font_vt323", "VT323", "Retro terminal look."}};
+        for (String[] o : opts) {
+            boolean sel = K9.font.equals(o[0]);
+            K18.a(g, 241, y, 765, 50, 10, cardFill, sel ? this.ak : cardBorder);
+            K18.a(g, o[1], 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
+            K18.a(g, o[2], 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
+            if (sel) {
+                K18.a(g, "Selected", 915.0f, (float)(y + 28), 11.0f, this.ak, K18.b);
             }
-            float pcx = (float)x + (float)cw / 2.0f;
-            float pcy = y + 48;
-            if (i == 0) {
-                K18.a(g, Math.round(pcx) - 9, Math.round(pcy) - 1, 18, 3, -1644826);
-                K18.a(g, Math.round(pcx) - 1, Math.round(pcy) - 9, 3, 18, -1644826);
-            } else {
-                K16.a(g, pcx, pcy, i, K16.b(), 3.0f);
-            }
-            K18.b(g, K16.a.get(i), pcx, (float)(y + ch - 18), 12.0f, on ? K18.a(this.ak, -1, 0.3f) : -789515, K18.c);
-            int pick = i++;
-            this.a(x, y, cw, ch, () -> {
-                K9.aP = pick;
+            String fv = o[0];
+            this.a(241, y, 765, 50, () -> {
+                K9.font = fv;
                 K9.b();
             });
+            y += 58;
         }
-        K18.a(g, 235, y += ch + 18, 778, 62, 12, cardFill, cardBorder);
-        K18.a(g, "Colour", 253.0f, (float)(y + 22), 12.5f, -789515, K18.c);
-        K18.a(g, K16.b.get(Math.max(0, Math.min(K16.c.length - 1, K9.aQ))), 253.0f, (float)(y + 41), 10.5f, -5001030, K18.a);
-        i = 0;
-        while (i < K16.c.length) {
-            boolean on;
-            float dx = 640 + i * 58;
-            float dy = y + 31;
-            boolean bl = on = K9.aQ == i;
-            if (on) {
-                K18.a(g, dx, dy, 15.0f, -1);
-            }
-            K18.a(g, dx, dy, 13.0f, K16.c[i]);
-            int pick = i++;
-            this.a(Math.round(dx - 15.0f), Math.round(dy - 15.0f), 30, 30, () -> {
-                K9.aQ = pick;
-                K9.b();
-            });
-        }
-        K18.a(g, 235, y += 74, 778, 62, 12, cardFill, cardBorder);
-        K18.a(g, "Size", 253.0f, (float)(y + 22), 12.5f, -789515, K18.c);
-        K18.a(g, "How big the crosshair is on screen.", 253.0f, (float)(y + 41), 10.5f, -5001030, K18.a);
-        for (i = 0; i < K16.d.size(); ++i) {
-            int bx = 676 + i * 110;
-            boolean on = K9.aR == i;
-            int pick = i;
-            this.a(g, bx, y + 18, 100, 26, K16.d.get(i), on ? this.al : this.a(-15395813), on ? this.ak : -13356484, on ? -1 : -789515, () -> {
-                K9.aR = pick;
-                K9.b();
-            });
-        }
-        return y + 74;
+        return y + 6;
     }
 
     private int s(GuiGraphicsExtractor g, int t) {
@@ -4005,7 +3957,7 @@ extends Screen {
         COSMETICS("Mini Locker", 60237, 250, K22.a),
         MUSIC("Music", 60156, 274),
         STREAM("Stream", 61929, 298, K22.a),
-        CROSSHAIR("Crosshair", 60478, 322, K22.a),
+        CROSSHAIR("Font", 60478, 322, K22.a),
         STATS("Utilities", 60081, 346, K22.a),
         SCOREBOARD("Scoreboard", 61201, 370),
         SKY("Sky", 60022, 394, K22.a),
