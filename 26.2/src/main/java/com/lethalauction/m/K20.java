@@ -3418,23 +3418,22 @@ extends Screen {
         int cardBorder = this.a(-14804444, 0.12f);
         K18.b(g, K22.a(60478), 253.0f, (float)(t + 80), 17.0f, head, K22.a);
         K18.a(g, "Font", 272.0f, (float)(t + 77), 13.0f, -789515, K18.c);
-        K18.a(g, "Changes the font of all text in the game, like a resource pack.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
+        K18.a(g, "Changes the font of all text in the game, like a resource pack. Each preview below is drawn in that font.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
         int y = t + 116;
-        String[][] opts = new String[][]{{"", "Default", "Minecraft's normal font."}, {"font_jersey10", "Jersey 10", "Chunky blocky pixels."}, {"font_silkscreen", "Silkscreen", "Tiny crisp pixels."}, {"font_vt323", "VT323", "Retro terminal look."}};
+        String[][] opts = new String[][]{{"", "Default"}, {"font_jersey10", "Jersey 10"}, {"font_silkscreen", "Silkscreen"}, {"font_vt323", "VT323"}};
         for (String[] o : opts) {
             boolean sel = K9.font.equals(o[0]);
-            K18.a(g, 241, y, 765, 50, 10, cardFill, sel ? this.ak : cardBorder);
-            K18.a(g, o[1], 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
-            K18.a(g, o[2], 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
-            if (sel) {
-                K18.a(g, "Selected", 915.0f, (float)(y + 28), 11.0f, this.ak, K18.b);
-            }
+            float cy = (float)y + 31.0f;
+            K18.a(g, 241, y, 765, 62, 10, cardFill, sel ? this.ak : cardBorder);
+            K18.a(g, o[1], 257.0f, cy, 12.5f, sel ? -1 : -789515, K18.c);
+            Identifier pf = o[0].isEmpty() ? Identifier.fromNamespaceAndPath("minecraft", "default") : K18.a(o[0]);
+            K18.a(g, "Aa Bb Gg  Hello 123", 430.0f, cy, 17.0f, sel ? -1 : -2039584, pf);
             String fv = o[0];
-            this.a(241, y, 765, 50, () -> {
+            this.a(241, y, 765, 62, () -> {
                 K9.font = fv;
                 K9.b();
             });
-            y += 58;
+            y += 72;
         }
         return y + 6;
     }

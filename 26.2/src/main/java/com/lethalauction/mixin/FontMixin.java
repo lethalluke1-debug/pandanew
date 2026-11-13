@@ -20,7 +20,8 @@ public class FontMixin {
     private FontDescription lethal$font(FontDescription desc) {
         try {
             String f = K9.font;
-            if (f != null && !f.isEmpty() && desc.equals(FontDescription.DEFAULT)) {
+            if (f != null && !f.isEmpty() && desc instanceof FontDescription.Resource r
+                    && "minecraft:default".equals(r.id().toString())) {
                 return new FontDescription.Resource(Identifier.fromNamespaceAndPath("lethalauction", f));
             }
         } catch (Throwable t) {
