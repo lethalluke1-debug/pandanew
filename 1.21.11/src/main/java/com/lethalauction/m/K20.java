@@ -273,7 +273,7 @@ extends class_437 {
 
     private static C81 b() {
         for (C81 p : C81.values()) {
-            if (!p.name().equals(K9.ba)) continue;
+            if (p == C81.CROSSHAIR || !p.name().equals(K9.ba)) continue;
             return p;
         }
         return C81.AUCTION;
@@ -433,6 +433,9 @@ extends class_437 {
         K18.a(g, "MODULES", 26.0f, 105.0f, 12.5f, -7568235, K18.a);
         int ty = 130;
         for (C81 pg : C81.values()) {
+            if (pg == C81.CROSSHAIR) {
+                continue;
+            }
             boolean hover;
             boolean active = pg == this.O;
             boolean bl = hover = mx >= 24.0f && mx < 212.0f && my >= (float)(ty - 12) && my < (float)(ty + 12);
@@ -1762,6 +1765,7 @@ extends class_437 {
             K9.V = !K9.V;
             K9.b();
         });
+        y += 62;
         K18.a(g, "Headphones", 243.0f, (float)((y += 14) + 8), 12.5f, -789515, K18.c);
         K18.a(g, 241, y += 22, 765, 50, 10, cardFill, cardBorder);
         K18.a(g, "Wear headphones while music plays", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
