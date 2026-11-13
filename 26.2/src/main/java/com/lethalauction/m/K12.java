@@ -107,6 +107,13 @@ import org.joml.Vector3f;
 public final class K12 {
     public static final List<C80> a = List.of(new C80("creator", "Creator Pack", List.of(new C79("dorzeey", "Dorzeey", K12.e("dorzeey")), new C79("speedingduck", "SpeedingDuck", K12.e("speedingduck")), new C79("sixxpain", "6ixxpain", K12.e("sixxpain")), new C79("agentbtw", "AgentBtw", K12.e("agentbtw")))), new C80("donut", "Donut Pack", List.of(new C79("drdonut", "DrDonut", K12.e("drdonut")), new C79("farex", "Farex", K12.e("farex")), new C79("jettism", "Jettism", K12.e("jettism")), new C79("w1zox", "W1zox", K12.e("w1zox")), new C79("jestic", "Jestic", K12.e("jestic")), new C79("nolimitdash", "NoLimitDash", K12.e("nolimitdash")), new C79("truezay", "TrueZay", K12.e("truezay")), new C79("lethallukeyt", "LethalLukeYT", K12.e("lethallukeyt")))), new C80("pokemon", "Pokemon Pack", List.of(new C79("pikachu", "Pikachu", K12.e("pikachu")), new C79("charmander", "Charmander", K12.e("charmander")), new C79("bulbasaur", "Bulbasaur", K12.e("bulbasaur")), new C79("squirtle", "Squirtle", K12.e("squirtle")), new C79("snorlax", "Snorlax", K12.e("snorlax")), new C79("ashketchum", "Ash Ketchum", K12.e("ashketchum")), new C79("gengar", "Gengar", K12.e("gengar")), new C79("mew", "Mew", K12.e("mew")))), new C80("steamer", "Steamer Pack", List.of(new C79("stableronaldo", "StableRonaldo", K12.e("stableronaldo")), new C79("jynxzi", "Jynxzi", K12.e("jynxzi")), new C79("marlon", "Marlon", K12.e("marlon")), new C79("lacy", "Lacy", K12.e("lacy")), new C79("jasontheween", "JasonTheWeen", K12.e("jasontheween")), new C79("ishowspeed", "IShowSpeed", K12.e("ishowspeed")), new C79("lospollos", "LosPollos", K12.e("lospollos")), new C79("adapt", "Adapt", K12.e("adapt")))), new C80("nintendo", "Nintendo Pack", List.of(new C79("mario", "Mario", K12.e("mario")), new C79("luigi", "Luigi", K12.e("luigi")), new C79("bowser", "Bowser", K12.e("bowser")), new C79("rosalina", "Rosalina", K12.e("rosalina")), new C79("yoshi", "Yoshi", K12.e("yoshi")), new C79("shyguy", "ShyGuy", K12.e("shyguy")), new C79("kirby", "Kirby", K12.e("kirby")), new C79("zelda", "Zelda", K12.e("zelda")))), new C80("sml", "SML Pack", List.of(new C79("jeffy", "Jeffy", K12.e("jeffy")), new C79("marvin", "Marvin", K12.e("marvin")), new C79("cody", "Cody", K12.e("cody")), new C79("joseph", "Joseph", K12.e("joseph")), new C79("brooklynguy", "Brooklyn Guy", K12.e("brooklynguy")), new C79("junior", "Junior", K12.e("junior")), new C79("mrgoodman", "Mr GoodMen", K12.e("mrgoodman")), new C79("chefpp", "Chef PP", K12.e("chefpp")))), new C80("horror", "Horror Pack", List.of(new C79("freddy", "Freddy", K12.e("freddy")), new C79("ghostface", "GhostFace", K12.e("ghostface")), new C79("helloneighbor", "Hello Neighbor", K12.e("helloneighbor")), new C79("granny", "Granny", K12.e("granny")), new C79("jason", "Jason", K12.e("jason")), new C79("chucky", "Chucky", K12.e("chucky")), new C79("michaelmyers", "Michael Myers", K12.e("michaelmyers")), new C79("bendy", "Bendy", K12.e("bendy")))), new C80("movie", "Movie Pack", List.of(new C79("harrypotter", "Harry Potter", K12.e("harrypotter")), new C79("darthvader", "Darth Vader", K12.e("darthvader")), new C79("patrickjane", "Patrick Jane", K12.e("patrickjane")), new C79("lightningmcqueen", "Lightning McQueen", K12.e("lightningmcqueen")), new C79("shrek", "Shrek", K12.e("shrek")), new C79("spongebob", "SpongeBob", K12.e("spongebob")), new C79("dextermorgan", "Dexter Morgan", K12.e("dextermorgan")), new C79("angrybird", "Angry Bird", K12.e("angrybird")))), new C80("sports", "Sports Pack", List.of(new C79("cristianoronaldo", "Cristiano Ronaldo", K12.e("cristianoronaldo")), new C79("lionelmessi", "Lionel Messi", K12.e("lionelmessi")), new C79("lebronjames", "LeBron James", K12.e("lebronjames")), new C79("kobebryant", "Kobe Bryant", K12.e("kobebryant")), new C79("harrykane", "Harry Kane", K12.e("harrykane")), new C79("michaeljordan", "Michael Jordan", K12.e("michaeljordan")), new C79("connormcdavid", "Connor McDavid", K12.e("connormcdavid")), new C79("stephcurry", "Steph Curry", K12.e("stephcurry")), new C79("tombrady", "Tom Brady", K12.e("tombrady")), new C79("waynegretzky", "Wayne Gretzky", K12.e("waynegretzky")))), new C80("animal", "Animal Pack", List.of(new C79("dog", "Dog", K12.e("dog")), new C79("cat", "Cat", K12.e("cat")), new C79("wolf", "Wolf", K12.e("wolf")), new C79("bee", "Bee", K12.e("bee")), new C79("dolphin", "Dolphin", K12.e("dolphin")), new C79("turtle", "Turtle", K12.e("turtle")), new C79("chick", "Chick", K12.e("chick")), new C79("mouse", "Mouse", K12.e("mouse")))));
     public static final List<C79> b = a.stream().flatMap(p -> p.c().stream()).toList();
+    public static final List<C77> cars = List.of(
+        new C77("kart", "Go-Kart", 0xE53935, 0xFFEB3B, 0x222222, 0),
+        new C77("sport", "Sports Car", 0x1E88E5, 0xFFFFFF, 0x15151A, 1),
+        new C77("truck", "Monster Truck", 0x43A047, 0xFF7043, 0x2E2E2E, 2),
+        new C77("retro", "Convertible", 0xEC407A, 0xFFF176, 0x5D4037, 3),
+        new C77("racer", "Flame Racer", 0xFF6F00, 0x212121, 0x111111, 1),
+        new C77("police", "Police Cruiser", 0x1565C0, 0xFFFFFF, 0x0D0D0D, 1));
     private static final float e = 0.55f;
     private static final double f = 1.3;
     private static final double g = 0.18;
@@ -168,6 +175,22 @@ public final class K12 {
 
     public static C79 a() {
         return K12.b(K9.aI);
+    }
+
+    public static C77 car() {
+        if (K9.car == null || K9.car.isEmpty()) {
+            return null;
+        }
+        for (C77 c : cars) {
+            if (!c.a().equals(K9.car)) continue;
+            return c;
+        }
+        return null;
+    }
+
+    public static void setCar(String id) {
+        K9.car = id.equals(K9.car) ? "" : id;
+        K9.b();
     }
 
     public static void c(String id) {
@@ -853,6 +876,182 @@ public final class K12 {
         }
     }
 
+    // ===== Rideable car (local figure only) =====
+    private static void renderCar(LevelRenderContext ctx, Minecraft mc, C78 b, C79 figure, double rx, double ry, double rz, float yaw, float pt) {
+        C77 car = K12.car();
+        if (car == null) {
+            return;
+        }
+        long nowMs = System.currentTimeMillis();
+        // steering: smoothed per-tick yaw change
+        float dYaw = (float)Mth.wrapDegrees((double)(b.e - b.f));
+        float steerTarget = Mth.clamp((float)dYaw * 0.07f, -0.55f, 0.55f);
+        b.X += (steerTarget - b.X) * 0.2f;
+        float steer = b.X;
+        float rphase = Mth.lerp((float)pt, (float)b.h, (float)b.g);
+        float speed = Mth.clamp((float)b.i, 0.0f, 1.0f);
+        float bob = (float)Math.sin((double)rphase * 2.0) * 0.016f * speed + (float)Math.sin((double)nowMs / 500.0) * 0.004f;
+        float pitch = (float)Math.sin((double)rphase) * 0.03f * speed;
+        float bank = -steer * 0.5f;
+        Vec3 cam = mc.gameRenderer.mainCamera().position();
+        double dx = rx - cam.x;
+        double dyBase = ry - cam.y;
+        double dz = rz - cam.z;
+        double dy = dyBase + (double)bob;
+        boolean thirdPerson = !mc.options.getCameraType().isFirstPerson();
+        double midDy = ry + 0.4 - cam.y;
+        if (thirdPerson && dx * dx + midDy * midDy + dz * dz < 0.9) {
+            return;
+        }
+        float yawRad = (float)Math.toRadians(180.0 - (double)yaw);
+        // ---- car body + wheels (world space, camera-relative) ----
+        Matrix4f base = new Matrix4f((Matrix4fc)ctx.poseStack().last().pose());
+        base.translate((float)dx, (float)dy, (float)dz);
+        base.rotateY(yawRad);
+        base.rotateZ(bank);
+        base.rotateX(pitch);
+        VertexConsumer vc = u.a(RenderTypes.entityCutout((Identifier)K10.a));
+        K12.carBody(vc, base, car);
+        float wr = 0.155f;
+        float wx = 0.27f;
+        float wzF = 0.30f;
+        float wzR = -0.30f;
+        K12.carWheel(vc, base, -wx, wr, wzF, steer, rphase);
+        K12.carWheel(vc, base, wx, wr, wzF, steer, rphase);
+        K12.carWheel(vc, base, -wx, wr, wzR, 0.0f, rphase);
+        K12.carWheel(vc, base, wx, wr, wzR, 0.0f, rphase);
+        K12.carSteer(vc, base, steer);
+        // ---- seated figure ----
+        v.resetPose();
+        float hs = 1.7f;
+        K12.v.head.yScale = K12.v.head.zScale = hs;
+        K12.v.head.xScale = K12.v.head.zScale;
+        K12.v.hat.zScale = 1.0f;
+        K12.v.hat.yScale = 1.0f;
+        K12.v.hat.xScale = 1.0f;
+        float grip = (float)Math.sin((double)nowMs / 170.0) * 0.05f * speed;
+        K12.v.rightLeg.xRot = -1.45f;
+        K12.v.leftLeg.xRot = -1.45f;
+        K12.v.rightLeg.zRot = 0.12f;
+        K12.v.leftLeg.zRot = -0.12f;
+        K12.v.rightArm.xRot = -1.12f - 0.12f * Math.abs(steer) + grip;
+        K12.v.leftArm.xRot = -1.12f - 0.12f * Math.abs(steer) - grip;
+        K12.v.rightArm.zRot = 0.34f + steer * 0.45f;
+        K12.v.leftArm.zRot = -0.34f + steer * 0.45f;
+        K12.v.head.yRot = steer * 0.5f;
+        K12.v.head.xRot = 0.06f;
+        float appear = 1.0f;
+        if (nowMs < b.v) {
+            float t = 1.0f - (float)(b.v - nowMs) / 480.0f;
+            float s = t - 1.0f;
+            float c1 = 1.70158f;
+            appear = Math.max(0.0f, 1.0f + (c1 + 1.0f) * s * s * s + c1 * s * s);
+        }
+        float fsc = 0.5f * appear;
+        PoseStack ps = ctx.poseStack();
+        ps.pushPose();
+        ps.translate(dx, dy + 0.30, dz);
+        ps.mulPose((Quaternionfc)Axis.YP.rotationDegrees(180.0f - yaw));
+        ps.mulPose((Quaternionfc)Axis.ZP.rotationDegrees((float)Math.toDegrees((double)bank)));
+        ps.mulPose((Quaternionfc)Axis.XP.rotationDegrees((float)Math.toDegrees((double)pitch)));
+        ps.scale(fsc, fsc, fsc);
+        ps.scale(-1.0f, -1.0f, 1.0f);
+        ps.translate(0.0f, -1.501f, 0.0f);
+        v.renderToBuffer(ps, u.a(RenderTypes.entityCutout((Identifier)figure.c())), 0xF000F0, OverlayTexture.NO_OVERLAY, -1);
+        ps.popPose();
+    }
+
+    private static void carBody(VertexConsumer vc, Matrix4f m, C77 car) {
+        int body = car.body();
+        int accent = car.accent();
+        int roof = car.roof();
+        int style = car.style();
+        int dark = 0x15151A;
+        int glass = 0x2A3A4A;
+        int light = 0xFFF2C0;
+        int tail = 0xE03030;
+        // chassis
+        K12.a(vc, m, -0.30f, 0.10f, -0.44f, 0.30f, 0.18f, 0.44f, dark);
+        // main hull
+        K12.a(vc, m, -0.28f, 0.16f, -0.40f, 0.28f, 0.34f, 0.40f, body);
+        // front hood (+z)
+        K12.a(vc, m, -0.26f, 0.16f, 0.24f, 0.26f, 0.30f, 0.46f, body);
+        // rear deck (-z)
+        K12.a(vc, m, -0.26f, 0.16f, -0.46f, 0.26f, 0.30f, -0.24f, body);
+        // side accent stripes
+        K12.a(vc, m, -0.295f, 0.22f, -0.34f, -0.285f, 0.27f, 0.34f, accent);
+        K12.a(vc, m, 0.285f, 0.22f, -0.34f, 0.295f, 0.27f, 0.34f, accent);
+        // seat cushion + back
+        K12.a(vc, m, -0.18f, 0.30f, -0.20f, 0.18f, 0.345f, 0.08f, dark);
+        K12.a(vc, m, -0.18f, 0.30f, -0.22f, 0.18f, 0.58f, -0.16f, style == 3 ? accent : dark);
+        // headlights / taillights
+        K12.a(vc, m, -0.22f, 0.22f, 0.45f, -0.12f, 0.30f, 0.47f, light);
+        K12.a(vc, m, 0.12f, 0.22f, 0.45f, 0.22f, 0.30f, 0.47f, light);
+        K12.a(vc, m, -0.22f, 0.24f, -0.47f, -0.12f, 0.30f, -0.455f, tail);
+        K12.a(vc, m, 0.12f, 0.24f, -0.47f, 0.22f, 0.30f, -0.455f, tail);
+        // bumpers
+        K12.a(vc, m, -0.28f, 0.14f, 0.46f, 0.28f, 0.22f, 0.48f, dark);
+        K12.a(vc, m, -0.28f, 0.14f, -0.48f, 0.28f, 0.22f, -0.46f, dark);
+        if (style == 1) {
+            // sports: windshield
+            K12.a(vc, m, -0.17f, 0.345f, 0.06f, 0.17f, 0.45f, 0.10f, glass);
+        } else if (style == 2) {
+            // truck: raised body + cabin + bed
+            K12.a(vc, m, -0.28f, 0.34f, -0.12f, 0.28f, 0.62f, 0.14f, body);
+            K12.a(vc, m, -0.24f, 0.42f, 0.12f, 0.24f, 0.58f, 0.145f, glass);
+            K12.a(vc, m, -0.30f, 0.30f, -0.46f, 0.30f, 0.44f, -0.14f, body);
+            K12.a(vc, m, -0.26f, 0.30f, -0.44f, 0.26f, 0.34f, -0.16f, dark);
+            K12.a(vc, m, -0.32f, 0.02f, 0.26f, -0.20f, 0.18f, 0.46f, roof);
+            K12.a(vc, m, 0.20f, 0.02f, 0.26f, 0.32f, 0.18f, 0.46f, roof);
+            K12.a(vc, m, -0.32f, 0.02f, -0.46f, -0.20f, 0.18f, -0.26f, roof);
+            K12.a(vc, m, 0.20f, 0.02f, -0.46f, 0.32f, 0.18f, -0.26f, roof);
+        } else if (style == 3) {
+            // convertible: small windshield frame
+            K12.a(vc, m, -0.18f, 0.345f, 0.08f, 0.18f, 0.44f, 0.11f, glass);
+            K12.a(vc, m, -0.19f, 0.345f, 0.07f, -0.16f, 0.46f, 0.12f, roof);
+            K12.a(vc, m, 0.16f, 0.345f, 0.07f, 0.19f, 0.46f, 0.12f, roof);
+        } else {
+            // kart: roll bar
+            K12.a(vc, m, -0.16f, 0.34f, -0.18f, -0.12f, 0.56f, -0.14f, dark);
+            K12.a(vc, m, 0.12f, 0.34f, -0.18f, 0.16f, 0.56f, -0.14f, dark);
+            K12.a(vc, m, -0.16f, 0.52f, -0.18f, 0.16f, 0.56f, -0.14f, dark);
+        }
+    }
+
+    private static void carWheel(VertexConsumer vc, Matrix4f base, float x, float y, float z, float steer, float roll) {
+        Matrix4f m = new Matrix4f((Matrix4fc)base);
+        m.translate(x, y, z);
+        if (steer != 0.0f) {
+            m.rotateY(steer);
+        }
+        m.rotateX(roll);
+        float tw = 0.055f;
+        float r = 0.155f;
+        float e1 = 0.004f;
+        K12.a(vc, m, -tw, -r, -r, tw, r, r, 0x15151A);
+        float bar = 0.03f;
+        float hub = r * 0.72f;
+        K12.a(vc, m, -tw - e1, -bar, -hub, tw + e1, bar, hub, 0xB8B8C0);
+        K12.a(vc, m, -tw - e1, -hub, -bar, tw + e1, hub, bar, 0xB8B8C0);
+        K12.a(vc, m, -tw - 2.0f * e1, -0.04f, -0.04f, tw + 2.0f * e1, 0.04f, 0.04f, 0x6A6A74);
+    }
+
+    private static void carSteer(VertexConsumer vc, Matrix4f base, float steer) {
+        Matrix4f m = new Matrix4f((Matrix4fc)base);
+        m.translate(0.0f, 0.40f, 0.14f);
+        m.rotateX(-0.6f);
+        m.rotateY(steer * 2.0f);
+        float rw = 0.075f;
+        int col = 0x202024;
+        int rim = 0x303036;
+        K12.a(vc, m, -rw, -0.012f, -0.012f, rw, 0.012f, 0.012f, col);
+        K12.a(vc, m, -0.012f, -rw, -0.012f, 0.012f, rw * 0.4f, 0.012f, col);
+        K12.a(vc, m, -rw, -0.02f, -0.016f, -rw + 0.022f, 0.02f, 0.016f, rim);
+        K12.a(vc, m, rw - 0.022f, -0.02f, -0.016f, rw, 0.02f, 0.016f, rim);
+        K12.a(vc, m, -0.02f, rw - 0.022f, -0.016f, 0.02f, rw, 0.016f, rim);
+        K12.a(vc, m, -0.02f, -rw, -0.016f, 0.02f, -rw + 0.022f, 0.016f, rim);
+    }
+
     private static void a(LevelRenderContext ctx, Minecraft mc, C78 b, C79 figure) {
         float h;
         boolean thirdPerson;
@@ -862,6 +1061,10 @@ public final class K12 {
         double ry = Mth.lerp((double)pt, (double)b.b.y, (double)b.a.y);
         double rz = Mth.lerp((double)pt, (double)b.b.z, (double)b.a.z);
         float yaw = Mth.rotLerp((float)pt, (float)b.f, (float)b.e);
+        if (b == x && !K9.car.isEmpty() && K12.car() != null) {
+            K12.renderCar(ctx, mc, b, figure, rx, ry, rz, yaw, pt);
+            return;
+        }
         if (System.currentTimeMillis() < b.I) {
             K12.b(ctx, mc, b, figure, rx, ry, rz);
             return;
@@ -1320,6 +1523,24 @@ public final class K12 {
 
     }
 
+    public static final class C77 {
+        private final String a;
+        private final String b;
+        private final int d;
+        private final int e;
+        private final int f;
+        private final int g;
+        C77(String a, String b, int body, int accent, int roof, int style) {
+            this.a = a; this.b = b; this.d = body; this.e = accent; this.f = roof; this.g = style;
+        }
+        public String a() { return this.a; }
+        public String b() { return this.b; }
+        public int body() { return this.d; }
+        public int accent() { return this.e; }
+        public int roof() { return this.f; }
+        public int style() { return this.g; }
+    }
+
     private static final class C78 {
         Vec3 a;
         Vec3 b;
@@ -1370,6 +1591,7 @@ public final class K12 {
         String U = "";
         long V;
         long W;
+        float X;
 
         private C78() {
         }

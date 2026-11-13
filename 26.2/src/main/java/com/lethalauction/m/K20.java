@@ -2244,7 +2244,36 @@ extends Screen {
             K9.aK = !K9.aK;
             K9.b();
         });
-        return iy + 70;
+        int cy = iy + 70;
+        int ch = 112;
+        K18.a(g, 235, cy, 778, ch, 12, cardFill, cardBorder);
+        K18.a(g, "Plushie Cars", 253.0f, (float)(cy + 23), 12.5f, -789515, K18.c);
+        K18.a(g, "Give your figure a ride. It drives around with you, steering and bouncing as it goes.", 253.0f, (float)(cy + 41), 10.5f, -5001030, K18.a);
+        int pillW = 100;
+        int pillH = 46;
+        int gap = 6;
+        int pillY = cy + 54;
+        int px = 253;
+        boolean noneOn = K9.car == null || K9.car.isEmpty();
+        K18.a(g, px, pillY, pillW, pillH, 8, noneOn ? K18.a(this.ak, 0.18f) : cardFill, noneOn ? this.ak : cardBorder);
+        K18.a(g, px + pillW / 2, pillY + 15, 8.0f, 0xFF3A3A42);
+        K18.b(g, "None", (float)(px + pillW / 2), (float)(pillY + 38), 9.5f, noneOn ? this.am : -2039834, K18.a);
+        this.a(px, pillY, pillW, pillH, () -> {
+            K9.car = "";
+            K9.b();
+        });
+        px += pillW + gap;
+        for (K12.C77 c : K12.cars) {
+            boolean on = c.a().equals(K9.car);
+            K18.a(g, px, pillY, pillW, pillH, 8, on ? K18.a(this.ak, 0.18f) : cardFill, on ? this.ak : cardBorder);
+            K18.a(g, px + pillW / 2, pillY + 15, 8.0f, 0xFF000000 | c.body());
+            K18.a(g, px + pillW / 2, pillY + 15, 4.6f, 0xFF000000 | c.accent());
+            K18.b(g, K20.a(c.b(), pillW - 10, 9.5f, K18.a), (float)(px + pillW / 2), (float)(pillY + 38), 9.5f, on ? this.am : -2039834, K18.a);
+            K12.C77 fc = c;
+            this.a(px, pillY, pillW, pillH, () -> K12.setCar(fc.a()));
+            px += pillW + gap;
+        }
+        return cy + ch + 12;
     }
 
     private void a(GuiGraphicsExtractor g, int x, int y, int w, int h, K12.C79 fig, long now) {

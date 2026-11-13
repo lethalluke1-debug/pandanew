@@ -108,6 +108,7 @@ public final class K9 {
     public static String aG = "";
     public static String aH = "";
     public static String aI = "";
+    public static String car = "";
     public static boolean aJ = true;
     public static boolean aK = true;
     public static boolean aL = false;
@@ -224,6 +225,7 @@ public final class K9 {
             aG = p.getProperty("cosmetics", "");
             aH = p.getProperty("sticker", "");
             aI = p.getProperty("figure", "");
+            car = p.getProperty("carRide", "");
             aJ = Boolean.parseBoolean(p.getProperty("figureShare", "true"));
             aK = Boolean.parseBoolean(p.getProperty("figureSeeOthers", "true"));
             aL = Boolean.parseBoolean(p.getProperty("figureShoulder", "false"));
@@ -334,6 +336,7 @@ public final class K9 {
         p.setProperty("cosmetics", aG);
         p.setProperty("sticker", aH);
         p.setProperty("figure", aI);
+        p.setProperty("carRide", car);
         p.setProperty("figureShare", Boolean.toString(aJ));
         p.setProperty("figureSeeOthers", Boolean.toString(aK));
         p.setProperty("figureShoulder", Boolean.toString(aL));
