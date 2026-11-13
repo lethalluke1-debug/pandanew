@@ -3420,7 +3420,7 @@ extends Screen {
         K18.a(g, "Font", 272.0f, (float)(t + 77), 13.0f, -789515, K18.c);
         K18.a(g, "Changes the font of all text in the game, like a resource pack. Each preview below is drawn in that font.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
         int y = t + 116;
-        String[][] opts = new String[][]{{"", "Default"}, {"font_jersey10", "Jersey 10"}, {"font_silkscreen", "Silkscreen"}, {"font_vt323", "VT323"}};
+        String[][] opts = new String[][]{{"", "Default"}, {"font_jersey10", "Jersey 10"}, {"font_silkscreen", "Silkscreen"}, {"font_vt323", "VT323"}, {"font_minecraft", "Minecraft"}};
         for (String[] o : opts) {
             boolean sel = K9.font.equals(o[0]);
             float cy = (float)y + 31.0f;
