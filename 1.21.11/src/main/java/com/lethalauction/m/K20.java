@@ -2186,11 +2186,12 @@ extends class_437 {
         K18.b(g, K22.a(60237), 253.0f, (float)(t + 80), 17.0f, head, K22.a);
         K18.a(g, "Mini Figures", 272.0f, (float)(t + 77), 13.0f, -789515, K18.c);
         K18.a(g, "Pick a pack on the left, choose a figure, and it follows you around.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
+        this.o(g, t, cardFill, cardBorder);
         long now = System.currentTimeMillis();
         List<K12.C78> figs = K12.b;
         int railX = 235;
         int railW = 190;
-        int y = t + 120;
+        int y = t + 206;
         String[] packs = new String[]{"DonutSMP"};
         for (int pk = 0; pk < packs.length; ++pk) {
             boolean open = this.ab == pk;
@@ -2219,8 +2220,8 @@ extends class_437 {
         int railBottom = y;
         int pvX = railX + railW + 18;
         int pvW = 1013 - pvX;
-        int pvY = t + 120;
-        int pvH = 352;
+        int pvY = t + 206;
+        int pvH = 300;
         K18.a(g, pvX, pvY, pvW, pvH, 12, this.a(this.a(-16053235, 0.05f)), cardBorder);
         K18.a(g, "PREVIEW", (float)pvX + 16.0f, (float)(pvY + 20), 10.0f, -7568235, K18.b);
         K12.C78 worn = K12.a();
@@ -2244,20 +2245,24 @@ extends class_437 {
             K9.aK = !K9.aK;
             K9.b();
         });
-        int cy = iy + 70;
-        int ch = 112;
-        K18.a(g, 235, cy, 778, ch, 12, cardFill, cardBorder);
-        K18.a(g, "Plushie Cars", 253.0f, (float)(cy + 23), 12.5f, -789515, K18.c);
-        K18.a(g, "Give your figure a ride. It drives around with you, steering and bouncing as it goes.", 253.0f, (float)(cy + 41), 10.5f, -5001030, K18.a);
+        return iy + 70;
+    }
+
+    private void o(class_332 g, int t, int cardFill, int cardBorder) {
+        int cy = t + 108;
+        int ch = 86;
+        K18.a(g, 235, cy, 778, ch, 12, this.a(K18.a(this.ak, 0.06f)), K18.a(this.ak, 0.35f));
+        K18.a(g, "Plushie Cars", 253.0f, (float)(cy + 21), 12.5f, -789515, K18.c);
+        K18.a(g, "Pick a ride. Your figure drives it around with you, steering and bouncing as it goes.", 253.0f, (float)(cy + 37), 10.0f, -5001030, K18.a);
         int pillW = 100;
-        int pillH = 46;
+        int pillH = 40;
         int gap = 6;
-        int pillY = cy + 54;
+        int pillY = cy + 42;
         int px = 253;
         boolean noneOn = K9.car == null || K9.car.isEmpty();
         K18.a(g, px, pillY, pillW, pillH, 8, noneOn ? K18.a(this.ak, 0.18f) : cardFill, noneOn ? this.ak : cardBorder);
-        K18.a(g, px + pillW / 2, pillY + 15, 8.0f, 0xFF3A3A42);
-        K18.b(g, "None", (float)(px + pillW / 2), (float)(pillY + 38), 9.5f, noneOn ? this.am : -2039834, K18.a);
+        K18.a(g, px + pillW / 2, pillY + 13, 7.0f, 0xFF3A3A42);
+        K18.b(g, "None", (float)(px + pillW / 2), (float)(pillY + 32), 9.5f, noneOn ? this.am : -2039834, K18.a);
         this.a(px, pillY, pillW, pillH, () -> {
             K9.car = "";
             K9.b();
@@ -2266,14 +2271,13 @@ extends class_437 {
         for (K12.C76 c : K12.cars) {
             boolean on = c.a().equals(K9.car);
             K18.a(g, px, pillY, pillW, pillH, 8, on ? K18.a(this.ak, 0.18f) : cardFill, on ? this.ak : cardBorder);
-            K18.a(g, px + pillW / 2, pillY + 15, 8.0f, 0xFF000000 | c.body());
-            K18.a(g, px + pillW / 2, pillY + 15, 4.6f, 0xFF000000 | c.accent());
-            K18.b(g, K20.a(c.b(), pillW - 10, 9.5f, K18.a), (float)(px + pillW / 2), (float)(pillY + 38), 9.5f, on ? this.am : -2039834, K18.a);
+            K18.a(g, px + pillW / 2, pillY + 13, 7.0f, 0xFF000000 | c.body());
+            K18.a(g, px + pillW / 2, pillY + 13, 4.0f, 0xFF000000 | c.accent());
+            K18.b(g, K20.a(c.b(), pillW - 10, 9.5f, K18.a), (float)(px + pillW / 2), (float)(pillY + 32), 9.5f, on ? this.am : -2039834, K18.a);
             K12.C76 fc = c;
             this.a(px, pillY, pillW, pillH, () -> K12.setCar(fc.a()));
             px += pillW + gap;
         }
-        return cy + ch + 12;
     }
 
     private void a(class_332 g, int x, int y, int w, int h, K12.C78 fig, long now) {
