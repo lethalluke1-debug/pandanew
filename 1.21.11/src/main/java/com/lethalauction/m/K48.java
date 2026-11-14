@@ -46,9 +46,10 @@ function Await($op,$t){$x=$asTask.MakeGenericMethod($t).Invoke($null,@($op));$x.
 [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager,Windows.Media.Control,ContentType=WindowsRuntime]|Out-Null
 $M=[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]
 $P=[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties]
-$mgr=Await ($M::RequestAsync()) $M
+$mgr=$null
 while($true){
  try{
+  if($mgr -eq $null){$mgr=Await ($M::RequestAsync()) $M}
   $s=$mgr.GetCurrentSession()
   if($s){
    $p=Await ($s.TryGetMediaPropertiesAsync()) $P
@@ -59,7 +60,7 @@ while($true){
   }else{$j='{}'}
   try{[IO.File]::WriteAllText($out,$j,[Text.Encoding]::UTF8)}catch{}
   [Console]::Out.WriteLine($j);[Console]::Out.Flush()
- }catch{}
+ }catch{$mgr=$null}
  Start-Sleep -Milliseconds 1000
 }
 """;

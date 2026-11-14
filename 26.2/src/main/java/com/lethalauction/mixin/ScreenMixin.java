@@ -22,7 +22,6 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value={Screen.class})
@@ -37,10 +36,13 @@ public abstract class ScreenMixin {
         ci.cancel();
     }
 
-    @Redirect(method = "extractRenderStateWithTooltipAndSubtitles", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;extractBackground(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIF)V"))
-    private void lethal$seeThroughGui(Screen self, GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
-        if (!(K9.seeThroughGui && Minecraft.getInstance().level != null)) {
-            self.extractBackground(g, mouseX, mouseY, partialTick);
+    @Inject(method = {"extractBackground"}, at = {@At(value = "HEAD")}, cancellable = true)
+    private void lethal$seeThroughGui(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+        // Removes only the dark dim/blur behind menus (the transparent panel
+        // texture still draws on top). For a container screen this fires via its
+        // super.extractBackground call, so the panel's own blit is kept.
+        if (K9.seeThroughGui && Minecraft.getInstance().level != null) {
+            ci.cancel();
         }
     }
 }
