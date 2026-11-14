@@ -36,6 +36,7 @@ public final class K48 {
     private static volatile long lastPos = -1L;
     private static volatile long lastAdvanceWall = 0L;
     private static volatile String lastKey = "";
+    private static volatile long lastData = 0L;   // last time the reader produced a line
 
     private static final String SCRIPT = """
 $ErrorActionPreference='SilentlyContinue'
@@ -55,7 +56,9 @@ while($true){
    $p=Await ($s.TryGetMediaPropertiesAsync()) $P
    $pb=$s.GetPlaybackInfo();$tl=$s.GetTimelineProperties()
    $st=if([int]$pb.PlaybackStatus -eq 4){'playing'}else{'paused'}
-   $o=[ordered]@{app=[string]$s.SourceAppUserModelId;title=[string]$p.Title;artist=[string]$p.Artist;status=$st;pos=[long]$tl.Position.TotalMilliseconds;dur=[long]$tl.EndTime.TotalMilliseconds;art='';t=[long]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())}
+   $pm=[long]$tl.Position.TotalMilliseconds
+   if($st -eq 'playing'){$dd=([DateTimeOffset]::UtcNow-$tl.LastUpdatedTime).TotalMilliseconds;if($dd -gt 0 -and $dd -lt 30000){$pm=$pm+[long]$dd}}
+   $o=[ordered]@{app=[string]$s.SourceAppUserModelId;title=[string]$p.Title;artist=[string]$p.Artist;status=$st;pos=$pm;dur=[long]$tl.EndTime.TotalMilliseconds;art='';t=[long]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())}
    $j=($o|ConvertTo-Json -Compress)
   }else{$j='{}'}
   try{[IO.File]::WriteAllText($out,$j,[Text.Encoding]::UTF8)}catch{}
@@ -73,10 +76,10 @@ while($true){
     }
 
     public static boolean b() {
-        // On Windows, report "running" only while the reader process is alive, so
-        // the controller relaunches it automatically if the first start flakes
-        // (no need to toggle off/on by hand).
-        return c && (!WIN || (d != null && d.isAlive()));
+        // Report "running" only while the reader process is alive AND has
+        // produced a reading recently. If it is alive but silent (a cold-start
+        // flake), the controller relaunches it instead of us having to toggle.
+        return c && (!WIN || (d != null && d.isAlive() && System.currentTimeMillis() - lastData < 8000L));
     }
 
     public static synchronized void c() {
@@ -84,6 +87,7 @@ while($true){
             return;
         }
         c = true;
+        lastData = System.currentTimeMillis();
         if (WIN) {
             h();
         }
@@ -175,6 +179,7 @@ while($true){
     }
 
     private static void a(String line) {
+        lastData = System.currentTimeMillis();
         try {
             K47.C96 which;
             JsonObject o = JsonParser.parseString((String)line).getAsJsonObject();

@@ -15,6 +15,7 @@
     "MinecraftMixin",
     "MouseHandlerMixin",
     "KeyboardHandlerMixin",
+    "GuiGraphicsMixin",
     "PongMixin",
     "SkyRendererMixin",
     "TextDisplayRendererMixin",
