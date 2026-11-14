@@ -100,7 +100,7 @@ public final class K48 {
         "      $tl = $s.GetTimelineProperties()\n" +
         "      $st = if ([int]$pb.PlaybackStatus -eq 4) { 'playing' } else { 'paused' }\n" +
         "      $o = [ordered]@{ app=[string]$s.SourceAppUserModelId; title=[string]$p.Title; artist=[string]$p.Artist; status=$st; pos=[long]$tl.Position.TotalMilliseconds; dur=[long]$tl.EndTime.TotalMilliseconds; art=''; t=[long]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()) }\n" +
-        "      Write-Output ($o | ConvertTo-Json -Compress)\n" +
+        "      [Console]::Out.WriteLine(($o | ConvertTo-Json -Compress)); [Console]::Out.Flush()\n" +
         "    }\n" +
         "  } catch { }\n" +
         "  Start-Sleep -Milliseconds 1000\n" +
@@ -108,7 +108,7 @@ public final class K48 {
 
     private static void h() {
         try {
-            Process p = new ProcessBuilder("powershell", "-NoProfile", "-NonInteractive", "-Command", "-").start();
+            Process p = new ProcessBuilder("powershell", "-NoProfile", "-NonInteractive", "-Command", "-").redirectErrorStream(true).start();
             d = p;
             java.io.OutputStream os = p.getOutputStream();
             os.write(PS.getBytes(StandardCharsets.UTF_8));
