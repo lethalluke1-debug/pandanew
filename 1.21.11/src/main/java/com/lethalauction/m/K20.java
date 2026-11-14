@@ -3352,6 +3352,15 @@ extends class_437 {
             K9.b();
         });
         y += 62;
+        K18.a(g, "Interface", 243.0f, (float)((y += 14) + 8), 12.5f, -789515, K18.c);
+        K18.a(g, 241, y += 22, 765, 50, 10, cardFill, cardBorder);
+        K18.a(g, "See-through menus", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
+        K18.a(g, "Hides the dark blur behind inventories and menus, so you can watch the world while they're open.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
+        this.a(g, 960, y + 25, K9.seeThroughGui, () -> {
+            K9.seeThroughGui = !K9.seeThroughGui;
+            K9.b();
+        });
+        y += 62;
         K9.C = this.bs.b.trim().isEmpty() ? "1m" : this.bs.b.trim();
         K18.a(g, "Safety", 243.0f, (float)((y += 14) + 8), 12.5f, -789515, K18.c);
         K18.a(g, 241, y += 22, 765, 50, 10, cardFill, cardBorder);

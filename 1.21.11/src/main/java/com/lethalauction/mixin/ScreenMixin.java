@@ -14,6 +14,7 @@
 package com.lethalauction.mixin;
 
 import com.lethalauction.m.K33;
+import com.lethalauction.m.K9;
 import net.minecraft.class_310;
 import net.minecraft.class_332;
 import net.minecraft.class_437;
@@ -33,6 +34,13 @@ public abstract class ScreenMixin {
         }
         K33.a(g, self.field_22789, self.field_22790);
         ci.cancel();
+    }
+
+    @Inject(method = {"method_25420"}, at = {@At(value = "HEAD")}, cancellable = true)
+    private void lethal$seeThroughGui(class_332 g, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+        if (K9.seeThroughGui && class_310.method_1551().field_1687 != null) {
+            ci.cancel();
+        }
     }
 }
 
