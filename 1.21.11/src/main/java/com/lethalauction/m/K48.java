@@ -3,70 +3,35 @@ package com.lethalauction.m;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.lethalauction.m.K42;
-import com.lethalauction.m.K45;
 import com.lethalauction.m.K47;
 import com.lethalauction.m.K9;
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import net.fabricmc.loader.api.FabricLoader;
 
 /**
- * Now-playing source. On Windows the mod reads the current media from the
- * system media API. The reader script is piped to PowerShell over stdin — it is
- * never written to disk as a .ps1 file, which is the dropped-script pattern that
- * antivirus flagged before. It also still reads an optional
- * &lt;config&gt;/lethalauction/nowplaying.json written by a separate helper, for
- * anyone who would rather the mod launch nothing at all.
+ * Now-playing source. On Windows the mod reads the current media from the system
+ * media API (the same feed the volume overlay uses) via a small bundled
+ * PowerShell script. The script is extracted to &lt;config&gt;/lethal-music and
+ * launched with "powershell -File"; it prints one compact JSON line ~8x a second
+ * on stdout, which this class parses. It also still reads an optional
+ * &lt;config&gt;/lethalauction/nowplaying.json written by a separate helper.
  */
 public final class K48 {
     private static final boolean WIN = System.getProperty("os.name", "").toLowerCase().contains("win");
     private static final Path FILE = FabricLoader.getInstance().getConfigDir()
         .resolve("lethalauction").resolve("nowplaying.json");
+    private static final Path MDIR = FabricLoader.getInstance().getConfigDir().resolve("lethal-music");
     private static volatile boolean c;   // running
     private static Process d;            // reader process
     private static Thread e;             // stdout reader
     private static Thread g;             // file poller
-    // Pause detection by position movement (Spotify's SMTC can report
-    // "Playing" even while paused; if the track position stops advancing for a
-    // couple of seconds we treat it as paused).
-    private static volatile long lastPos = -1L;
-    private static volatile long lastAdvanceWall = 0L;
-    private static volatile String lastKey = "";
-    private static volatile long lastData = 0L;   // last time the reader produced a line
-
-    private static final String SCRIPT = """
-$ErrorActionPreference='SilentlyContinue'
-$out='__OUTFILE__'
-Add-Type -AssemblyName System.Runtime.WindowsRuntime
-$asTask=([System.WindowsRuntimeSystemExtensions].GetMethods()|Where-Object{$_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1'})[0]
-function Await($op,$t){$x=$asTask.MakeGenericMethod($t).Invoke($null,@($op));$x.Wait(-1)|Out-Null;$x.Result}
-[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager,Windows.Media.Control,ContentType=WindowsRuntime]|Out-Null
-$M=[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]
-$P=[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties]
-$mgr=$null
-while($true){
- try{
-  if($mgr -eq $null){$mgr=Await ($M::RequestAsync()) $M}
-  $s=$mgr.GetCurrentSession()
-  if($s){
-   $p=Await ($s.TryGetMediaPropertiesAsync()) $P
-   $pb=$s.GetPlaybackInfo();$tl=$s.GetTimelineProperties()
-   $st=if([int]$pb.PlaybackStatus -eq 4){'playing'}else{'paused'}
-   $pm=[long]$tl.Position.TotalMilliseconds
-   if($st -eq 'playing'){$dd=([DateTimeOffset]::UtcNow-$tl.LastUpdatedTime).TotalMilliseconds;if($dd -gt 0 -and $dd -lt 30000){$pm=$pm+[long]$dd}}
-   $o=[ordered]@{app=[string]$s.SourceAppUserModelId;title=[string]$p.Title;artist=[string]$p.Artist;status=$st;pos=$pm;dur=[long]$tl.EndTime.TotalMilliseconds;art='';t=[long]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())}
-   $j=($o|ConvertTo-Json -Compress)
-  }else{$j='{}'}
-  try{[IO.File]::WriteAllText($out,$j,[Text.Encoding]::UTF8)}catch{}
-  [Console]::Out.WriteLine($j);[Console]::Out.Flush()
- }catch{$mgr=$null}
- Start-Sleep -Milliseconds 1000
-}
-""";
 
     private K48() {
     }
@@ -76,10 +41,7 @@ while($true){
     }
 
     public static boolean b() {
-        // Report "running" only while the reader process is alive AND has
-        // produced a reading recently. If it is alive but silent (a cold-start
-        // flake), the controller relaunches it instead of us having to toggle.
-        return c && (!WIN || (d != null && d.isAlive() && System.currentTimeMillis() - lastData < 8000L));
+        return c && (!WIN || (d != null && d.isAlive()));
     }
 
     public static synchronized void c() {
@@ -87,7 +49,6 @@ while($true){
             return;
         }
         c = true;
-        lastData = System.currentTimeMillis();
         if (WIN) {
             h();
         }
@@ -112,25 +73,22 @@ while($true){
         g = null;
     }
 
-    // Launch the system-media reader. The script is passed via -EncodedCommand
-    // (never written to disk), and writes its readings to nowplaying.json each
-    // second; the file poller reads that, which avoids PowerShell's buffering of
-    // redirected stdout (that buffering made the HUD stop updating until toggled).
+    // Extract the bundled reader script and launch it with "powershell -File".
     private static void h() {
         try {
-            try {
-                Files.createDirectories(FILE.getParent());
-            } catch (Exception ignore) {
-                // ignore
+            Files.createDirectories(MDIR);
+            Path ps1 = MDIR.resolve("nowplaying.ps1");
+            try (InputStream in = K48.class.getResourceAsStream("/assets/lethalauction/music/nowplaying.ps1")) {
+                if (in != null) {
+                    Files.copy(in, ps1, StandardCopyOption.REPLACE_EXISTING);
+                }
             }
-            String outPath = FILE.toString().replace("'", "''");
-            String script = SCRIPT.replace("__OUTFILE__", outPath);
-            String enc = java.util.Base64.getEncoder().encodeToString(script.getBytes(StandardCharsets.UTF_16LE));
+            String[] args = new String[]{"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", ps1.toString(), "read", MDIR.toString()};
             Process p;
             try {
-                p = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", enc).start();
+                p = K48.a("powershell", args);
             } catch (Exception psErr) {
-                p = new ProcessBuilder("pwsh", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", enc).start();
+                p = K48.a("pwsh", args);
             }
             d = p;
             final Process fp = p;
@@ -141,6 +99,15 @@ while($true){
         } catch (Exception exception) {
             d = null;
         }
+    }
+
+    private static Process a(String exe, String[] args) throws Exception {
+        ArrayList<String> cmd = new ArrayList<String>();
+        cmd.add(exe);
+        for (String a : args) {
+            cmd.add(a);
+        }
+        return new ProcessBuilder(cmd).start();
     }
 
     private static void e(Process p) {
@@ -185,7 +152,6 @@ while($true){
     }
 
     private static void a(String line) {
-        lastData = System.currentTimeMillis();
         try {
             K47.C95 which;
             JsonObject o = JsonParser.parseString((String)line).getAsJsonObject();
@@ -205,20 +171,8 @@ while($true){
                 K47.m();
                 return;
             }
-            boolean statusPlaying = status.equals("playing");
+            boolean playing = status.equals("playing");
             String artKey = app + "|" + title + "|" + artist;
-            long nowWall = System.currentTimeMillis();
-            if (!artKey.equals(lastKey)) {
-                lastKey = artKey;
-                lastPos = pos;
-                lastAdvanceWall = nowWall;
-            } else if (pos > lastPos + 250L) {
-                lastPos = pos;
-                lastAdvanceWall = nowWall;
-            }
-            // Playing only if the status says so AND the position has actually
-            // advanced within the last few seconds.
-            boolean playing = statusPlaying && nowWall - lastAdvanceWall < 2500L;
             K47.a(new K47.C96(which, title, artist, playing, pos, dur, sampledAt, artKey));
             if (!artPath.isEmpty()) {
                 K47.a(artKey, Path.of(artPath, new String[0]));
