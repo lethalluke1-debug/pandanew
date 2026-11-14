@@ -2658,7 +2658,10 @@ extends Screen {
             }
             bottom = this.ae < 0 ? this.b(g, cx, cw, sy, cardBorder) : this.c(g, cx, cw, sy, cardBorder);
         } else if (this.aa == 3) {
-            bottom = this.shoeCatalog(g, cx, cw, sy, cardFill, cardBorder);
+            K18.a(g, "Your shoes", (float)(cx + 2), (float)(sy + 6), 12.5f, -789515, K18.c);
+            K18.a(g, "Click Wear to put a pair on your plushie. Browse all 100 below to pick more.", (float)(cx + 2), (float)(sy + 24), 10.0f, -5001030, K18.a);
+            int yb = this.a(g, cx, cw, sy + 40, K6.C74.SHOES, cardFill, cardBorder);
+            bottom = this.shoeCatalog(g, cx, cw, yb + 12, cardFill, cardBorder);
         } else {
             K18.a(g, cx, sy, cw, 130, 12, cardFill, cardBorder);
             K18.b(g, K22.a(60130), (float)cx + (float)cw / 2.0f, (float)(sy + 50), 20.0f, head, K22.a);
@@ -3439,8 +3442,11 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
             }
             case "jordanlows":
             case "basketball":
-            case "running": {
-                boolean high = item.a.equals("basketball");
+            case "running":
+            case "jordan1_chicago":
+            case "dunk_panda":
+            case "airmax95_neon": {
+                boolean high = item.a.equals("basketball") || item.a.equals("jordan1_chicago");
                 int top = high ? y - 22 : y - 8;
                 K18.a(g, x - 26, top, 30, y + 14 - top, 6, p);
                 K18.a(g, x - 26, y - 6, 56, 20, 8, p);
@@ -3450,7 +3456,7 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
                     K18.a(g, x - 14, y - 2, 30, 6, 3, a);
                     break;
                 }
-                if (item.a.equals("running")) {
+                if (item.a.equals("running") || item.a.equals("airmax95_neon")) {
                     K18.a(g, x - 16, y + 2, 38, 4, 2, a);
                     K18.a(g, x - 8, y - 4, 22, 4, 2, a);
                     K18.a(g, x - 30, y + 10, 64, 10, 5, s2);
