@@ -187,6 +187,7 @@ extends Screen {
     private final K31 aC = K31.a("1", 5);
     private final K31 aD = K31.b(12);
     private final K31 aE = K31.a(16);
+    private final K31 hsField = K31.b(12);
     private static int aF;
     private final K31 aG = K31.b(12);
     private final K31 aH = K31.a("60", 5);
@@ -1588,6 +1589,14 @@ extends Screen {
             K9.s = this.aD.b;
             K9.b();
         }
+        if (this.hsField.b.isEmpty() && !K9.hideSmallStr.isEmpty() && this.aM != this.hsField) {
+            this.hsField.b = K9.hideSmallStr;
+        }
+        if (!this.hsField.b.equals(K9.hideSmallStr)) {
+            K9.hideSmallStr = this.hsField.b;
+            K9.b();
+        }
+        long hideThr = K9.hideSmall && !K9.hideSmallStr.isBlank() ? Math.max(0L, Auctions.e(K9.hideSmallStr)) : 0L;
         List<Transactions.C69> all = Transactions.a();
         long min = this.aD.b.isBlank() ? 0L : Math.max(0L, Auctions.e(this.aD.b));
         String q = this.aE.b.trim().toLowerCase(Locale.ROOT);
@@ -1595,7 +1604,7 @@ extends Screen {
         long received = 0L;
         long sent = 0L;
         for (Transactions.C69 tx : all) {
-            if (tx.amount() < min || aF == 1 && !tx.received() || aF == 2 && tx.received() || !q.isEmpty() && !tx.player().toLowerCase(Locale.ROOT).contains(q)) continue;
+            if (tx.amount() < min || hideThr > 0L && tx.amount() <= hideThr || aF == 1 && !tx.received() || aF == 2 && tx.received() || !q.isEmpty() && !tx.player().toLowerCase(Locale.ROOT).contains(q)) continue;
             shown.add(tx);
             if (tx.received()) {
                 received += tx.amount();
@@ -1632,7 +1641,7 @@ extends Screen {
         K18.a(g, (profit >= 0L ? "+" : "-") + Auctions.a(Math.abs(profit)), (float)(sx + 16), (float)(y + 38), 15.0f, pc, K18.c);
         this.a(g, sx + cw - 70, y + 15, 58, 24, "Reset", this.a(-15395813), -13356484, -789515, Transactions::c);
         y += 66;
-        this.moneyGraph(g, all, 241, y, 765, 118, cardFill, cardBorder);
+        this.moneyGraph(g, all, hideThr, 241, y, 765, 118, cardFill, cardBorder);
         y += 130;
         K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
         K18.a(g, "Profit display", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
@@ -1654,22 +1663,9 @@ extends Screen {
         y += 62;
         K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
         K18.a(g, "Hide small payments", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
-        K18.a(g, "Ignores any pay below the amount — it won't show, count or save.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
-        long[] hsAmt = new long[]{1L, 100L, 1000L, 10000L, 100000L, 1000000L};
-        String[] hsLbl = new String[]{"$1", "$100", "$1k", "$10k", "$100k", "$1m"};
-        int hsx = 505;
-        for (int hi = 0; hi < hsAmt.length; ++hi) {
-            boolean hsel = K9.hideSmallAmt == hsAmt[hi];
-            int hw = Math.round(K18.a(hsLbl[hi], 10.5f, K18.b) + 14.0f);
-            K18.a(g, hsx, y + 13, hw, 24, 7, hsel ? this.al : this.a(-15395813), hsel ? this.ak : -13356484);
-            K18.b(g, hsLbl[hi], (float)hsx + (float)hw / 2.0f, (float)(y + 25), 10.5f, hsel ? -1 : -3947581, K18.b);
-            long hv = hsAmt[hi];
-            this.a(hsx, y + 13, hw, 24, () -> {
-                K9.hideSmallAmt = hv;
-                K9.b();
-            });
-            hsx += hw + 5;
-        }
+        K18.a(g, "Any payment at or below this is ignored — not shown, counted or saved.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
+        K18.a(g, "$", 716.0f, (float)(y + 20), 12.0f, -5001030, K18.c);
+        this.a(g, this.hsField, 728, y + 10, 150, 30, "e.g. 1m");
         this.a(g, 960, y + 25, K9.hideSmall, () -> {
             K9.hideSmall = !K9.hideSmall;
             K9.b();
@@ -1731,21 +1727,21 @@ extends Screen {
         return y;
     }
 
-    private void moneyGraph(GuiGraphicsExtractor g, List<Transactions.C69> all, int x, int y, int w, int h, int cardFill, int cardBorder) {
+    private void moneyGraph(GuiGraphicsExtractor g, List<Transactions.C69> all, long hideThr, int x, int y, int w, int h, int cardFill, int cardBorder) {
         K18.a(g, x, y, w, h, 10, cardFill, cardBorder);
         K18.a(g, "MONEY THIS SESSION", (float)(x + 16), (float)(y + 18), 9.5f, -7568235, K18.b);
         long start = Transactions.b();
         long now = System.currentTimeMillis();
         ArrayList<Transactions.C69> chrono = new ArrayList<Transactions.C69>();
         for (Transactions.C69 tx : all) {
-            if (tx.at() < start) continue;
+            if (tx.at() < start || hideThr > 0L && tx.amount() <= hideThr) continue;
             chrono.add(tx);
         }
         java.util.Collections.reverse(chrono);
         int px = x + 16;
         int pw = w - 32;
-        int pyTop = y + 32;
-        int ph = h - 48;
+        int pyTop = y + 34;
+        int ph = h - 50;
         long span = Math.max(1L, now - start);
         long cum = 0L;
         long minV = 0L;
@@ -1759,23 +1755,58 @@ extends Screen {
             if (cum > maxV) maxV = cum;
         }
         pts.add(new long[]{now, cum});
-        long range = Math.max(1L, maxV - minV);
-        int zeroY = pyTop + ph - (int)((0L - minV) * (long)ph / range);
-        K18.a(g, px, zeroY, pw, 1, this.a(-14804444, 0.6f));
+        long pad = Math.max(1L, (maxV - minV) / 8L);
+        long lo = minV - pad;
+        long hi = maxV + pad;
+        long range = Math.max(1L, hi - lo);
+        int zeroY = pyTop + ph - (int)((0L - lo) * (long)ph / range);
         int color = cum >= 0L ? -12200829 : -42401;
-        int prevX = -1;
-        int prevY = -1;
-        for (long[] p : pts) {
-            int sx = px + (int)((p[0] - start) * (long)pw / span);
-            int sy = pyTop + ph - (int)((p[1] - minV) * (long)ph / range);
-            if (prevX >= 0) {
-                K20.line(g, prevX, prevY, sx, sy, 2, color);
+        int[] colY = new int[pw + 1];
+        int pi = 0;
+        for (int c = 0; c <= pw; ++c) {
+            long tt = start + (long)c * span / pw;
+            while (pi + 1 < pts.size() && pts.get(pi + 1)[0] <= tt) {
+                ++pi;
             }
-            prevX = sx;
-            prevY = sy;
+            long v = pts.get(pi)[1];
+            colY[c] = pyTop + ph - (int)((v - lo) * (long)ph / range);
+        }
+        int fillCol = K18.a(color, 0.13f);
+        for (int c = 0; c <= pw; ++c) {
+            int top = Math.min(colY[c], zeroY);
+            int bot = Math.max(colY[c], zeroY);
+            if (bot > top) {
+                K18.a(g, px + c, top, 1, bot - top, fillCol);
+            }
+        }
+        K18.a(g, px, zeroY, pw, 1, this.a(-14804444, 0.6f));
+        for (int c = 1; c <= pw; ++c) {
+            K20.line(g, px + c - 1, colY[c - 1], px + c, colY[c], 2, color);
         }
         String val = (cum >= 0L ? "+" : "-") + Auctions.a(Math.abs(cum));
         K18.c(g, val, (float)(x + w - 16), (float)(y + 18), 12.0f, color, K18.c);
+        float mx = this.aU;
+        float my = this.aV;
+        if (mx >= (float)px && mx <= (float)(px + pw) && my >= (float)pyTop && my <= (float)(pyTop + ph)) {
+            int c = Math.max(0, Math.min(pw, (int)(mx - (float)px)));
+            long tt = start + (long)c * span / pw;
+            int hpi = 0;
+            while (hpi + 1 < pts.size() && pts.get(hpi + 1)[0] <= tt) {
+                ++hpi;
+            }
+            long hv = pts.get(hpi)[1];
+            int hy = colY[c];
+            K18.a(g, px + c, pyTop, 1, ph, this.a(-1, 0.22f));
+            K18.a(g, (float)(px + c), (float)hy, 3.2f, color);
+            String tv = (hv >= 0L ? "+" : "-") + Auctions.a(Math.abs(hv));
+            String tlabel = K20.a(now - tt);
+            int tipw = Math.max(Math.round(K18.a(tv, 10.5f, K18.c)), Math.round(K18.a(tlabel, 9.0f, K18.a))) + 16;
+            int txx = Math.min(px + c + 10, px + pw - tipw);
+            int tyy = Math.max(pyTop, hy - 36);
+            K18.a(g, txx, tyy, tipw, 32, 6, this.a(-15724264), this.ak);
+            K18.a(g, tv, (float)(txx + 8), (float)(tyy + 13), 10.5f, color, K18.c);
+            K18.a(g, tlabel, (float)(txx + 8), (float)(tyy + 25), 9.0f, -7568235, K18.a);
+        }
     }
 
     private static void line(GuiGraphicsExtractor g, int x1, int y1, int x2, int y2, int thick, int color) {

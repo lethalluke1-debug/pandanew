@@ -111,8 +111,16 @@ public final class Transactions {
         if (amount <= 0L) {
             return;
         }
-        if (K9.hideSmall && K9.hideSmallAmt > 0L && amount < K9.hideSmallAmt) {
-            return;
+        if (K9.hideSmall && !K9.hideSmallStr.isBlank()) {
+            long thr = 0L;
+            try {
+                thr = Auctions.e(K9.hideSmallStr);
+            } catch (Exception ex) {
+                // ignore
+            }
+            if (thr > 0L && amount <= thr) {
+                return;
+            }
         }
         Transactions.f();
         i.add(0, new C69(System.currentTimeMillis(), player, amount, received));
