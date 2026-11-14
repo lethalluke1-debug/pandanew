@@ -180,20 +180,20 @@ implements HudElement {
         K18.a(g, K25.a(t.e().isEmpty() ? "Unknown artist" : t.e(), 11.0f, K18.b, (float)maxW), (float)tx, 60.0f, 11.0f, -7695450, K18.b);
         K18.a(g, (float)ax + 4.0f, 92.0f, 3.5f, accent);
         K18.a(g, t.c().label.isEmpty() ? "Music" : t.c().label, (float)ax + 11.0f, 92.0f, 9.0f, -7695450, K18.b);
-        long pos = t.b();
         long dur = t.h();
-        float frac = dur > 0L ? Math.max(0.0f, Math.min(1.0f, (float)pos / (float)dur)) : 0.0f;
         int rowY = 92;
         int barL = tx + 22;
         int barR = 258 - (dur > 0L ? 28 : 0);
         int bw = Math.max(8, barR - barL);
-        K18.a(g, K25.a(pos), (float)tx, (float)rowY, 7.5f, -7695450, K18.b);
         K18.a(g, barL, rowY - 1, bw, 3, 1, 0x33FFFFFF);
-        if (frac > 0.0f) {
-            K18.a(g, barL, rowY - 1, Math.max(2, Math.round((float)bw * frac)), 3, 1, accent);
-            K18.a(g, (float)barL + (float)bw * frac, (float)rowY + 0.5f, 2.6f, -1);
-        }
         if (dur > 0L) {
+            long pos = t.b();
+            float frac = Math.max(0.0f, Math.min(1.0f, (float)pos / (float)dur));
+            K18.a(g, K25.a(pos), (float)tx, (float)rowY, 7.5f, -7695450, K18.b);
+            if (frac > 0.0f) {
+                K18.a(g, barL, rowY - 1, Math.max(2, Math.round((float)bw * frac)), 3, 1, accent);
+                K18.a(g, (float)barL + (float)bw * frac, (float)rowY + 0.5f, 2.6f, -1);
+            }
             K18.c(g, "-" + K25.a(dur - pos), 258.0f, (float)rowY, 7.5f, -7695450, K18.b);
         }
     }
