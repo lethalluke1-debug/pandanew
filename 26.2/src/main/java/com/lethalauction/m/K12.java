@@ -1000,7 +1000,7 @@ public final class K12 {
         ps.scale(fsc, fsc, fsc);
         ps.scale(-1.0f, -1.0f, 1.0f);
         ps.translate(0.0f, -1.501f, 0.0f);
-        v.renderToBuffer(ps, u.a(RenderTypes.entityCutout((Identifier)figure.c())), 0xF000F0, OverlayTexture.NO_OVERLAY, -1);
+        v.renderToBuffer(ps, u.a(RenderTypes.entityCutoutCull((Identifier)figure.c())), 0xF000F0, OverlayTexture.NO_OVERLAY, -1);
         ps.popPose();
     }
 
@@ -1219,7 +1219,7 @@ public final class K12 {
         ps.mulPose((Quaternionfc)Axis.YP.rotationDegrees(180.0f - yaw));
         ps.scale(-1.0f, -1.0f, 1.0f);
         ps.translate(0.0f, -1.501f, 0.0f);
-        RenderType type = RenderTypes.entityCutout((Identifier)figure.c());
+        RenderType type = RenderTypes.entityCutoutCull((Identifier)figure.c());
         v.renderToBuffer(ps, u.a(type), 0xF000F0, K12.a(b), -1);
         ps.popPose();
         if (chuteAmt > 0.02f && !K11.a()) {
@@ -1275,7 +1275,7 @@ public final class K12 {
         ps.scale(0.55f, 0.55f, 0.55f);
         ps.scale(-1.0f, -1.0f, 1.0f);
         ps.translate(0.0f, -1.501f, 0.0f);
-        v.renderToBuffer(ps, u.a(RenderTypes.entityCutout((Identifier)figure.c())), 0xF000F0, OverlayTexture.NO_OVERLAY, -1);
+        v.renderToBuffer(ps, u.a(RenderTypes.entityCutoutCull((Identifier)figure.c())), 0xF000F0, OverlayTexture.NO_OVERLAY, -1);
         ps.popPose();
         Matrix4f pm = new Matrix4f((Matrix4fc)ctx.poseStack().last().pose());
         pm.translate((float)dx, (float)(dy + (double)seatH + 0.1), (float)dz);
@@ -1378,7 +1378,7 @@ public final class K12 {
         ps.scale(0.55f, 0.55f, 0.55f);
         ps.scale(-1.0f, -1.0f, 1.0f);
         ps.translate(0.0f, -1.501f, 0.0f);
-        v.renderToBuffer(ps, u.a(RenderTypes.entityCutout((Identifier)figure.c())), 0xF000F0, OverlayTexture.NO_OVERLAY, -1);
+        v.renderToBuffer(ps, u.a(RenderTypes.entityCutoutCull((Identifier)figure.c())), 0xF000F0, OverlayTexture.NO_OVERLAY, -1);
         ps.popPose();
         if (rise > 0.4f) {
             Matrix4f pm = new Matrix4f((Matrix4fc)ps.last().pose());
@@ -1415,7 +1415,7 @@ public final class K12 {
         ps.scale(0.55f, 0.55f, 0.55f);
         ps.scale(-1.0f, -1.0f, 1.0f);
         ps.translate(0.0f, -1.501f, 0.0f);
-        v.renderToBuffer(ps, u.a(RenderTypes.entityCutout((Identifier)figure.c())), 0xF000F0, K12.a(b), -1);
+        v.renderToBuffer(ps, u.a(RenderTypes.entityCutoutCull((Identifier)figure.c())), 0xF000F0, K12.a(b), -1);
         ps.popPose();
         double fr = Math.toRadians(b.e);
         double fwdX = -Math.sin(fr);
