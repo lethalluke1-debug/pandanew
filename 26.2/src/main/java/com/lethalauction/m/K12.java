@@ -419,6 +419,7 @@ public final class K12 {
                 b = new C78();
                 y.put(id2, b);
             }
+            b.owner = id2;
             if (!figId.equals(b.w)) {
                 b.w = figId;
                 b.b = null;
@@ -886,12 +887,12 @@ public final class K12 {
     }
 
     // ===== Worn shoes on the plushie's feet =====
-    private static void renderShoes(LevelRenderContext ctx, PoseStack ps) {
+    private static void renderShoes(LevelRenderContext ctx, PoseStack ps, C78 b) {
         try {
             if (v == null) {
                 return;
             }
-            String cos = K6.a();
+            String cos = b == x ? K6.a() : (b.owner != null && K38.e(b.owner) ? K38.a(b.owner) : "");
             if (cos == null || cos.isEmpty()) {
                 return;
             }
@@ -1220,9 +1221,7 @@ public final class K12 {
         ps.translate(0.0f, -1.501f, 0.0f);
         RenderType type = RenderTypes.entityCutout((Identifier)figure.c());
         v.renderToBuffer(ps, u.a(type), 0xF000F0, K12.a(b), -1);
-        if (b == x) {
-            K12.renderShoes(ctx, ps);
-        }
+        K12.renderShoes(ctx, ps, b);
         ps.popPose();
         if (chuteAmt > 0.02f && !K11.a()) {
             Matrix4f m = new Matrix4f((Matrix4fc)ps.last().pose());
@@ -1381,6 +1380,7 @@ public final class K12 {
         ps.scale(-1.0f, -1.0f, 1.0f);
         ps.translate(0.0f, -1.501f, 0.0f);
         v.renderToBuffer(ps, u.a(RenderTypes.entityCutout((Identifier)figure.c())), 0xF000F0, OverlayTexture.NO_OVERLAY, -1);
+        K12.renderShoes(ctx, ps, b);
         ps.popPose();
         if (rise > 0.4f) {
             Matrix4f pm = new Matrix4f((Matrix4fc)ps.last().pose());
@@ -1583,6 +1583,7 @@ public final class K12 {
     }
 
     private static final class C78 {
+        UUID owner;
         Vec3 a;
         Vec3 b;
         double c = 0.0;
