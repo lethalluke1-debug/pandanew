@@ -417,6 +417,7 @@ public final class K12 {
                 b = new C77();
                 y.put(id2, b);
             }
+            b.owner = id2;
             if (!figId.equals(b.w)) {
                 b.w = figId;
                 b.b = null;
@@ -885,12 +886,12 @@ public final class K12 {
     }
 
     // ===== Worn shoes on the plushie's feet =====
-    private static void renderShoes(class_4587 ps) {
+    private static void renderShoes(class_4587 ps, C77 b) {
         try {
             if (v == null) {
                 return;
             }
-            String cos = K6.a();
+            String cos = b == x ? K6.a() : (b.owner != null && K38.e(b.owner) ? K38.a(b.owner) : "");
             if (cos == null || cos.isEmpty()) {
                 return;
             }
@@ -1210,9 +1211,7 @@ public final class K12 {
         ps.method_46416(0.0f, -1.501f, 0.0f);
         class_1921 type = class_12249.method_75990((class_2960)figure.c());
         v.method_62100(ps, u.method_73477(type), 0xF000F0, K12.a(b), -1);
-        if (b == x) {
-            K12.renderShoes(ps);
-        }
+        K12.renderShoes(ps, b);
         ps.method_22909();
         if (chuteAmt > 0.02f && !K11.a()) {
             Matrix4f m = new Matrix4f((Matrix4fc)ps.method_23760().method_23761());
@@ -1371,6 +1370,7 @@ public final class K12 {
         ps.method_22905(-1.0f, -1.0f, 1.0f);
         ps.method_46416(0.0f, -1.501f, 0.0f);
         v.method_62100(ps, u.method_73477(class_12249.method_75990((class_2960)figure.c())), 0xF000F0, class_4608.field_21444, -1);
+        K12.renderShoes(ps, b);
         ps.method_22909();
         if (rise > 0.4f) {
             Matrix4f pm = new Matrix4f((Matrix4fc)ps.method_23760().method_23761());
@@ -1573,6 +1573,7 @@ public final class K12 {
     }
 
     private static final class C77 {
+        UUID owner;
         class_243 a;
         class_243 b;
         double c = 0.0;

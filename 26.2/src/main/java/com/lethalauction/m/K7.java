@@ -52,6 +52,7 @@ extends RenderLayer<AvatarRenderState, PlayerModel> {
         boolean boots = !state.feetEquipment.isEmpty();
         for (K6.C75 worn : K6.b(text).values()) {
             K6.C72 item = worn.a();
+            if (item.c == K6.C74.SHOES) continue;
             int variant = item.anim && item.d.size() > 1 ? (int)(System.currentTimeMillis() / 350L % (long)item.d.size()) : worn.b();
             RenderType type = RenderTypes.entityCutout((Identifier)K6.b(item, variant));
             for (Map.Entry<K6.C70, ModelPart> e : item.f.entrySet()) {

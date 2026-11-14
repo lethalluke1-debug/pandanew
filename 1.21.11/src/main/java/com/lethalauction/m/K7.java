@@ -52,6 +52,7 @@ extends class_3887<class_10055, class_591> {
         boolean boots = !state.field_53420.method_7960();
         for (K6.C74 worn : K6.b(text).values()) {
             K6.C71 item = worn.a();
+            if (item.c == K6.C73.SHOES) continue;
             int variant = item.anim && item.d.size() > 1 ? (int)(System.currentTimeMillis() / 350L % (long)item.d.size()) : worn.b();
             class_1921 type = class_12249.method_75990((class_2960)K6.b(item, variant));
             for (Map.Entry<K6.C69, class_630> e : item.f.entrySet()) {
