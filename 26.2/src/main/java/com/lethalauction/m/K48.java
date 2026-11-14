@@ -30,14 +30,16 @@ public final class K48 {
     private static Process d;            // reader process
     private static Thread e;             // stdout reader
     private static Thread g;             // file poller
-    // Pause detection by position movement (Spotify's SMTC often reports
-    // "Playing" even while paused, so trust the track position instead).
+    // Pause detection by position movement (Spotify's SMTC can report
+    // "Playing" even while paused; if the track position stops advancing for a
+    // couple of seconds we treat it as paused).
     private static volatile long lastPos = -1L;
-    private static volatile long lastPosWall = 0L;
+    private static volatile long lastAdvanceWall = 0L;
     private static volatile String lastKey = "";
 
     private static final String SCRIPT = """
 $ErrorActionPreference='SilentlyContinue'
+$out='__OUTFILE__'
 Add-Type -AssemblyName System.Runtime.WindowsRuntime
 $asTask=([System.WindowsRuntimeSystemExtensions].GetMethods()|Where-Object{$_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1'})[0]
 function Await($op,$t){$x=$asTask.MakeGenericMethod($t).Invoke($null,@($op));$x.Wait(-1)|Out-Null;$x.Result}
@@ -53,9 +55,10 @@ while($true){
    $pb=$s.GetPlaybackInfo();$tl=$s.GetTimelineProperties()
    $st=if([int]$pb.PlaybackStatus -eq 4){'playing'}else{'paused'}
    $o=[ordered]@{app=[string]$s.SourceAppUserModelId;title=[string]$p.Title;artist=[string]$p.Artist;status=$st;pos=[long]$tl.Position.TotalMilliseconds;dur=[long]$tl.EndTime.TotalMilliseconds;art='';t=[long]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())}
-   [Console]::Out.WriteLine(($o|ConvertTo-Json -Compress))
-  }else{[Console]::Out.WriteLine('{}')}
-  [Console]::Out.Flush()
+   $j=($o|ConvertTo-Json -Compress)
+  }else{$j='{}'}
+  try{[IO.File]::WriteAllText($out,$j,[Text.Encoding]::UTF8)}catch{}
+  [Console]::Out.WriteLine($j);[Console]::Out.Flush()
  }catch{}
  Start-Sleep -Milliseconds 1000
 }
@@ -104,10 +107,20 @@ while($true){
         g = null;
     }
 
-    // Launch the system-media reader (script via stdin, nothing written to disk).
+    // Launch the system-media reader. The script is passed via -EncodedCommand
+    // (never written to disk), and writes its readings to nowplaying.json each
+    // second; the file poller reads that, which avoids PowerShell's buffering of
+    // redirected stdout (that buffering made the HUD stop updating until toggled).
     private static void h() {
         try {
-            String enc = java.util.Base64.getEncoder().encodeToString(SCRIPT.getBytes(StandardCharsets.UTF_16LE));
+            try {
+                Files.createDirectories(FILE.getParent());
+            } catch (Exception ignore) {
+                // ignore
+            }
+            String outPath = FILE.toString().replace("'", "''");
+            String script = SCRIPT.replace("__OUTFILE__", outPath);
+            String enc = java.util.Base64.getEncoder().encodeToString(script.getBytes(StandardCharsets.UTF_16LE));
             Process p = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", enc).start();
             d = p;
             Thread r = new Thread(() -> K48.e(p), "Lethal now-playing");
@@ -183,19 +196,17 @@ while($true){
             boolean statusPlaying = status.equals("playing");
             String artKey = app + "|" + title + "|" + artist;
             long nowWall = System.currentTimeMillis();
-            boolean playing = statusPlaying;
-            if (statusPlaying && artKey.equals(lastKey)) {
-                long wallDelta = nowWall - lastPosWall;
-                if (wallDelta > 400L && lastPos >= 0L) {
-                    long posDelta = pos - lastPos;
-                    if (posDelta <= wallDelta / 3L) {
-                        playing = false;   // position not advancing with real time -> actually paused
-                    }
-                }
+            if (!artKey.equals(lastKey)) {
+                lastKey = artKey;
+                lastPos = pos;
+                lastAdvanceWall = nowWall;
+            } else if (pos > lastPos + 250L) {
+                lastPos = pos;
+                lastAdvanceWall = nowWall;
             }
-            lastKey = artKey;
-            lastPos = pos;
-            lastPosWall = nowWall;
+            // Playing only if the status says so AND the position has actually
+            // advanced within the last few seconds.
+            boolean playing = statusPlaying && nowWall - lastAdvanceWall < 2500L;
             K47.a(new K47.C97(which, title, artist, playing, pos, dur, sampledAt, artKey));
             if (!artPath.isEmpty()) {
                 K47.a(artKey, Path.of(artPath, new String[0]));
