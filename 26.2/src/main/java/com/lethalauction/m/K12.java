@@ -1221,7 +1221,6 @@ public final class K12 {
         ps.translate(0.0f, -1.501f, 0.0f);
         RenderType type = RenderTypes.entityCutout((Identifier)figure.c());
         v.renderToBuffer(ps, u.a(type), 0xF000F0, K12.a(b), -1);
-        K12.renderShoes(ctx, ps, b);
         ps.popPose();
         if (chuteAmt > 0.02f && !K11.a()) {
             Matrix4f m = new Matrix4f((Matrix4fc)ps.last().pose());
@@ -1380,7 +1379,6 @@ public final class K12 {
         ps.scale(-1.0f, -1.0f, 1.0f);
         ps.translate(0.0f, -1.501f, 0.0f);
         v.renderToBuffer(ps, u.a(RenderTypes.entityCutout((Identifier)figure.c())), 0xF000F0, OverlayTexture.NO_OVERLAY, -1);
-        K12.renderShoes(ctx, ps, b);
         ps.popPose();
         if (rise > 0.4f) {
             Matrix4f pm = new Matrix4f((Matrix4fc)ps.last().pose());

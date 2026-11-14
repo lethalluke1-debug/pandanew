@@ -1211,7 +1211,6 @@ public final class K12 {
         ps.method_46416(0.0f, -1.501f, 0.0f);
         class_1921 type = class_12249.method_75990((class_2960)figure.c());
         v.method_62100(ps, u.method_73477(type), 0xF000F0, K12.a(b), -1);
-        K12.renderShoes(ps, b);
         ps.method_22909();
         if (chuteAmt > 0.02f && !K11.a()) {
             Matrix4f m = new Matrix4f((Matrix4fc)ps.method_23760().method_23761());
@@ -1370,7 +1369,6 @@ public final class K12 {
         ps.method_22905(-1.0f, -1.0f, 1.0f);
         ps.method_46416(0.0f, -1.501f, 0.0f);
         v.method_62100(ps, u.method_73477(class_12249.method_75990((class_2960)figure.c())), 0xF000F0, class_4608.field_21444, -1);
-        K12.renderShoes(ps, b);
         ps.method_22909();
         if (rise > 0.4f) {
             Matrix4f pm = new Matrix4f((Matrix4fc)ps.method_23760().method_23761());
