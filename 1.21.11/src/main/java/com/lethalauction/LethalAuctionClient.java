@@ -221,6 +221,28 @@ implements ClientModInitializer {
         K40.b = KeyBindingHelper.registerKeyBinding((class_304)new class_304("key.lethalauction.zoom", class_3675.class_307.field_1668, 67, CATEGORY));
         figureWaypoint = KeyBindingHelper.registerKeyBinding((class_304)new class_304("key.lethalauction.waypoint", class_3675.class_307.field_1668, 86, CATEGORY));
         ClientSendMessageEvents.ALLOW_COMMAND.register(command -> K35.a(command));
+        ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
+            if (!K9.hideSmall || K9.hideSmallStr.isBlank()) {
+                return true;
+            }
+            try {
+                String plain = class_124.method_539((String)message.getString());
+                if (plain == null) {
+                    return true;
+                }
+                long amt = Transactions.matchAmount(plain);
+                if (amt < 0L) {
+                    return true;
+                }
+                long thr = Auctions.e(K9.hideSmallStr);
+                if (thr > 0L && amt <= thr) {
+                    return false;
+                }
+            } catch (Exception e) {
+                // never swallow other chat
+            }
+            return true;
+        });
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             String plain = class_124.method_539((String)message.getString());
             if (plain != null) {

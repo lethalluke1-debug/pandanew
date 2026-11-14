@@ -107,6 +107,27 @@ public final class Transactions {
         }
     }
 
+    // Returns the pay amount if this chat line is a payment (incoming or
+    // outgoing /pay), or -1 if it is not a payment, for the hide-small filter.
+    public static long matchAmount(String plain) {
+        try {
+            String text = Auctions.c(plain);
+            Matcher in = Auctions.d(text);
+            if (in != null) {
+                return Auctions.e(in.group("amount").replace(" ", ""));
+            }
+            for (Pattern p : g) {
+                Matcher m = p.matcher(text);
+                if (m.find()) {
+                    return Auctions.e(m.group("amount").replace(" ", ""));
+                }
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+        return -1L;
+    }
+
     public static synchronized void a(String player, long amount, boolean received) {
         if (amount <= 0L) {
             return;
