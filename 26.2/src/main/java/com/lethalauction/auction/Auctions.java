@@ -150,6 +150,8 @@ public final class Auctions {
                 sb.append((char)(97 + idx));
             } else if (Character.isSpaceChar(c)) {
                 sb.append(' ');
+            } else if (c >= 0xE000 && c <= 0xF8FF || c >= 0xF0000 && c <= 0xFFFFD || c >= 0x100000 && c <= 0x10FFFD) {
+                sb.append('$');
             } else {
                 sb.appendCodePoint(c);
             }
