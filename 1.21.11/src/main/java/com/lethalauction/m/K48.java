@@ -44,7 +44,7 @@ public final class K48 {
     }
 
     public static boolean b() {
-        return c;
+        return c && (!WIN || (d != null && d.isAlive()));
     }
 
     public static synchronized void c() {
@@ -79,74 +79,52 @@ public final class K48 {
         g = null;
     }
 
-    // Windows now-playing without PowerShell: Spotify writes the current song
-    // into its window title ("Artist - Song"), which the built-in `tasklist`
-    // command reports. No bundled script, no powershell -> no antivirus flag.
-    private static void h() {
-        while (c) {
-            try {
-                String wt = K48.j();
-                if (wt != null) {
-                    int dash = wt.indexOf(" - ");
-                    String artist = dash > 0 ? wt.substring(0, dash).trim() : "";
-                    String song = dash > 0 ? wt.substring(dash + 3).trim() : wt.trim();
-                    if (!song.isEmpty()) {
-                        String artKey = "spotify|" + wt;
-                        if (!artKey.equals(lastKey)) {
-                            lastKey = artKey;
-                            songStart = System.currentTimeMillis();
-                        }
-                        K47.a(new K47.C96(K47.C95.SPOTIFY, song, artist, true, 0L, 0L, songStart, artKey));
-                        K42.a(artKey, song, artist);
-                        lastValid = System.currentTimeMillis();
-                    }
-                } else {
-                    K47.C96 cur = K47.c();
-                    if (cur.a() && cur.f()) {
-                        K47.a(new K47.C96(cur.c(), cur.d(), cur.e(), false, 0L, 0L, cur.i(), cur.j()));
-                    }
-                    if (System.currentTimeMillis() - lastValid > 8000L) {
-                        lastKey = "";
-                        K47.m();
-                    }
-                }
-            } catch (Exception ex) {
-                // ignore
-            }
-            try {
-                Thread.sleep(1500L);
-            } catch (InterruptedException ie) {
-                return;
-            }
-        }
-    }
+    // The now-playing reader. We feed this script to `powershell -Command -`
+    // over stdin instead of shipping a .ps1 file, so the jar carries no script
+    // file and no "-ExecutionPolicy Bypass" (what antivirus flagged), while
+    // still reading the real Windows media session: title, artist, position,
+    // duration and play/paused. It prints one compact JSON line ~1x/second.
+    private static final String PS = "Add-Type -AssemblyName System.Runtime.WindowsRuntime\n" +
+        "$asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]\n" +
+        "function Await($op, $t) { $task = $asTask.MakeGenericMethod($t).Invoke($null, @($op)); $task.Wait(-1) | Out-Null; $task.Result }\n" +
+        "[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager,Windows.Media.Control,ContentType=WindowsRuntime] | Out-Null\n" +
+        "$tm = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]\n" +
+        "$tp = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties]\n" +
+        "$mgr = Await ($tm::RequestAsync()) $tm\n" +
+        "while ($true) {\n" +
+        "  try {\n" +
+        "    $s = $mgr.GetCurrentSession()\n" +
+        "    if ($s) {\n" +
+        "      $p = Await ($s.TryGetMediaPropertiesAsync()) $tp\n" +
+        "      $pb = $s.GetPlaybackInfo()\n" +
+        "      $tl = $s.GetTimelineProperties()\n" +
+        "      $st = if ([int]$pb.PlaybackStatus -eq 4) { 'playing' } else { 'paused' }\n" +
+        "      $o = [ordered]@{ app=[string]$s.SourceAppUserModelId; title=[string]$p.Title; artist=[string]$p.Artist; status=$st; pos=[long]$tl.Position.TotalMilliseconds; dur=[long]$tl.EndTime.TotalMilliseconds; art=''; t=[long]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()) }\n" +
+        "      Write-Output ($o | ConvertTo-Json -Compress)\n" +
+        "    }\n" +
+        "  } catch { }\n" +
+        "  Start-Sleep -Milliseconds 1000\n" +
+        "}\n";
 
-    // Reads Spotify's window title via `tasklist`; null when not playing.
-    private static String j() {
+    private static void h() {
         try {
-            Process p = new ProcessBuilder("tasklist", "/fi", "imagename eq Spotify.exe", "/v", "/fo", "csv", "/nh").start();
+            Process p = new ProcessBuilder("powershell", "-NoProfile", "-NonInteractive", "-Command", "-").start();
+            d = p;
+            java.io.OutputStream os = p.getOutputStream();
+            os.write(PS.getBytes(StandardCharsets.UTF_8));
+            os.flush();
+            os.close();
             try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8));) {
                 String line;
-                while ((line = r.readLine()) != null) {
-                    int i = line.lastIndexOf("\",\"");
-                    if (i < 0) continue;
-                    String wt = line.substring(i + 3);
-                    if (wt.endsWith("\"")) {
-                        wt = wt.substring(0, wt.length() - 1);
-                    }
-                    wt = wt.trim();
-                    if (wt.isEmpty() || wt.equals("N/A")) continue;
-                    String low = wt.toLowerCase();
-                    if (low.equals("spotify") || low.startsWith("spotify premium") || low.startsWith("spotify free")) continue;
-                    if (wt.contains(" - ")) {
-                        return wt;
+                while (c && (line = r.readLine()) != null) {
+                    if (!line.isEmpty()) {
+                        K48.a(line);
                     }
                 }
             }
-        } catch (Exception e) {
-            // ignore
+        } catch (Exception ex) {
+            d = null;
         }
-        return null;
     }
 
     // Optional extra source: an external helper writing the JSON file.
