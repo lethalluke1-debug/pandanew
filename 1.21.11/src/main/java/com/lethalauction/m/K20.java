@@ -1851,11 +1851,10 @@ extends class_437 {
         int y = t + 116;
         K18.a(g, 241, y, 765, 58, 10, cardFill, cardBorder);
         K18.a(g, "Now Playing", 257.0f, (float)(y + 22), 12.5f, -789515, K18.c);
-        K18.a(g, supported ? "Reads Spotify right off your PC \u2014 nothing to install." : "Only works on Windows; this computer can't read the media.", 257.0f, (float)(y + 40), 10.5f, -5001030, K18.a);
-        this.a(g, 960, y + 29, K9.U, () -> {
-            K9.U = !K9.U;
-            K9.b();
-        });
+        K18.a(g, "We're polishing this up \u2014 it'll be back in the next update.", 257.0f, (float)(y + 40), 10.5f, -5001030, K18.a);
+        K9.U = false;
+        K18.a(g, 60130, 870.0f, (float)(y + 29), 13.0f, -7568235);
+        K18.a(g, "Coming next update", 884.0f, (float)(y + 24), 11.0f, -7568235, K18.b);
         int cardH = 184;
         K18.a(g, 241, y += 70, 765, cardH, 12, this.a(this.a(-16053235, 0.05f)), cardBorder);
         K18.a(g, "PREVIEW", 257.0f, (float)(y + 18), 10.0f, -7568235, K18.b);
@@ -1866,8 +1865,8 @@ extends class_437 {
             K25.a(g, ox, oy, s);
         } else {
             K18.a(g, 60156, 623.5f, (float)(y + 74), 24.0f, 0x40FFFFFF);
-            K18.b(g, K9.U ? "Nothing playing" : "Turn it on above", 623.5f, (float)(y + 102), 12.0f, -5001030, K18.c);
-            K18.b(g, supported ? "Open Spotify and press play" : "Available on Windows", 623.5f, (float)(y + 118), 10.0f, -7568235, K18.b);
+            K18.b(g, "Coming next update", 623.5f, (float)(y + 102), 12.0f, -5001030, K18.c);
+            K18.b(g, "The now-playing card is getting an upgrade", 623.5f, (float)(y + 118), 10.0f, -7568235, K18.b);
         }
         K18.a(g, 241, y += cardH + 12, 765, 50, 10, cardFill, cardBorder);
         K18.a(g, "Show on screen", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
