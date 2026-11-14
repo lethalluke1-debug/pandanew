@@ -33,6 +33,8 @@ public final class K48 {
     private static Thread e;             // stdout reader
     private static Thread g;             // file poller
     private static volatile long lastValid = 0L;   // last reading that had a real song
+    private static long songStart = 0L;            // when the current song was first seen
+    private static String lastKey = "";            // current song key, to detect changes
 
     private K48() {
     }
@@ -90,11 +92,16 @@ public final class K48 {
                     String song = dash > 0 ? wt.substring(dash + 3).trim() : wt.trim();
                     if (!song.isEmpty()) {
                         String artKey = "spotify|" + wt;
-                        K47.a(new K47.C96(K47.C95.SPOTIFY, song, artist, true, 0L, 0L, System.currentTimeMillis(), artKey));
+                        if (!artKey.equals(lastKey)) {
+                            lastKey = artKey;
+                            songStart = System.currentTimeMillis();
+                        }
+                        K47.a(new K47.C96(K47.C95.SPOTIFY, song, artist, true, 0L, 0L, songStart, artKey));
                         K42.a(artKey, song, artist);
                         lastValid = System.currentTimeMillis();
                     }
-                } else if (System.currentTimeMillis() - lastValid > 1500L) {
+                } else if (System.currentTimeMillis() - lastValid > 5000L) {
+                    lastKey = "";
                     K47.m();
                 }
             } catch (Exception ex) {
