@@ -3326,8 +3326,14 @@ extends class_437 {
                 K18.a(g, x - 6, y - 6, 12, 9, 2, a);
                 break;
             }
-            case "jordanlows": 
-            case "basketball": 
+            case "backwardscap": {
+                K18.a(g, x - 24, y - 16, 48, 34, 18, p);
+                K18.a(g, x - 36, y + 12, 46, 8, 4, s2);
+                K18.a(g, x + 6, y - 6, 14, 10, 2, a);
+                break;
+            }
+            case "jordanlows":
+            case "basketball":
             case "running": {
                 boolean high = item.a.equals("basketball");
                 int top = high ? y - 22 : y - 8;
