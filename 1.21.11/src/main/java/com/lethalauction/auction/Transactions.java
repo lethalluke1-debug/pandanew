@@ -111,6 +111,9 @@ public final class Transactions {
         if (amount <= 0L) {
             return;
         }
+        if (K9.hideSmall && K9.hideSmallAmt > 0L && amount < K9.hideSmallAmt) {
+            return;
+        }
         Transactions.f();
         i.add(0, new C68(System.currentTimeMillis(), player, amount, received));
         while (i.size() > 5000) {

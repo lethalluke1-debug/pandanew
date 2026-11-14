@@ -106,6 +106,8 @@ public final class K9 {
     public static float aD = 1.0f;
     public static boolean aE = true;
     public static long aF = 0L;
+    public static boolean hideSmall = false;
+    public static long hideSmallAmt = 0L;
     public static String aG = "";
     public static String aH = "";
     public static String aI = "";
@@ -280,10 +282,12 @@ public final class K9 {
                 aD = Float.parseFloat(p.getProperty("lyricsSize", "1.0"));
                 aE = Boolean.parseBoolean(p.getProperty("lyricsBeat", "true"));
                 aF = Long.parseLong(p.getProperty("sessionStart", "0"));
+                hideSmallAmt = Long.parseLong(p.getProperty("hideSmallAmount", "0"));
             }
             catch (NumberFormatException e) {
                 // empty catch block
             }
+            hideSmall = Boolean.parseBoolean(p.getProperty("hideSmall", "false"));
             aS = K9.a(K9.a(p.getProperty("sbScale"), 1.0f), 0.5f, 1.5f);
             aT = Boolean.parseBoolean(p.getProperty("sbRounded", "false"));
             aU = Boolean.parseBoolean(p.getProperty("sbHead", "false"));
@@ -413,6 +417,8 @@ public final class K9 {
         p.setProperty("lyricsSize", Float.toString(aD));
         p.setProperty("lyricsBeat", Boolean.toString(aE));
         p.setProperty("sessionStart", Long.toString(aF));
+        p.setProperty("hideSmall", Boolean.toString(hideSmall));
+        p.setProperty("hideSmallAmount", Long.toString(hideSmallAmt));
         p.setProperty("sbScale", Float.toString(aS));
         p.setProperty("sbRounded", Boolean.toString(aT));
         p.setProperty("sbHead", Boolean.toString(aU));

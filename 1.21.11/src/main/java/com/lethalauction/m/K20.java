@@ -1631,7 +1631,10 @@ extends class_437 {
         K18.a(g, "SESSION  \u00b7  " + K20.a(System.currentTimeMillis() - Transactions.b()).replace("just now", "started now"), (float)(sx + 16), (float)(y + 19), 9.5f, -7568235, K18.b);
         K18.a(g, (profit >= 0L ? "+" : "-") + Auctions.a(Math.abs(profit)), (float)(sx + 16), (float)(y + 38), 15.0f, pc, K18.c);
         this.a(g, sx + cw - 70, y + 15, 58, 24, "Reset", this.a(-15395813), -13356484, -789515, Transactions::c);
-        K18.a(g, 241, y += 66, 765, 50, 10, cardFill, cardBorder);
+        y += 66;
+        this.moneyGraph(g, all, 241, y, 765, 118, cardFill, cardBorder);
+        y += 130;
+        K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
         K18.a(g, "Profit display", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
         K18.a(g, "Shows this session's profit on screen with your skin. Red when you're down.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
         K18.a(g, "Skin", 712.0f, (float)(y + 25), 11.0f, -3947581, K18.b);
@@ -1646,6 +1649,29 @@ extends class_437 {
         });
         this.a(g, 960, y + 25, K9.t, () -> {
             K9.t = !K9.t;
+            K9.b();
+        });
+        y += 62;
+        K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
+        K18.a(g, "Hide small payments", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
+        K18.a(g, "Ignores any pay below the amount — it won't show, count or save.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
+        long[] hsAmt = new long[]{1L, 100L, 1000L, 10000L, 100000L, 1000000L};
+        String[] hsLbl = new String[]{"$1", "$100", "$1k", "$10k", "$100k", "$1m"};
+        int hsx = 505;
+        for (int hi = 0; hi < hsAmt.length; ++hi) {
+            boolean hsel = K9.hideSmallAmt == hsAmt[hi];
+            int hw = Math.round(K18.a(hsLbl[hi], 10.5f, K18.b) + 14.0f);
+            K18.a(g, hsx, y + 13, hw, 24, 7, hsel ? this.al : this.a(-15395813), hsel ? this.ak : -13356484);
+            K18.b(g, hsLbl[hi], (float)hsx + (float)hw / 2.0f, (float)(y + 25), 10.5f, hsel ? -1 : -3947581, K18.b);
+            long hv = hsAmt[hi];
+            this.a(hsx, y + 13, hw, 24, () -> {
+                K9.hideSmallAmt = hv;
+                K9.b();
+            });
+            hsx += hw + 5;
+        }
+        this.a(g, 960, y + 25, K9.hideSmall, () -> {
+            K9.hideSmall = !K9.hideSmall;
             K9.b();
         });
         K18.a(g, "Minimum", 241.0f, (float)((y += 66) + 15), 11.5f, -1842200, K18.b);
@@ -1703,6 +1729,68 @@ extends class_437 {
             y += 50;
         }
         return y;
+    }
+
+    private void moneyGraph(class_332 g, List<Transactions.C68> all, int x, int y, int w, int h, int cardFill, int cardBorder) {
+        K18.a(g, x, y, w, h, 10, cardFill, cardBorder);
+        K18.a(g, "MONEY THIS SESSION", (float)(x + 16), (float)(y + 18), 9.5f, -7568235, K18.b);
+        long start = Transactions.b();
+        long now = System.currentTimeMillis();
+        ArrayList<Transactions.C68> chrono = new ArrayList<Transactions.C68>();
+        for (Transactions.C68 tx : all) {
+            if (tx.at() < start) continue;
+            chrono.add(tx);
+        }
+        java.util.Collections.reverse(chrono);
+        int px = x + 16;
+        int pw = w - 32;
+        int pyTop = y + 32;
+        int ph = h - 48;
+        long span = Math.max(1L, now - start);
+        long cum = 0L;
+        long minV = 0L;
+        long maxV = 0L;
+        ArrayList<long[]> pts = new ArrayList<long[]>();
+        pts.add(new long[]{start, 0L});
+        for (Transactions.C68 tx : chrono) {
+            cum += tx.received() ? tx.amount() : -tx.amount();
+            pts.add(new long[]{tx.at(), cum});
+            if (cum < minV) minV = cum;
+            if (cum > maxV) maxV = cum;
+        }
+        pts.add(new long[]{now, cum});
+        long range = Math.max(1L, maxV - minV);
+        int zeroY = pyTop + ph - (int)((0L - minV) * (long)ph / range);
+        K18.a(g, px, zeroY, pw, 1, this.a(-14804444, 0.6f));
+        int color = cum >= 0L ? -12200829 : -42401;
+        int prevX = -1;
+        int prevY = -1;
+        for (long[] p : pts) {
+            int sx = px + (int)((p[0] - start) * (long)pw / span);
+            int sy = pyTop + ph - (int)((p[1] - minV) * (long)ph / range);
+            if (prevX >= 0) {
+                K20.line(g, prevX, prevY, sx, sy, 2, color);
+            }
+            prevX = sx;
+            prevY = sy;
+        }
+        String val = (cum >= 0L ? "+" : "-") + Auctions.a(Math.abs(cum));
+        K18.c(g, val, (float)(x + w - 16), (float)(y + 18), 12.0f, color, K18.c);
+    }
+
+    private static void line(class_332 g, int x1, int y1, int x2, int y2, int thick, int color) {
+        int dx = x2 - x1;
+        int dy = y2 - y1;
+        int steps = Math.max(Math.abs(dx), Math.abs(dy));
+        if (steps == 0) {
+            K18.a(g, x1, y1, thick, thick, color);
+            return;
+        }
+        for (int i = 0; i <= steps; ++i) {
+            int qx = x1 + dx * i / steps;
+            int qy = y1 + dy * i / steps;
+            K18.a(g, qx, qy, thick, thick, color);
+        }
     }
 
     private static String a(long ms) {
