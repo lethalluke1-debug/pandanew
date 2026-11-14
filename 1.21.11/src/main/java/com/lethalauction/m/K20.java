@@ -273,7 +273,7 @@ extends class_437 {
 
     private static C81 b() {
         for (C81 p : C81.values()) {
-            if (p == C81.CROSSHAIR || !p.name().equals(K9.ba)) continue;
+            if (!p.name().equals(K9.ba)) continue;
             return p;
         }
         return C81.AUCTION;
@@ -433,9 +433,6 @@ extends class_437 {
         K18.a(g, "MODULES", 26.0f, 105.0f, 12.5f, -7568235, K18.a);
         int ty = 130;
         for (C81 pg : C81.values()) {
-            if (pg == C81.CROSSHAIR) {
-                continue;
-            }
             boolean hover;
             boolean active = pg == this.O;
             boolean bl = hover = mx >= 24.0f && mx < 212.0f && my >= (float)(ty - 12) && my < (float)(ty + 12);
@@ -3433,7 +3430,7 @@ extends class_437 {
         K18.a(g, "Font", 272.0f, (float)(t + 77), 13.0f, -789515, K18.c);
         K18.a(g, "Changes the font of all text in the game, like a resource pack. Each preview below is drawn in that font.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
         int y = t + 116;
-        String[][] opts = new String[][]{{"", "Default"}, {"font_jersey10", "Jersey 10"}, {"font_silkscreen", "Silkscreen"}, {"font_vt323", "VT323"}, {"font_minecraft", "Minecraft"}};
+        String[][] opts = new String[][]{{"", "Default"}, {"font_smallcaps", "Small Caps"}, {"font_jersey10", "Jersey 10"}, {"font_silkscreen", "Silkscreen"}, {"font_vt323", "VT323"}, {"font_minecraft", "Minecraft"}};
         for (String[] o : opts) {
             boolean sel = K9.font.equals(o[0]);
             float cy = (float)y + 31.0f;

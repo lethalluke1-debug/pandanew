@@ -32,6 +32,7 @@ public final class K48 {
     private static Process d;            // reader process
     private static Thread e;             // stdout reader
     private static Thread g;             // file poller
+    private static volatile long lastValid = 0L;   // last reading that had a real song
 
     private K48() {
     }
@@ -168,9 +169,15 @@ public final class K48 {
                 sampledAt = nowClock;
             }
             if ((which = K48.b(app)) == K47.C95.NONE || title.isEmpty()) {
-                K47.m();
+                // Don't clear on a single blank reading (the reader fires ~8x a
+                // second and WinRT can briefly hiccup); only clear once the song
+                // has really been gone for a moment, so the HUD doesn't flicker.
+                if (System.currentTimeMillis() - lastValid > 1500L) {
+                    K47.m();
+                }
                 return;
             }
+            lastValid = System.currentTimeMillis();
             boolean playing = status.equals("playing");
             String artKey = app + "|" + title + "|" + artist;
             K47.a(new K47.C96(which, title, artist, playing, pos, dur, sampledAt, artKey));
