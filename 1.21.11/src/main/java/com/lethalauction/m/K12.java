@@ -932,16 +932,16 @@ public final class K12 {
         K12.v.field_3394.field_37939 = 1.0f;
         K12.v.field_3394.field_37938 = 1.0f;
         float grip = (float)Math.sin((double)nowMs / 170.0) * 0.05f * speed;
-        K12.v.field_3392.field_3654 = -1.45f;
-        K12.v.field_3397.field_3654 = -1.45f;
-        K12.v.field_3392.field_3674 = 0.12f;
-        K12.v.field_3397.field_3674 = -0.12f;
-        K12.v.field_3401.field_3654 = -1.12f - 0.12f * Math.abs(steer) + grip;
-        K12.v.field_27433.field_3654 = -1.12f - 0.12f * Math.abs(steer) - grip;
-        K12.v.field_3401.field_3674 = 0.34f + steer * 0.45f;
-        K12.v.field_27433.field_3674 = -0.34f + steer * 0.45f;
-        K12.v.field_3398.field_3675 = steer * 0.5f;
-        K12.v.field_3398.field_3654 = 0.06f;
+        K12.v.field_3392.field_3654 = -1.3f;
+        K12.v.field_3397.field_3654 = -1.3f;
+        K12.v.field_3392.field_3674 = 0.08f;
+        K12.v.field_3397.field_3674 = -0.08f;
+        K12.v.field_3401.field_3654 = -1.0f - 0.12f * Math.abs(steer) + grip;
+        K12.v.field_27433.field_3654 = -1.0f - 0.12f * Math.abs(steer) - grip;
+        K12.v.field_3401.field_3674 = 0.13f + steer * 0.4f;
+        K12.v.field_27433.field_3674 = -0.13f + steer * 0.4f;
+        K12.v.field_3398.field_3675 = steer * 0.4f;
+        K12.v.field_3398.field_3654 = 0.08f;
         float appear = 1.0f;
         if (nowMs < b.v) {
             float t = 1.0f - (float)(b.v - nowMs) / 480.0f;
@@ -949,10 +949,10 @@ public final class K12 {
             float c1 = 1.70158f;
             appear = Math.max(0.0f, 1.0f + (c1 + 1.0f) * s * s * s + c1 * s * s);
         }
-        float fsc = 0.5f * appear;
+        float fsc = 0.46f * appear;
         class_4587 ps = ctx.matrices();
         ps.method_22903();
-        ps.method_22904(dx, dy + 0.30, dz);
+        ps.method_22904(dx, dy + 0.02, dz);
         ps.method_22907((Quaternionfc)class_7833.field_40716.rotationDegrees(180.0f - yaw));
         ps.method_22907((Quaternionfc)class_7833.field_40718.rotationDegrees((float)Math.toDegrees((double)bank)));
         ps.method_22907((Quaternionfc)class_7833.field_40714.rotationDegrees((float)Math.toDegrees((double)pitch)));
@@ -1028,8 +1028,8 @@ public final class K12 {
 
     private static void carSteer(class_4588 vc, Matrix4f base, float steer) {
         Matrix4f m = new Matrix4f((Matrix4fc)base);
-        m.translate(0.0f, 0.40f, 0.14f);
-        m.rotateX(-0.6f);
+        m.translate(0.0f, 0.44f, 0.17f);
+        m.rotateX(-0.5f);
         m.rotateY(steer * 2.0f);
         float rw = 0.075f;
         int col = 0x202024;
