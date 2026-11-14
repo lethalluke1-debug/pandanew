@@ -79,4 +79,5 @@ tasks.named('remapJar') {
     dependsOn tasks.named('obfuscate')
     mustRunAfter tasks.named('obfuscate')
     inputFile.set(obfJar)
+    archiveFileName = "Lethal-Client-26.2.jar"
 }
