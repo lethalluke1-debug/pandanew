@@ -42,7 +42,7 @@ public final class K48 {
     }
 
     public static boolean b() {
-        return c && (!WIN || (d != null && d.isAlive()));
+        return c;
     }
 
     public static synchronized void c() {
@@ -50,9 +50,6 @@ public final class K48 {
             return;
         }
         c = true;
-        if (WIN) {
-            h();
-        }
         Thread poll = new Thread(K48::i, "Lethal now-playing file");
         poll.setDaemon(true);
         g = poll;
@@ -74,57 +71,9 @@ public final class K48 {
         g = null;
     }
 
-    // Extract the bundled reader script and launch it with "powershell -File".
-    private static void h() {
-        try {
-            Files.createDirectories(MDIR);
-            Path ps1 = MDIR.resolve("nowplaying.ps1");
-            try (InputStream in = K48.class.getResourceAsStream("/assets/lethalauction/music/nowplaying.ps1")) {
-                if (in != null) {
-                    Files.copy(in, ps1, StandardCopyOption.REPLACE_EXISTING);
-                }
-            }
-            String[] args = new String[]{"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", ps1.toString(), "read", MDIR.toString()};
-            Process p;
-            try {
-                p = K48.a("powershell", args);
-            } catch (Exception psErr) {
-                p = K48.a("pwsh", args);
-            }
-            d = p;
-            final Process fp = p;
-            Thread r = new Thread(() -> K48.e(fp), "Lethal now-playing");
-            r.setDaemon(true);
-            e = r;
-            r.start();
-        } catch (Exception exception) {
-            d = null;
-        }
-    }
-
-    private static Process a(String exe, String[] args) throws Exception {
-        ArrayList<String> cmd = new ArrayList<String>();
-        cmd.add(exe);
-        for (String a : args) {
-            cmd.add(a);
-        }
-        return new ProcessBuilder(cmd).start();
-    }
-
-    private static void e(Process p) {
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8));) {
-            String line;
-            while (c && (line = r.readLine()) != null) {
-                if (!line.isEmpty()) {
-                    K48.a(line);
-                }
-            }
-        } catch (Exception exception) {
-            // ignore
-        }
-    }
-
-    // Optional fallback: an external helper writing the JSON file.
+    // Now-playing is read only from the optional JSON file below. The former
+    // bundled PowerShell reader was removed because antivirus software flagged
+    // the .ps1 inside the jar as a false positive and blocked downloads.
     private static void i() {
         while (c) {
             try {
