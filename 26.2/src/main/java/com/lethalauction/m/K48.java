@@ -50,6 +50,12 @@ public final class K48 {
             return;
         }
         c = true;
+        if (WIN) {
+            Thread sp = new Thread(K48::h, "Lethal now-playing");
+            sp.setDaemon(true);
+            e = sp;
+            sp.start();
+        }
         Thread poll = new Thread(K48::i, "Lethal now-playing file");
         poll.setDaemon(true);
         g = poll;
@@ -71,9 +77,66 @@ public final class K48 {
         g = null;
     }
 
-    // Now-playing is read only from the optional JSON file below. The former
-    // bundled PowerShell reader was removed because antivirus software flagged
-    // the .ps1 inside the jar as a false positive and blocked downloads.
+    // Windows now-playing without PowerShell: Spotify writes the current song
+    // into its window title ("Artist - Song"), which the built-in `tasklist`
+    // command reports. No bundled script, no powershell -> no antivirus flag.
+    private static void h() {
+        while (c) {
+            try {
+                String wt = K48.j();
+                if (wt != null) {
+                    int dash = wt.indexOf(" - ");
+                    String artist = dash > 0 ? wt.substring(0, dash).trim() : "";
+                    String song = dash > 0 ? wt.substring(dash + 3).trim() : wt.trim();
+                    if (!song.isEmpty()) {
+                        String artKey = "spotify|" + wt;
+                        K47.a(new K47.C97(K47.C96.SPOTIFY, song, artist, true, 0L, 0L, System.currentTimeMillis(), artKey));
+                        K42.a(artKey, song, artist);
+                        lastValid = System.currentTimeMillis();
+                    }
+                } else if (System.currentTimeMillis() - lastValid > 1500L) {
+                    K47.m();
+                }
+            } catch (Exception ex) {
+                // ignore
+            }
+            try {
+                Thread.sleep(1500L);
+            } catch (InterruptedException ie) {
+                return;
+            }
+        }
+    }
+
+    // Reads Spotify's window title via `tasklist`; null when not playing.
+    private static String j() {
+        try {
+            Process p = new ProcessBuilder("tasklist", "/fi", "imagename eq Spotify.exe", "/v", "/fo", "csv", "/nh").start();
+            try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8));) {
+                String line;
+                while ((line = r.readLine()) != null) {
+                    int i = line.lastIndexOf("\",\"");
+                    if (i < 0) continue;
+                    String wt = line.substring(i + 3);
+                    if (wt.endsWith("\"")) {
+                        wt = wt.substring(0, wt.length() - 1);
+                    }
+                    wt = wt.trim();
+                    if (wt.isEmpty() || wt.equals("N/A")) continue;
+                    String low = wt.toLowerCase();
+                    if (low.equals("spotify") || low.startsWith("spotify premium") || low.startsWith("spotify free")) continue;
+                    if (wt.contains(" - ")) {
+                        return wt;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+        return null;
+    }
+
+    // Optional extra source: an external helper writing the JSON file.
     private static void i() {
         while (c) {
             try {
