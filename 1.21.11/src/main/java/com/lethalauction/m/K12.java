@@ -89,6 +89,7 @@ import net.minecraft.class_3532;
 import net.minecraft.class_3965;
 import net.minecraft.class_4587;
 import net.minecraft.class_4588;
+import net.minecraft.class_630;
 import net.minecraft.class_4608;
 import net.minecraft.class_5602;
 import net.minecraft.class_591;
@@ -883,6 +884,39 @@ public final class K12 {
         }
     }
 
+    // ===== Worn shoes on the plushie's feet =====
+    private static void renderShoes(class_4587 ps) {
+        try {
+            if (v == null) {
+                return;
+            }
+            String cos = K6.a();
+            if (cos == null || cos.isEmpty()) {
+                return;
+            }
+            K6.b();
+            for (K6.C74 worn : K6.b(cos).values()) {
+                K6.C71 item = worn.a();
+                if (item.c != K6.C73.SHOES) continue;
+                int variant = item.anim && item.d.size() > 1 ? (int)(System.currentTimeMillis() / 350L % (long)item.d.size()) : worn.b();
+                class_1921 stype = class_12249.method_75990((class_2960)K6.b(item, variant));
+                class_4588 vc = u.method_73477(stype);
+                for (Map.Entry<K6.C69, class_630> e : item.f.entrySet()) {
+                    K6.C69 slot = e.getKey();
+                    if (slot != K6.C69.RIGHT_LEG && slot != K6.C69.LEFT_LEG) continue;
+                    class_630 bone = slot == K6.C69.RIGHT_LEG ? v.field_3392 : v.field_3397;
+                    ps.method_22903();
+                    bone.method_22703(ps);
+                    e.getValue().method_22698(ps, vc, 0xF000F0, class_4608.field_21444);
+                    ps.method_22909();
+                }
+            }
+        }
+        catch (Throwable t) {
+            // never break figure rendering
+        }
+    }
+
     // ===== Rideable car (local figure only) =====
     private static void renderCar(WorldRenderContext ctx, class_310 mc, C77 b, C78 figure, double rx, double ry, double rz, float yaw, float pt) {
         C76 car = K12.car();
@@ -1176,6 +1210,9 @@ public final class K12 {
         ps.method_46416(0.0f, -1.501f, 0.0f);
         class_1921 type = class_12249.method_75990((class_2960)figure.c());
         v.method_62100(ps, u.method_73477(type), 0xF000F0, K12.a(b), -1);
+        if (b == x) {
+            K12.renderShoes(ps);
+        }
         ps.method_22909();
         if (chuteAmt > 0.02f && !K11.a()) {
             Matrix4f m = new Matrix4f((Matrix4fc)ps.method_23760().method_23761());

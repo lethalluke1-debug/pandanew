@@ -2659,9 +2659,8 @@ extends class_437 {
             bottom = this.ae < 0 ? this.b(g, cx, cw, sy, cardBorder) : this.c(g, cx, cw, sy, cardBorder);
         } else if (this.aa == 3) {
             K18.a(g, "Your shoes", (float)(cx + 2), (float)(sy + 6), 12.5f, -789515, K18.c);
-            K18.a(g, "Click Wear to put a pair on your plushie. Browse all 100 below to pick more.", (float)(cx + 2), (float)(sy + 24), 10.0f, -5001030, K18.a);
-            int yb = this.a(g, cx, cw, sy + 40, K6.C73.SHOES, cardFill, cardBorder);
-            bottom = this.shoeCatalog(g, cx, cw, yb + 12, cardFill, cardBorder);
+            K18.a(g, "Click Wear to put a pair on your plushie's feet.", (float)(cx + 2), (float)(sy + 24), 10.0f, -5001030, K18.a);
+            bottom = this.a(g, cx, cw, sy + 42, K6.C73.SHOES, cardFill, cardBorder);
         } else {
             K18.a(g, cx, sy, cw, 130, 12, cardFill, cardBorder);
             K18.b(g, K22.a(60130), (float)cx + (float)cw / 2.0f, (float)(sy + 50), 20.0f, head, K22.a);

@@ -69,6 +69,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.geom.ModelLayers;
+import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.rendertype.RenderType;
@@ -884,6 +885,39 @@ public final class K12 {
         }
     }
 
+    // ===== Worn shoes on the plushie's feet =====
+    private static void renderShoes(LevelRenderContext ctx, PoseStack ps) {
+        try {
+            if (v == null) {
+                return;
+            }
+            String cos = K6.a();
+            if (cos == null || cos.isEmpty()) {
+                return;
+            }
+            K6.b();
+            var collector = ctx.submitNodeCollector();
+            for (K6.C75 worn : K6.b(cos).values()) {
+                K6.C72 item = worn.a();
+                if (item.c != K6.C74.SHOES) continue;
+                int variant = item.anim && item.d.size() > 1 ? (int)(System.currentTimeMillis() / 350L % (long)item.d.size()) : worn.b();
+                RenderType stype = RenderTypes.entityCutout((Identifier)K6.b(item, variant));
+                for (Map.Entry<K6.C70, ModelPart> e : item.f.entrySet()) {
+                    K6.C70 slot = e.getKey();
+                    if (slot != K6.C70.RIGHT_LEG && slot != K6.C70.LEFT_LEG) continue;
+                    ModelPart bone = slot == K6.C70.RIGHT_LEG ? v.rightLeg : v.leftLeg;
+                    ps.pushPose();
+                    bone.translateAndRotate(ps);
+                    collector.submitModelPart(e.getValue(), ps, stype, 0xF000F0, OverlayTexture.NO_OVERLAY, null);
+                    ps.popPose();
+                }
+            }
+        }
+        catch (Throwable t) {
+            // never break figure rendering
+        }
+    }
+
     // ===== Rideable car (local figure only) =====
     private static void renderCar(LevelRenderContext ctx, Minecraft mc, C78 b, C79 figure, double rx, double ry, double rz, float yaw, float pt) {
         C77 car = K12.car();
@@ -1186,6 +1220,9 @@ public final class K12 {
         ps.translate(0.0f, -1.501f, 0.0f);
         RenderType type = RenderTypes.entityCutout((Identifier)figure.c());
         v.renderToBuffer(ps, u.a(type), 0xF000F0, K12.a(b), -1);
+        if (b == x) {
+            K12.renderShoes(ctx, ps);
+        }
         ps.popPose();
         if (chuteAmt > 0.02f && !K11.a()) {
             Matrix4f m = new Matrix4f((Matrix4fc)ps.last().pose());
