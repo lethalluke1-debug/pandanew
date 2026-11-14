@@ -15,8 +15,11 @@
  */
 package com.lethalauction.mixin;
 
+import com.lethalauction.auction.Auctions;
+import com.lethalauction.auction.Transactions;
 import com.lethalauction.m.K17;
 import com.lethalauction.m.K29;
+import com.lethalauction.m.K9;
 import net.minecraft.class_2561;
 import net.minecraft.class_266;
 import net.minecraft.class_327;
@@ -30,6 +33,24 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value={class_329.class})
 public abstract class HudMixin {
+    @Inject(method = {"method_1758"}, at = {@At(value = "HEAD")}, cancellable = true)
+    private void lethalauction$hideSmallOverlay(class_2561 component, boolean animate, CallbackInfo ci) {
+        if (!K9.hideSmall || K9.hideSmallStr.isBlank() || component == null) {
+            return;
+        }
+        try {
+            long amt = Transactions.matchAmount(component.getString());
+            if (amt >= 0L) {
+                long thr = Auctions.e(K9.hideSmallStr);
+                if (thr > 0L && amt <= thr) {
+                    ci.cancel();
+                }
+            }
+        } catch (Throwable t) {
+            // never break the hud
+        }
+    }
+
     @Inject(method={"method_1757"}, at={@At(value="HEAD")}, cancellable=true)
     private void lethalauction$custom(class_332 g, class_266 objective, CallbackInfo ci) {
         if (K17.a() && K17.a(g, objective)) {
