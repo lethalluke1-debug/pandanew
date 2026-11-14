@@ -2657,12 +2657,8 @@ extends class_437 {
                 this.af = System.currentTimeMillis();
             }
             bottom = this.ae < 0 ? this.b(g, cx, cw, sy, cardBorder) : this.c(g, cx, cw, sy, cardBorder);
-        } else if (this.aa == 1) {
-            bottom = this.a(g, cx, cw, sy, K6.C73.HAT, cardFill, cardBorder);
-        } else if (this.aa == 2) {
-            bottom = this.a(g, cx, cw, sy, K6.C73.AUDIO, cardFill, cardBorder);
         } else if (this.aa == 3) {
-            bottom = this.a(g, cx, cw, sy, K6.C73.SHOES, cardFill, cardBorder);
+            bottom = this.shoeCatalog(g, cx, cw, sy, cardFill, cardBorder);
         } else {
             K18.a(g, cx, sy, cw, 130, 12, cardFill, cardBorder);
             K18.b(g, K22.a(60130), (float)cx + (float)cw / 2.0f, (float)(sy + 50), 20.0f, head, K22.a);
@@ -2671,6 +2667,101 @@ extends class_437 {
             bottom = sy + 130;
         }
         return bottom + 10;
+    }
+
+    private static final int[] bShoeBase = new int[]{0xE23B3B, 0x3B6BE2, 0x2FBF5B, 0xF2C230, 0x9B59B6, 0xE8E8E8, 0x202428, 0xE67E22, 0x16A085, 0xEC407A, 0x7F8C8D, 0x34495E, 0xC0392B, 0x2980B9, 0x27AE60, 0xF39C12, 0x8E44AD, 0xBDC3C7, 0x14161B, 0xD35400};
+    private static final int[] bShoeAcc = new int[]{0xFFFFFF, 0x111111, 0xFFD54F, 0xFF5252, 0x40C4FF, 0x69F0AE, 0xB388FF, 0xF4F4F4};
+    private static final int[] bShoeSole = new int[]{0xFFFFFF, 0x202020, 0xD7CCC8, 0x111111, 0xE0E0E0};
+    private static final String[] bShoeName = new String[]{"Volt", "Frost", "Ember", "Shadow", "Royal", "Crimson", "Midnight", "Blaze", "Glacier", "Venom", "Sunset", "Toxic", "Aqua", "Noir", "Gold Rush", "Storm", "Mint", "Cherry", "Onyx", "Cloud"};
+
+    private static java.util.Set<Integer> bStarred() {
+        java.util.LinkedHashSet<Integer> s = new java.util.LinkedHashSet<Integer>();
+        for (String part : K9.starredShoes.split(",")) {
+            String q = part.trim();
+            if (q.isEmpty()) continue;
+            try { s.add(Integer.valueOf(Integer.parseInt(q))); } catch (NumberFormatException e) {}
+        }
+        return s;
+    }
+
+    private static void bToggleStar(int id) {
+        java.util.Set<Integer> s = K20.bStarred();
+        if (!s.remove(Integer.valueOf(id))) {
+            s.add(Integer.valueOf(id));
+        }
+        java.util.ArrayList<String> parts = new java.util.ArrayList<String>();
+        for (Integer v : s) {
+            parts.add(v.toString());
+        }
+        K9.starredShoes = String.join(",", parts);
+        K9.b();
+    }
+
+    private static void bShoe(class_332 g, int cx, int cy, int sil, int base, int acc, int sole) {
+        int b = 0xFF000000 | base;
+        int a = 0xFF000000 | acc;
+        int s = 0xFF000000 | sole;
+        int heel = sil == 1 ? 24 : (sil == 3 ? 18 : 10);
+        int top = cy - 4 - heel;
+        K18.a(g, cx - 24, top, 14, cy + 12 - top, 5, b);
+        K18.a(g, cx - 24, cy - 4, 50, 18, 7, b);
+        K18.a(g, cx + 12, cy - 2, 18, 14, 6, a);
+        K18.a(g, cx - 28, cy + 10, 62, 8, 4, s);
+        if (sil == 0) {
+            K18.a(g, cx - 10, cy - 2, 26, 4, 2, a);
+        } else if (sil == 1) {
+            K18.a(g, cx - 24, top, 14, 5, 2, a);
+            K18.a(g, cx - 12, cy - 2, 26, 4, 2, a);
+        } else if (sil == 2) {
+            K18.a(g, cx - 18, cy + 2, 34, 3, 1, a);
+            K18.a(g, cx - 8, cy - 2, 20, 3, 1, a);
+        } else {
+            K18.a(g, cx - 24, cy + 4, 50, 4, 2, a);
+            K18.a(g, cx - 2, top, 12, heel, 4, a);
+        }
+    }
+
+    private int shoeCatalog(class_332 g, int cx, int cw, int sy, int cardFill, int cardBorder) {
+        java.util.Set<Integer> starred = K20.bStarred();
+        K18.a(g, "Shoes for your mini plushie", (float)(cx + 2), (float)(sy + 6), 12.5f, -789515, K18.c);
+        K18.a(g, "Browse all 100 designs. Star the ones you like, then tell me which to add.  (" + starred.size() + " starred)", (float)(cx + 2), (float)(sy + 24), 10.0f, -5001030, K18.a);
+        int cols = 5;
+        int gap = 12;
+        int cardW = (cw - (cols - 1) * gap) / cols;
+        int cardH = 120;
+        int y0 = sy + 42;
+        int count = 100;
+        for (int id = 0; id < count; ++id) {
+            int fid = id;
+            int col = id % cols;
+            int row = id / cols;
+            int bx = cx + col * (cardW + gap);
+            int by = y0 + row * (cardH + gap);
+            boolean st = starred.contains(Integer.valueOf(id));
+            if (st) {
+                K18.a(g, bx - 2, by - 2, cardW + 4, cardH + 4, 11, K18.a(0xFFF2C94C, 0.18f));
+                K18.a(g, bx, by, cardW, cardH, 10, cardFill, 0xFFF2C94C);
+            } else {
+                K18.a(g, bx, by, cardW, cardH, 10, cardFill, cardBorder);
+            }
+            int sil = id % 4;
+            int base = bShoeBase[(id * 7 + 3) % bShoeBase.length];
+            int acc = bShoeAcc[(id * 5) % bShoeAcc.length];
+            int sole = bShoeSole[id % bShoeSole.length];
+            K20.bShoe(g, bx + cardW / 2, by + 42, sil, base, acc, sole);
+            K18.b(g, "#" + (id + 1), (float)(bx + cardW / 2), (float)(by + 66), 11.0f, -1, K18.c);
+            K18.b(g, bShoeName[id % bShoeName.length], (float)(bx + cardW / 2), (float)(by + 82), 9.5f, -5001030, K18.b);
+            int bw = cardW - 20;
+            int bbx = bx + 10;
+            int bby = by + cardH - 28;
+            if (st) {
+                this.a(g, bbx, bby, bw, 20, "Starred", 0xFFF2C94C, 0xFFF2C94C, 0xFF111111, () -> K20.bToggleStar(fid));
+            } else {
+                this.a(g, bbx, bby, bw, 20, "Star", this.a(-15395813), -13356484, -789515, () -> K20.bToggleStar(fid));
+            }
+        }
+        int rows = (count + cols - 1) / cols;
+        return y0 + rows * (cardH + gap) + 10;
     }
 
     private int b(int i) {

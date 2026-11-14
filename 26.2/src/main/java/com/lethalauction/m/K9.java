@@ -108,6 +108,7 @@ public final class K9 {
     public static long aF = 0L;
     public static boolean hideSmall = false;
     public static String hideSmallStr = "";
+    public static String starredShoes = "";
     public static String aG = "";
     public static String aH = "";
     public static String aI = "";
@@ -288,6 +289,7 @@ public final class K9 {
             }
             hideSmall = Boolean.parseBoolean(p.getProperty("hideSmall", "false"));
             hideSmallStr = p.getProperty("hideSmallAmount", "");
+            starredShoes = p.getProperty("starredShoes", "");
             aS = K9.a(K9.a(p.getProperty("sbScale"), 1.0f), 0.5f, 1.5f);
             aT = Boolean.parseBoolean(p.getProperty("sbRounded", "false"));
             aU = Boolean.parseBoolean(p.getProperty("sbHead", "false"));
@@ -419,6 +421,7 @@ public final class K9 {
         p.setProperty("sessionStart", Long.toString(aF));
         p.setProperty("hideSmall", Boolean.toString(hideSmall));
         p.setProperty("hideSmallAmount", hideSmallStr);
+        p.setProperty("starredShoes", starredShoes);
         p.setProperty("sbScale", Float.toString(aS));
         p.setProperty("sbRounded", Boolean.toString(aT));
         p.setProperty("sbHead", Boolean.toString(aU));
