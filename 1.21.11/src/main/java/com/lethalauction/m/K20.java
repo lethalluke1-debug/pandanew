@@ -970,7 +970,7 @@ extends class_437 {
         this.a(g, 876, t + 208, LethalAuctionClient.openMenu());
         K18.a(g, 250, t + 254, 746, 56, 10, boxFill, boxBorder);
         K18.a(g, "Figure Waypoint", 268.0f, (float)(t + 282), 12.5f, -789515, K18.b);
-        K18.a(g, "Look at a block and press this to send your mini figure to it; press again to recall.", 268.0f, (float)(t + 298), 9.5f, -7568235, K18.a);
+        K18.a(g, "Look at a block and press this to send your mini figure to it; press again to recall. Press Delete while binding to unbind.", 268.0f, (float)(t + 298), 9.5f, -7568235, K18.a);
         this.a(g, 876, t + 270, LethalAuctionClient.figureWaypoint());
         K18.a(g, 250, t + 316, 746, 56, 10, boxFill, boxBorder);
         K18.a(g, "Lethal title screen", 268.0f, (float)(t + 338), 12.5f, -789515, K18.b);
@@ -3869,7 +3869,12 @@ extends class_437 {
 
     public boolean method_25404(class_11908 event) {
         if (this.T != null) {
-            if (event.comp_4795() != 256) {
+            int kc = event.comp_4795();
+            if (kc == 261 || kc == 259) {
+                this.T.method_1422(class_3675.field_16237);
+                class_304.method_1426();
+                this.field_22787.field_1690.method_1640();
+            } else if (kc != 256) {
                 this.T.method_1422(class_3675.method_15985((class_11908)event));
                 class_304.method_1426();
                 this.field_22787.field_1690.method_1640();

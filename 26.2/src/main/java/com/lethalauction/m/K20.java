@@ -970,7 +970,7 @@ extends Screen {
         this.a(g, 876, t + 208, LethalAuctionClient.openMenu());
         K18.a(g, 250, t + 254, 746, 56, 10, boxFill, boxBorder);
         K18.a(g, "Figure Waypoint", 268.0f, (float)(t + 282), 12.5f, -789515, K18.b);
-        K18.a(g, "Look at a block and press this to send your mini figure to it; press again to recall.", 268.0f, (float)(t + 298), 9.5f, -7568235, K18.a);
+        K18.a(g, "Look at a block and press this to send your mini figure to it; press again to recall. Press Delete while binding to unbind.", 268.0f, (float)(t + 298), 9.5f, -7568235, K18.a);
         this.a(g, 876, t + 270, LethalAuctionClient.figureWaypoint());
         K18.a(g, 250, t + 316, 746, 56, 10, boxFill, boxBorder);
         K18.a(g, "Lethal title screen", 268.0f, (float)(t + 338), 12.5f, -789515, K18.b);
@@ -3869,7 +3869,12 @@ extends Screen {
 
     public boolean keyPressed(KeyEvent event) {
         if (this.T != null) {
-            if (event.key() != 256) {
+            int kc = event.key();
+            if (kc == 261 || kc == 259) {
+                this.T.setKey(InputConstants.UNKNOWN);
+                KeyMapping.resetMapping();
+                this.minecraft.options.save();
+            } else if (kc != 256) {
                 this.T.setKey(InputConstants.getKey((KeyEvent)event));
                 KeyMapping.resetMapping();
                 this.minecraft.options.save();

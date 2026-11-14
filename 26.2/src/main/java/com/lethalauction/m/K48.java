@@ -126,9 +126,15 @@ while($true){
             String outPath = FILE.toString().replace("'", "''");
             String script = SCRIPT.replace("__OUTFILE__", outPath);
             String enc = java.util.Base64.getEncoder().encodeToString(script.getBytes(StandardCharsets.UTF_16LE));
-            Process p = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", enc).start();
+            Process p;
+            try {
+                p = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", enc).start();
+            } catch (Exception psErr) {
+                p = new ProcessBuilder("pwsh", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", enc).start();
+            }
             d = p;
-            Thread r = new Thread(() -> K48.e(p), "Lethal now-playing");
+            final Process fp = p;
+            Thread r = new Thread(() -> K48.e(fp), "Lethal now-playing");
             r.setDaemon(true);
             e = r;
             r.start();
@@ -195,7 +201,7 @@ while($true){
             if (sampledAt <= 0L || sampledAt > nowClock || nowClock - sampledAt > 10000L) {
                 sampledAt = nowClock;
             }
-            if ((which = K48.b(app)) != K47.C96.SPOTIFY || title.isEmpty()) {
+            if ((which = K48.b(app)) == K47.C96.NONE || title.isEmpty()) {
                 K47.m();
                 return;
             }
