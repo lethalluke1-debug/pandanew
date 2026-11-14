@@ -83,9 +83,9 @@ tasks.register('obfuscate', ProGuardTask) {
 }
 
 // Loom's remapJar consumes the obfuscated jar instead of the plain one.
+// Obfuscation disabled: the ProGuard-processed jar trips antivirus ML
+// heuristics (false positives) and blocks downloads. remapJar now uses the
+// plain compiled jar.
 tasks.named('remapJar') {
-    dependsOn tasks.named('obfuscate')
-    mustRunAfter tasks.named('obfuscate')
-    inputFile.set(obfJar)
     archiveFileName = "Lethal-Client-1.21.11.jar"
 }

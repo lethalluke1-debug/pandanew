@@ -75,9 +75,9 @@ tasks.register('obfuscate', ProGuardTask) {
     keep 'enum com.lethalauction.** { *; }'
 }
 
+// Obfuscation disabled: the ProGuard-processed jar trips antivirus ML
+// heuristics (false positives) and blocks downloads. remapJar now uses the
+// plain compiled jar.
 tasks.named('remapJar') {
-    dependsOn tasks.named('obfuscate')
-    mustRunAfter tasks.named('obfuscate')
-    inputFile.set(obfJar)
     archiveFileName = "Lethal-Client-26.2.jar"
 }
