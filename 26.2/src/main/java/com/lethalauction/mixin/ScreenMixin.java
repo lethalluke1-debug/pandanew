@@ -14,7 +14,6 @@
 package com.lethalauction.mixin;
 
 import com.lethalauction.m.K33;
-import com.lethalauction.m.K9;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -34,16 +33,6 @@ public abstract class ScreenMixin {
         }
         K33.a(g, self.width, self.height);
         ci.cancel();
-    }
-
-    @Inject(method = {"extractBackground"}, at = {@At(value = "HEAD")}, cancellable = true)
-    private void lethal$seeThroughGui(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
-        // Removes only the dark dim/blur behind menus (the transparent panel
-        // texture still draws on top). For a container screen this fires via its
-        // super.extractBackground call, so the panel's own blit is kept.
-        if (K9.seeThroughGui && Minecraft.getInstance().level != null) {
-            ci.cancel();
-        }
     }
 }
 

@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
  */
 @Mixin(GuiGraphicsExtractor.class)
 public class GuiGraphicsMixin {
-    @ModifyVariable(method = "blit(Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/resources/Identifier;IIFFIIII)V", at = @At("HEAD"), argsOnly = true, index = 2)
+    @ModifyVariable(method = "blit(Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/resources/Identifier;IIFFIIII)V", at = @At("HEAD"), argsOnly = true, require = 0)
     private Identifier lethal$seeThroughTex(Identifier tex) {
         try {
             if (tex != null && K9.seeThroughGui && Minecraft.getInstance().level != null
