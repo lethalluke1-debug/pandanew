@@ -2508,7 +2508,7 @@ extends class_437 {
         K18.a(g, "Your mini figure and its cosmetics. Other Lethal Client players see what you equip.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
         int cx = 235;
         int cw = 1013 - cx;
-        String[] tabs = new String[]{"Figures", "Hats", "Accessories", "Shoes", "Emotes", "Cars"};
+        String[] tabs = new String[]{"Figures", "Hats", "Accessories", "Shoes", "Emotes"};
         int ty = t + 118;
         int tgap = 8;
         int tabW = (cw - (tabs.length - 1) * tgap) / tabs.length;
@@ -2541,8 +2541,6 @@ extends class_437 {
                 this.af = System.currentTimeMillis();
             }
             bottom = this.ae < 0 ? this.b(g, cx, cw, sy, cardBorder) : this.c(g, cx, cw, sy, cardBorder);
-        } else if (this.aa == 5) {
-            bottom = this.carTab(g, cx, cw, sy, cardBorder);
         } else {
             K18.a(g, cx, sy, cw, 130, 12, cardFill, cardBorder);
             K18.b(g, K22.a(60130), (float)cx + (float)cw / 2.0f, (float)(sy + 50), 20.0f, head, K22.a);
@@ -2551,56 +2549,6 @@ extends class_437 {
             bottom = sy + 130;
         }
         return bottom + 10;
-    }
-
-    private int carTab(class_332 g, int cx, int cw, int sy, int cardBorder) {
-        K18.a(g, "Pick a ride — your figure drives it around with you, steering and bouncing as it goes.", (float)(cx + 2), (float)(sy + 12), 10.5f, -5001030, K18.a);
-        int top = sy + 26;
-        int gap = 8;
-        int n = K12.cars.size() + 1;
-        int cardW = (cw - (n - 1) * gap) / n;
-        int cardH = 118;
-        int x = cx;
-        boolean noneOn = K9.car == null || K9.car.isEmpty();
-        this.carCard(g, x, top, cardW, cardH, "None", 0x3A3A42, 0x3A3A42, noneOn, true);
-        this.a(x, top, cardW, cardH, () -> {
-            K9.car = "";
-            K9.b();
-        });
-        x += cardW + gap;
-        for (K12.C76 c : K12.cars) {
-            boolean on = c.a().equals(K9.car);
-            this.carCard(g, x, top, cardW, cardH, c.b(), c.body(), c.accent(), on, false);
-            K12.C76 fc = c;
-            this.a(x, top, cardW, cardH, () -> K12.setCar(fc.a()));
-            x += cardW + gap;
-        }
-        return top + cardH;
-    }
-
-    private void carCard(class_332 g, int x, int y, int w, int h, String name, int body, int accent, boolean on, boolean isNone) {
-        int fill = on ? this.a(-15001054) : this.a(-15462119);
-        int border = on ? this.ak : this.a(-14804444, 0.12f);
-        K18.a(g, x, y, w, h, 10, fill, border);
-        int sw = w - 20;
-        int swx = x + 10;
-        int swy = y + 12;
-        int swh = 56;
-        K18.a(g, swx, swy, sw, swh, 7, 0xFF000000 | body);
-        if (isNone) {
-            K18.b(g, "✕", (float)(x + w / 2), (float)(swy + swh / 2 + 5), 16.0f, 0xFF9A9AA6, K18.c);
-        } else {
-            K18.a(g, swx, swy + swh - 10, sw, 6, 0xFF000000 | accent);
-            int cyy = swy + swh / 2 - 2;
-            int bw = Math.round((float)sw * 0.6f);
-            int bx = x + w / 2 - bw / 2;
-            K18.a(g, bx, cyy - 4, bw, 11, 3, 0xDD101014);
-            K18.a(g, bx + Math.round((float)bw * 0.2f), cyy - 11, Math.round((float)bw * 0.5f), 9, 2, 0xDD101014);
-            K18.a(g, bx + Math.round((float)bw * 0.22f), cyy + 8, 5.0f, 0xFF0B0B0F);
-            K18.a(g, bx + bw - Math.round((float)bw * 0.22f), cyy + 8, 5.0f, 0xFF0B0B0F);
-        }
-        K18.b(g, K20.a(name, w - 10, 10.5f, K18.c), (float)(x + w / 2), (float)(y + 82), 10.5f, on ? this.am : -2039834, K18.c);
-        K18.b(g, isNone ? "No car" : (on ? "Driving" : "Tap to ride"), (float)(x + w / 2), (float)(y + 99), 8.5f, on ? this.am : -7568235, K18.a);
     }
 
     private int b(int i) {

@@ -228,6 +228,14 @@ public final class K12 {
         }
     }
 
+    public static boolean clearWaypoint() {
+        if (z != null) {
+            z = null;
+            return true;
+        }
+        return false;
+    }
+
     public static class_2338 b() {
         return z;
     }
@@ -1051,10 +1059,6 @@ public final class K12 {
         double ry = class_3532.method_16436((double)pt, (double)b.b.field_1351, (double)b.a.field_1351);
         double rz = class_3532.method_16436((double)pt, (double)b.b.field_1350, (double)b.a.field_1350);
         float yaw = class_3532.method_17821((float)pt, (float)b.f, (float)b.e);
-        if (b == x && !K9.car.isEmpty() && K12.car() != null) {
-            K12.renderCar(ctx, mc, b, figure, rx, ry, rz, yaw, pt);
-            return;
-        }
         if (System.currentTimeMillis() < b.I) {
             K12.b(ctx, mc, b, figure, rx, ry, rz);
             return;

@@ -30,6 +30,11 @@ public final class K48 {
     private static Process d;            // reader process
     private static Thread e;             // stdout reader
     private static Thread g;             // file poller
+    // Pause detection by position movement (Spotify's SMTC often reports
+    // "Playing" even while paused, so trust the track position instead).
+    private static volatile long lastPos = -1L;
+    private static volatile long lastPosWall = 0L;
+    private static volatile String lastKey = "";
 
     private static final String SCRIPT = """
 $ErrorActionPreference='SilentlyContinue'
@@ -175,8 +180,22 @@ while($true){
                 K47.m();
                 return;
             }
-            boolean playing = status.equals("playing");
+            boolean statusPlaying = status.equals("playing");
             String artKey = app + "|" + title + "|" + artist;
+            long nowWall = System.currentTimeMillis();
+            boolean playing = statusPlaying;
+            if (statusPlaying && artKey.equals(lastKey)) {
+                long wallDelta = nowWall - lastPosWall;
+                if (wallDelta > 400L && lastPos >= 0L) {
+                    long posDelta = pos - lastPos;
+                    if (posDelta <= wallDelta / 3L) {
+                        playing = false;   // position not advancing with real time -> actually paused
+                    }
+                }
+            }
+            lastKey = artKey;
+            lastPos = pos;
+            lastPosWall = nowWall;
             K47.a(new K47.C97(which, title, artist, playing, pos, dur, sampledAt, artKey));
             if (!artPath.isEmpty()) {
                 K47.a(artKey, Path.of(artPath, new String[0]));
