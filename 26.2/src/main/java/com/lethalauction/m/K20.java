@@ -2657,6 +2657,12 @@ extends Screen {
                 this.af = System.currentTimeMillis();
             }
             bottom = this.ae < 0 ? this.b(g, cx, cw, sy, cardBorder) : this.c(g, cx, cw, sy, cardBorder);
+        } else if (this.aa == 1) {
+            bottom = this.a(g, cx, cw, sy, K6.C74.HAT, cardFill, cardBorder);
+        } else if (this.aa == 2) {
+            bottom = this.a(g, cx, cw, sy, K6.C74.AUDIO, cardFill, cardBorder);
+        } else if (this.aa == 3) {
+            bottom = this.a(g, cx, cw, sy, K6.C74.SHOES, cardFill, cardBorder);
         } else {
             K18.a(g, cx, sy, cw, 130, 12, cardFill, cardBorder);
             K18.b(g, K22.a(60130), (float)cx + (float)cw / 2.0f, (float)(sy + 50), 20.0f, head, K22.a);
