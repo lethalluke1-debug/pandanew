@@ -100,9 +100,15 @@ public final class K48 {
                         K42.a(artKey, song, artist);
                         lastValid = System.currentTimeMillis();
                     }
-                } else if (System.currentTimeMillis() - lastValid > 5000L) {
-                    lastKey = "";
-                    K47.m();
+                } else {
+                    K47.C96 cur = K47.c();
+                    if (cur.a() && cur.f()) {
+                        K47.a(new K47.C96(cur.c(), cur.d(), cur.e(), false, 0L, 0L, cur.i(), cur.j()));
+                    }
+                    if (System.currentTimeMillis() - lastValid > 8000L) {
+                        lastKey = "";
+                        K47.m();
+                    }
                 }
             } catch (Exception ex) {
                 // ignore
