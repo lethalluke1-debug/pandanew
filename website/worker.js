@@ -48,7 +48,7 @@ const KEY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Bump this every time the file changes. Open https://lethalclient.com/api/version on the live site:
 // if it shows this exact string, your paste-and-Deploy worked and the newest code is live. If it shows
 // something older (or 404s), Cloudflare is still running an old file and the deploy didn't take.
-const BUILD_VERSION = "2026-11-15-build-check-opt-in";
+const BUILD_VERSION = "2026-11-15-no-forced-lock";
 
 // ---------- launch countdown + early-access key ----------
 // Launch: Saturday, October 31 2026 at 1:00 PM Pacific. On that date Pacific is PDT (UTC-7, since
@@ -3300,7 +3300,7 @@ const ADMIN_HTML = `<!doctype html>
         <div class="muted" style="margin-top:4px;font-size:12px">Upload each Minecraft version's jar (26.2 and 1.21.11) — it's filed under its own version automatically, so just upload them one at a time.</div></div>
       <div class="row" style="margin-top:12px">
         <input id="jar" type="file" accept=".jar" class="grow">
-        <label class="muted row" style="gap:6px"><input id="req" type="checkbox" checked style="width:auto"> Make everyone update</label>
+        <label class="muted row" style="gap:6px"><input id="req" type="checkbox" style="width:auto"> Force everyone to update now (locks older versions out until they update)</label>
         <button id="uploadBtn" class="primary">Upload</button>
       </div>
     </div>
