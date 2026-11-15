@@ -41,6 +41,13 @@ public final class Transactions {
     private static final List<Pattern> h = List.of(Pattern.compile("^you (?:have )?(?:just )?(?:bought|purchased) (?:[0-9,]+\\s*x?\\s*)?(?<name>.{1,32}?) for \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b", 2), Pattern.compile("^you (?:have )?(?:just )?spent \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b(?: on (?<name>.{1,40}))?", 2), Pattern.compile("^you (?:have )?(?:just )?paid \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b(?: dollars| coins| money)?(?: for (?<name>.{1,40}))?$", 2), Pattern.compile("^\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b (?:was |has been )?(?:withdrawn|taken|removed|deducted|charged)(?: from your (?<name>[A-Za-z ]{1,20}))?", 2));
     private static final List<C69> i = new ArrayList<C69>();
     private static boolean j;
+    // A bare amount with nothing else: DonutSMP shows sells/earnings as a plain
+    // "$35K" action-bar pop (its money icon normalises to $), with no player or
+    // "sold" text. "+$" / "$" = money in (a sale); "-$" = money out.
+    private static final Pattern k = Pattern.compile("^\\+?\\s*\\$\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\s*$", 2);
+    private static final Pattern l = Pattern.compile("^-\\s*\\$\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\s*$", 2);
+    private static long lastAmt;
+    private static long lastAt;
 
     private Transactions() {
     }
@@ -105,6 +112,27 @@ public final class Transactions {
             Transactions.a(label, Auctions.e(m.group("amount").replace(" ", "")), false);
             return;
         }
+        Matcher sale = k.matcher(text);
+        if (sale.find()) {
+            Transactions.b(Auctions.e(sale.group("amount").replace(" ", "")), "Sale", true);
+            return;
+        }
+        Matcher spend = l.matcher(text);
+        if (spend.find()) {
+            Transactions.b(Auctions.e(spend.group("amount").replace(" ", "")), "Purchase", false);
+        }
+    }
+
+    // A bare "$amount" pop fires again on re-render, so drop an identical amount
+    // seen within 2s to avoid counting one sale twice.
+    private static synchronized void b(long amount, String label, boolean received) {
+        long now = System.currentTimeMillis();
+        if (amount <= 0L || amount == lastAmt && now - lastAt < 2000L) {
+            return;
+        }
+        lastAmt = amount;
+        lastAt = now;
+        Transactions.a(label, amount, received);
     }
 
     // Returns the pay amount if this chat line is a payment (incoming or
