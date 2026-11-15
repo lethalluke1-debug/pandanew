@@ -446,6 +446,9 @@ extends Screen {
             int activeColor = K18.a(this.ak, -1, 0.08f);
             K18.b(g, K22.a(pg.icon), 47.0f, (float)ty, 21.0f, active ? activeColor : -5924947, pg.iconFont);
             K18.a(g, pg.label, 75.0f, (float)ty, 13.0f, active ? activeColor : -4477500, active ? K18.c : K18.b);
+            if (pg == C82.MUSIC) {
+                K18.b(g, K22.a(60130), 125.0f, (float)ty, 11.0f, active ? activeColor : -7568235, K22.a);
+            }
             this.a(24, ty - 12, 188, 24, () -> {
                 if (this.O != pg) {
                     this.Y = System.currentTimeMillis();
@@ -1839,88 +1842,23 @@ extends Screen {
     }
 
     private int j(GuiGraphicsExtractor g, int t) {
-        int v;
-        int sx;
         int head = K18.a(this.ak, -1, 0.05f);
         int cardFill = this.a(this.a(-15462119, 0.07f));
         int cardBorder = this.a(-14804444, 0.12f);
         K18.a(g, 60156, 253.0f, (float)(t + 80), 17.0f, head);
         K18.a(g, "Music", 272.0f, (float)(t + 77), 13.0f, -789515, K18.c);
-        K18.a(g, "Shows the song playing in Spotify, with a card you can move. Pause and skip too.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
-        boolean supported = K48.a();
-        int y = t + 116;
-        K18.a(g, 241, y, 765, 58, 10, cardFill, cardBorder);
-        K18.a(g, "Now Playing", 257.0f, (float)(y + 22), 12.5f, -789515, K18.c);
-        K18.a(g, "We're polishing this up \u2014 it'll be back in the next update.", 257.0f, (float)(y + 40), 10.5f, -5001030, K18.a);
+        K18.a(g, "Shows the song you're playing on a card you can move. Locked for now.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
         K9.U = false;
-        K18.a(g, 60130, 870.0f, (float)(y + 29), 13.0f, -7568235);
-        K18.a(g, "Coming next update", 884.0f, (float)(y + 24), 11.0f, -7568235, K18.b);
-        int cardH = 184;
-        K18.a(g, 241, y += 70, 765, cardH, 12, this.a(this.a(-16053235, 0.05f)), cardBorder);
-        K18.a(g, "PREVIEW", 257.0f, (float)(y + 18), 10.0f, -7568235, K18.b);
-        if (K47.c().a()) {
-            float s = 1.0f;
-            float ox = 623.5f - 272.0f * s / 2.0f;
-            float oy = (float)(y + 30) + ((float)(cardH - 30) - (float)K25.c() * s) / 2.0f;
-            K25.a(g, ox, oy, s);
-        } else {
-            K18.a(g, 60156, 623.5f, (float)(y + 74), 24.0f, 0x40FFFFFF);
-            K18.b(g, "Coming next update", 623.5f, (float)(y + 102), 12.0f, -5001030, K18.c);
-            K18.b(g, "The now-playing card is getting an upgrade", 623.5f, (float)(y + 118), 10.0f, -7568235, K18.b);
-        }
-        K18.a(g, 241, y += cardH + 12, 765, 50, 10, cardFill, cardBorder);
-        K18.a(g, "Show on screen", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
-        K18.a(g, "Drag it anywhere and make it bigger or smaller.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
-        this.a(g, 806, y + 13, 110, 24, "Edit position", this.al, K18.a(this.ak, -16777216, 0.15f), this.am, () -> {
-            K9.V = true;
-            K9.b();
-            this.minecraft.gui.setScreen((Screen)new K19(this, K25.e));
-        });
-        this.a(g, 960, y + 25, K9.V, () -> {
-            K9.V = !K9.V;
-            K9.b();
-        });
-        y += 62;
-        K18.a(g, "Headphones", 243.0f, (float)((y += 14) + 8), 12.5f, -789515, K18.c);
-        K18.a(g, 241, y += 22, 765, 50, 10, cardFill, cardBorder);
-        K18.a(g, "Wear headphones while music plays", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
-        K18.a(g, "They appear on your head whenever a song is playing. Other Lethal players see them too.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
-        this.a(g, 960, y + 25, K9.Z, () -> {
-            K9.Z = !K9.Z;
-            K9.b();
-        });
-        y += 62;
-        if (K9.Z) {
-            K6.C72 hp = K6.a("headphones");
-            int rowH = 96;
-            K18.a(g, 241, y, 765, rowH, 10, cardFill, cardBorder);
-            K18.a(g, "Colour", 257.0f, (float)(y + 20), 11.5f, -3947581, K18.b);
-            int cv = Math.max(0, Math.min(hp.d.size() - 1, K9.aa));
-            K18.a(g, 300.0f, (float)y + (float)rowH / 2.0f + 6.0f, 30.0f, 0x14FFFFFF);
-            this.a(g, hp, hp.d.get(cv), 300.0f, (float)y + (float)rowH / 2.0f + 6.0f);
-            sx = 430;
-            v = 0;
-            while (v < hp.d.size()) {
-                boolean on;
-                K6.C73 pal = hp.d.get(v);
-                float dx = sx + v * 44;
-                float dy = (float)y + (float)rowH / 2.0f;
-                boolean bl = on = v == cv;
-                if (on) {
-                    K18.a(g, dx, dy, 15.0f, -1);
-                }
-                K18.a(g, dx, dy, 13.0f, 0xFF000000 | pal.b());
-                K18.a(g, dx + 4.5f, dy + 4.5f, 5.0f, 0xFF000000 | pal.c());
-                K18.b(g, pal.a(), dx, dy + 26.0f, 8.0f, on ? -789515 : -7568235, K18.b);
-                int variant = v++;
-                this.a(Math.round(dx - 15.0f), Math.round(dy - 15.0f), 30, 34, () -> {
-                    K9.aa = variant;
-                    K9.b();
-                });
-            }
-            y += rowH + 12;
-        }
-        return y + 6;
+        K9.V = false;
+        K9.Z = false;
+        int y = t + 116;
+        int cardH = 150;
+        K18.a(g, 241, y, 765, cardH, 12, cardFill, cardBorder);
+        float cx = 623.5f;
+        K18.b(g, K22.a(60130), cx, (float)(y + 56), 30.0f, -6710887, K22.a);
+        K18.b(g, "Locked", cx, (float)(y + 94), 15.0f, -789515, K18.c);
+        K18.b(g, "Coming in the next update", cx, (float)(y + 116), 11.0f, -7568235, K18.b);
+        return y + cardH + 6;
     }
 
     private int k(GuiGraphicsExtractor g, int t) {
