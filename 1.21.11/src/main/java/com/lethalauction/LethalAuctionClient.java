@@ -129,6 +129,7 @@ implements ClientModInitializer {
     private boolean licenseChecked;
     private boolean wasMaintenance;
     private boolean greeted;
+    private boolean updateNotified;
 
     public static class_304 openMenu() {
         return openMenu;
@@ -262,6 +263,11 @@ implements ClientModInitializer {
                 mc.method_1483().method_4873((class_1113)class_1109.method_4757((class_3414)class_3417.field_15195, (float)1.0f, (float)0.8f));
             }
             this.licenseTick(mc);
+            if (!this.updateNotified && com.lethalauction.m.K39.a() == com.lethalauction.m.K39.C92.READY && mc.field_1724 != null && mc.field_1755 == null) {
+                this.updateNotified = true;
+                mc.method_1483().method_4873((class_1113)class_1109.method_4757((class_3414)class_3417.field_15195, (float)1.0f, (float)1.0f));
+                mc.method_1507((class_437)new K34());
+            }
             K30.a(mc);
             K5.a(mc);
             K40.a(mc);

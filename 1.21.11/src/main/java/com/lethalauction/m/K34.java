@@ -33,6 +33,9 @@ extends class_437 {
     }
 
     public void method_25393() {
+        if (K39.a() == K39.C92.READY) {
+            return;
+        }
         if (!K37.g()) {
             if (K37.b()) {
                 this.field_22787.method_1507((class_437)new K20());

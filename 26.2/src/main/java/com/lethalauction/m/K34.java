@@ -33,6 +33,9 @@ extends Screen {
     }
 
     public void tick() {
+        if (K39.a() == K39.C93.READY) {
+            return;
+        }
         if (!K37.g()) {
             if (K37.b()) {
                 this.minecraft.gui.setScreen((Screen)new K20());

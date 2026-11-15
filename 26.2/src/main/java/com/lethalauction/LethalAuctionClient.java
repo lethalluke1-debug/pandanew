@@ -129,6 +129,7 @@ implements ClientModInitializer {
     private boolean licenseChecked;
     private boolean wasMaintenance;
     private boolean greeted;
+    private boolean updateNotified;
 
     public static KeyMapping openMenu() {
         return openMenu;
@@ -262,6 +263,11 @@ implements ClientModInitializer {
                 mc.getSoundManager().play((SoundInstance)SimpleSoundInstance.forUI((SoundEvent)SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, (float)1.0f, (float)0.8f));
             }
             this.licenseTick(mc);
+            if (!this.updateNotified && com.lethalauction.m.K39.a() == com.lethalauction.m.K39.C93.READY && mc.player != null && mc.gui.screen() == null) {
+                this.updateNotified = true;
+                mc.getSoundManager().play((SoundInstance)SimpleSoundInstance.forUI((SoundEvent)SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, (float)1.0f, (float)1.0f));
+                mc.gui.setScreen((Screen)new K34());
+            }
             K30.a(mc);
             K5.a(mc);
             K40.a(mc);
