@@ -237,7 +237,7 @@ public final class K9 {
             aN = p.getProperty("skin", "");
             aO = Boolean.parseBoolean(p.getProperty("originalSkinSlim", "false"));
             try {
-                aP = Integer.parseInt(p.getProperty("crosshairStyle", "0"));
+                aP = 0;
                 aQ = Integer.parseInt(p.getProperty("crosshairColor", "0"));
                 aR = Integer.parseInt(p.getProperty("crosshairSize", "1"));
             }

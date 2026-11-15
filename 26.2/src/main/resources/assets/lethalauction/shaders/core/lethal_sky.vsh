@@ -15,6 +15,7 @@ in vec3 Position;
 out vec3 skyDir;
 
 void main() {
-    gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
+    vec4 pos = ProjMat * ModelViewMat * vec4(Position, 1.0);
+    gl_Position = pos.xyww;
     skyDir = Position;
 }
