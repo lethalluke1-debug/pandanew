@@ -512,7 +512,7 @@ public final class K37 {
 
     static {
         a = FabricLoader.getInstance().getModContainer("lethalauction").map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("0");
-        b = FabricLoader.getInstance().getModContainer("minecraft").map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("");
+        b = "26.2";
         e = FabricLoader.getInstance().getConfigDir().resolve("lethalauction-license.properties");
         l = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8L)).build();
         m = Executors.newSingleThreadScheduledExecutor(r -> {
