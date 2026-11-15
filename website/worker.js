@@ -48,7 +48,7 @@ const KEY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Bump this every time the file changes. Open https://lethalclient.com/api/version on the live site:
 // if it shows this exact string, your paste-and-Deploy worked and the newest code is live. If it shows
 // something older (or 404s), Cloudflare is still running an old file and the deploy didn't take.
-const BUILD_VERSION = "2026-11-04-targeted-builds-and-total-only";
+const BUILD_VERSION = "2026-11-15-build-check-opt-in";
 
 // ---------- launch countdown + early-access key ----------
 // Launch: Saturday, October 31 2026 at 1:00 PM Pacific. On that date Pacific is PDT (UTC-7, since
@@ -297,7 +297,7 @@ async function verify(request, env) {
         const verRec = (settings.versionList || []).find((x) => x && x.v === reqVer);
         const expected = verRec ? String(verRec.sha).toLowerCase()
           : (reqVer && reqVer === settings.update.version ? (settings.update.sha || "").toLowerCase() : "");
-        if (expected && expected !== buildFp) {
+        if (env.ENFORCE_BUILD === "1" && expected && expected !== buildFp) {
           return signed(env, { ok: false, status: "invalid", message: "This copy of Lethal Client has been modified. Reinstall the official client.", ...base });
         }
       }
@@ -354,7 +354,7 @@ async function verify(request, env) {
       const verRec = (s.versionList || []).find((x) => x && x.v === reqVer);
       const expected = verRec ? String(verRec.sha).toLowerCase()
         : (reqVer && reqVer === s.update.version ? (s.update.sha || "").toLowerCase() : "");
-      if (expected && expected !== build) {
+      if (env.ENFORCE_BUILD === "1" && expected && expected !== build) {
         return reply("invalid", "This copy of Lethal Client has been modified. Reinstall the official client.");
       }
     }
