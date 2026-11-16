@@ -177,69 +177,66 @@ public final class K62 {
     private static final int GOLD = 0xFFD24A;
     private static final int BLUE = 0x3A7BD5;
 
+    // Decoration parts either overlap deeply (so no thin near-coincident faces
+    // z-fight) or stand clearly proud of the surface. Nothing is buried flush.
     private static void tree(VertexConsumer vc, Matrix4f m) {
-        K62.box(vc, m, -0.08f, 0.0f, -0.08f, 0.08f, 0.22f, 0.08f, BROWN);
-        K62.box(vc, m, -0.36f, 0.20f, -0.36f, 0.36f, 0.50f, 0.36f, GREEN);
-        K62.box(vc, m, -0.28f, 0.48f, -0.28f, 0.28f, 0.74f, 0.28f, GREEN);
-        K62.box(vc, m, -0.18f, 0.72f, -0.18f, 0.18f, 0.96f, 0.18f, GREEN);
-        K62.box(vc, m, -0.07f, 0.95f, -0.07f, 0.07f, 1.09f, 0.07f, GOLD);
-        // baubles
-        K62.box(vc, m, 0.24f, 0.34f, 0.0f, 0.32f, 0.42f, 0.08f, RED);
-        K62.box(vc, m, -0.30f, 0.30f, 0.14f, -0.22f, 0.38f, 0.22f, BLUE);
-        K62.box(vc, m, 0.0f, 0.58f, 0.20f, 0.08f, 0.66f, 0.28f, GOLD);
-        K62.box(vc, m, -0.14f, 0.80f, -0.10f, -0.06f, 0.88f, -0.02f, RED);
+        K62.box(vc, m, -0.09f, 0.0f, -0.09f, 0.09f, 0.26f, 0.09f, BROWN);
+        K62.box(vc, m, -0.38f, 0.18f, -0.38f, 0.38f, 0.54f, 0.38f, GREEN);
+        K62.box(vc, m, -0.27f, 0.46f, -0.27f, 0.27f, 0.80f, 0.27f, GREEN);
+        K62.box(vc, m, -0.16f, 0.72f, -0.16f, 0.16f, 1.02f, 0.16f, GREEN);
+        K62.box(vc, m, -0.09f, 0.96f, -0.09f, 0.09f, 1.14f, 0.09f, GOLD);
     }
 
     private static void lights(VertexConsumer vc, Matrix4f m) {
-        // a drooping string between two posts
-        K62.box(vc, m, -0.42f, 0.0f, 0.0f, -0.38f, 0.5f, 0.04f, WHITE);
-        K62.box(vc, m, 0.38f, 0.0f, 0.0f, 0.42f, 0.5f, 0.04f, WHITE);
-        int[] cols = new int[]{RED, GOLD, GREEN, BLUE, RED, GOLD};
-        for (int i = 0; i < 6; ++i) {
-            float t = (float)i / 5.0f;
-            float x = -0.40f + t * 0.80f;
-            float droop = (float)Math.sin(t * Math.PI) * 0.10f;
-            float y = 0.46f - droop;
-            int c = cols[i];
-            K62.box(vc, m, x - 0.03f, y - 0.05f, -0.01f, x + 0.03f, y + 0.01f, 0.05f, c);
+        // a string of bulbs on a bar, bulbs standing clearly proud of the wire
+        K62.box(vc, m, -0.44f, 0.44f, -0.03f, 0.44f, 0.50f, 0.03f, 0x4A4A4A);
+        K62.box(vc, m, -0.44f, 0.0f, -0.02f, -0.40f, 0.50f, 0.02f, WHITE);
+        K62.box(vc, m, 0.40f, 0.0f, -0.02f, 0.44f, 0.50f, 0.02f, WHITE);
+        int[] cols = new int[]{RED, GOLD, GREEN, BLUE, RED, GOLD, BLUE};
+        for (int i = 0; i < 7; ++i) {
+            float x = -0.36f + (float)i / 6.0f * 0.72f;
+            K62.box(vc, m, x - 0.04f, 0.30f, 0.03f, x + 0.04f, 0.42f, 0.11f, cols[i]);
         }
     }
 
     private static void bed(VertexConsumer vc, Matrix4f m) {
-        // sits across two blocks in +z; fits within the hologram
-        K62.box(vc, m, -0.40f, 0.0f, -0.46f, 0.40f, 0.12f, 1.40f, BROWN);
-        K62.box(vc, m, -0.38f, 0.12f, -0.44f, 0.38f, 0.30f, 1.38f, RED);
-        K62.box(vc, m, -0.34f, 0.30f, -0.40f, 0.34f, 0.42f, 0.00f, WHITE);
+        // spans two blocks in +z. Mattress sits on a frame; pillow stands proud.
+        K62.box(vc, m, -0.42f, 0.0f, -0.46f, 0.42f, 0.14f, 1.42f, BROWN);
+        K62.box(vc, m, -0.40f, 0.14f, -0.44f, 0.40f, 0.34f, 1.40f, RED);
+        K62.box(vc, m, -0.34f, 0.34f, -0.40f, 0.34f, 0.50f, -0.06f, WHITE);
     }
 
     private static void gift(VertexConsumer vc, Matrix4f m) {
         K62.box(vc, m, -0.30f, 0.0f, -0.30f, 0.30f, 0.42f, 0.30f, RED);
-        K62.box(vc, m, -0.05f, 0.0f, -0.31f, 0.05f, 0.44f, 0.31f, GOLD);
-        K62.box(vc, m, -0.31f, 0.0f, -0.05f, 0.31f, 0.44f, 0.05f, GOLD);
-        K62.box(vc, m, -0.10f, 0.42f, -0.10f, 0.10f, 0.56f, 0.10f, GOLD);
+        // ribbons stand 0.04 proud of each face so they never z-fight the box
+        K62.box(vc, m, -0.06f, -0.01f, -0.34f, 0.06f, 0.43f, 0.34f, GOLD);
+        K62.box(vc, m, -0.34f, -0.01f, -0.06f, 0.34f, 0.43f, 0.06f, GOLD);
+        // bow overlaps down into the ribbon so no faces coincide
+        K62.box(vc, m, -0.12f, 0.40f, -0.12f, 0.12f, 0.58f, 0.12f, GOLD);
     }
 
     private static void candyCane(VertexConsumer vc, Matrix4f m) {
-        for (int i = 0; i < 6; ++i) {
-            float y = i * 0.14f;
-            int c = i % 2 == 0 ? RED : WHITE;
-            K62.box(vc, m, -0.06f, y, -0.06f, 0.06f, y + 0.14f, 0.06f, c);
+        for (int i = 0; i < 7; ++i) {
+            float y = i * 0.13f;
+            int col = i % 2 == 0 ? RED : WHITE;
+            K62.box(vc, m, -0.07f, y, -0.07f, 0.07f, y + 0.13f, 0.07f, col);
         }
-        K62.box(vc, m, -0.06f, 0.84f, -0.06f, 0.18f, 0.96f, 0.06f, RED);
-        K62.box(vc, m, 0.12f, 0.72f, -0.06f, 0.24f, 0.90f, 0.06f, WHITE);
+        // hook: two segments deeply overlapping the top
+        K62.box(vc, m, -0.07f, 0.84f, -0.07f, 0.24f, 0.98f, 0.07f, WHITE);
+        K62.box(vc, m, 0.10f, 0.66f, -0.07f, 0.24f, 0.92f, 0.07f, RED);
     }
 
     private static void snowman(VertexConsumer vc, Matrix4f m) {
-        K62.box(vc, m, -0.26f, 0.0f, -0.26f, 0.26f, 0.44f, 0.26f, WHITE);
-        K62.box(vc, m, -0.19f, 0.42f, -0.19f, 0.19f, 0.78f, 0.19f, WHITE);
-        K62.box(vc, m, -0.12f, 0.76f, -0.12f, 0.12f, 1.00f, 0.12f, WHITE);
-        // hat
-        K62.box(vc, m, -0.15f, 0.98f, -0.15f, 0.15f, 1.02f, 0.15f, 0x202020);
-        K62.box(vc, m, -0.10f, 1.02f, -0.10f, 0.10f, 1.18f, 0.10f, 0x202020);
-        // face + buttons
-        K62.box(vc, m, -0.05f, 0.86f, -0.14f, 0.05f, 0.92f, -0.11f, GOLD);
-        K62.box(vc, m, -0.06f, 0.88f, -0.13f, -0.03f, 0.91f, -0.11f, 0x202020);
-        K62.box(vc, m, 0.03f, 0.88f, -0.13f, 0.06f, 0.91f, -0.11f, 0x202020);
+        K62.box(vc, m, -0.26f, 0.0f, -0.26f, 0.26f, 0.46f, 0.26f, WHITE);
+        K62.box(vc, m, -0.19f, 0.40f, -0.19f, 0.19f, 0.80f, 0.19f, WHITE);
+        K62.box(vc, m, -0.12f, 0.74f, -0.12f, 0.12f, 1.02f, 0.12f, WHITE);
+        // hat sits proud on the head
+        K62.box(vc, m, -0.16f, 1.00f, -0.16f, 0.16f, 1.05f, 0.16f, 0x202020);
+        K62.box(vc, m, -0.10f, 1.05f, -0.10f, 0.10f, 1.22f, 0.10f, 0x202020);
+        // nose + eyes stand proud of the face (-Z)
+        K62.box(vc, m, -0.03f, 0.86f, -0.20f, 0.03f, 0.92f, -0.12f, GOLD);
+        K62.box(vc, m, -0.08f, 0.90f, -0.16f, -0.04f, 0.94f, -0.12f, 0x202020);
+        K62.box(vc, m, 0.04f, 0.90f, -0.16f, 0.08f, 0.94f, -0.12f, 0x202020);
     }
 
     // double-sided flat-colour box
