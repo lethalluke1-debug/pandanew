@@ -47,6 +47,7 @@ package com.lethalauction;
 import com.lethalauction.auction.Auctions;
 import com.lethalauction.auction.Transactions;
 import com.lethalauction.m.K12;
+import com.lethalauction.m.K62;
 import com.lethalauction.m.K15;
 import com.lethalauction.m.K16;
 import com.lethalauction.m.K19;
@@ -122,6 +123,7 @@ implements ClientModInitializer {
     private static final KeyMapping.Category CATEGORY;
     private static KeyMapping openMenu;
     private static KeyMapping figureWaypoint;
+    private static KeyMapping roomPlace;
     private static final boolean DEV_CYCLE;
     private static final String[] DEV_PAGES;
     private int devTicks = -1;
@@ -195,6 +197,7 @@ implements ClientModInitializer {
         HudElementRegistry.replaceElement((Identifier)VanillaHudElements.CROSSHAIR, K16::new);
         LevelRenderEvents.COLLECT_SUBMITS.register(K53::a);
         LevelRenderEvents.COLLECT_SUBMITS.register(K12::a);
+        LevelRenderEvents.COLLECT_SUBMITS.register(K62::render);
         LivingEntityRenderLayerRegistrationCallback.EVENT.register((entityType, renderer, helper, context) -> {
             if (renderer instanceof AvatarRenderer) {
                 AvatarRenderer avatar = (AvatarRenderer)renderer;
@@ -221,6 +224,7 @@ implements ClientModInitializer {
         K40.a = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.freelook", InputConstants.Type.KEYSYM, 342, CATEGORY));
         K40.b = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.zoom", InputConstants.Type.KEYSYM, 67, CATEGORY));
         figureWaypoint = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.waypoint", InputConstants.Type.KEYSYM, 86, CATEGORY));
+        roomPlace = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.room", InputConstants.Type.KEYSYM, 78, CATEGORY));
         ClientSendMessageEvents.ALLOW_COMMAND.register(command -> K35.a(command));
         ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
             if (!K9.hideSmall || K9.hideSmallStr.isBlank()) {
@@ -278,6 +282,9 @@ implements ClientModInitializer {
             K12.d(mc);
             while (figureWaypoint.consumeClick()) {
                 K12.a(mc);
+            }
+            while (roomPlace.consumeClick()) {
+                K62.place(mc);
             }
             while (openMenu.consumeClick()) {
                 if (K37.g()) {

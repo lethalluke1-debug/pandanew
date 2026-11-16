@@ -47,6 +47,7 @@ package com.lethalauction;
 import com.lethalauction.auction.Auctions;
 import com.lethalauction.auction.Transactions;
 import com.lethalauction.m.K12;
+import com.lethalauction.m.K62;
 import com.lethalauction.m.K15;
 import com.lethalauction.m.K16;
 import com.lethalauction.m.K19;
@@ -122,6 +123,7 @@ implements ClientModInitializer {
     private static final class_304.class_11900 CATEGORY;
     private static class_304 openMenu;
     private static class_304 figureWaypoint;
+    private static class_304 roomPlace;
     private static final boolean DEV_CYCLE;
     private static final String[] DEV_PAGES;
     private int devTicks = -1;
@@ -195,6 +197,7 @@ implements ClientModInitializer {
         HudElementRegistry.replaceElement((class_2960)VanillaHudElements.CROSSHAIR, K16::new);
         WorldRenderEvents.AFTER_ENTITIES.register(K52::a);
         WorldRenderEvents.AFTER_ENTITIES.register(K12::a);
+        WorldRenderEvents.AFTER_ENTITIES.register(K62::render);
         LivingEntityFeatureRendererRegistrationCallback.EVENT.register((entityType, renderer, helper, context) -> {
             if (renderer instanceof class_1007) {
                 class_1007 avatar = (class_1007)renderer;
@@ -221,6 +224,7 @@ implements ClientModInitializer {
         K40.a = KeyBindingHelper.registerKeyBinding((class_304)new class_304("key.lethalauction.freelook", class_3675.class_307.field_1668, 342, CATEGORY));
         K40.b = KeyBindingHelper.registerKeyBinding((class_304)new class_304("key.lethalauction.zoom", class_3675.class_307.field_1668, 67, CATEGORY));
         figureWaypoint = KeyBindingHelper.registerKeyBinding((class_304)new class_304("key.lethalauction.waypoint", class_3675.class_307.field_1668, 86, CATEGORY));
+        roomPlace = KeyBindingHelper.registerKeyBinding((class_304)new class_304("key.lethalauction.room", class_3675.class_307.field_1668, 78, CATEGORY));
         ClientSendMessageEvents.ALLOW_COMMAND.register(command -> K35.a(command));
         ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
             if (!K9.hideSmall || K9.hideSmallStr.isBlank()) {
@@ -278,6 +282,9 @@ implements ClientModInitializer {
             K12.d(mc);
             while (figureWaypoint.method_1436()) {
                 K12.a(mc);
+            }
+            while (roomPlace.method_1436()) {
+                K62.place(mc);
             }
             while (openMenu.method_1436()) {
                 if (K37.g()) {

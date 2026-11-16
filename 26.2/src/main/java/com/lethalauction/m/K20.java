@@ -396,7 +396,8 @@ extends Screen {
         int contentBottom = switch (this.O.ordinal()) {
             default -> throw new MatchException(null, null);
             case 0 -> this.a(g, top);
-            case 12 -> this.c(g, top);
+            case 13 -> this.c(g, top);
+            case 12 -> this.u(g, top);
             case 1 -> this.d(g, top);
             case 3 -> this.t(g, top);
             case 4 -> this.e(g, top);
@@ -3638,6 +3639,57 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
         return y + 6;
     }
 
+    private int u(GuiGraphicsExtractor g, int t) {
+        int head = K18.a(this.ak, -1, 0.05f);
+        int cardFill = this.a(this.a(-15462119, 0.07f));
+        int cardBorder = this.a(-14804444, 0.12f);
+        K18.b(g, K22.a(60237), 253.0f, (float)(t + 80), 17.0f, head, K22.a);
+        K18.a(g, "Room", 272.0f, (float)(t + 77), 13.0f, -789515, K18.c);
+        K18.a(g, "Decorate your space with holograms only you can see. Pick one, turn on Placing mode, then press the Room key (default N) while looking at a block to place it — press again on it to remove.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
+        int y = t + 122;
+        K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
+        K18.a(g, "Placing mode", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
+        K18.a(g, "Shows a live preview of the selected decoration where you're looking.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
+        this.a(g, 960, y + 25, K62.editing, () -> {
+            K62.toggleEditing();
+        });
+        y += 62;
+        K18.a(g, "Decorations", 243.0f, (float)(y + 8), 12.5f, -789515, K18.c);
+        y += 26;
+        int cols = 3;
+        int gap = 10;
+        int cw = (765 - gap * (cols - 1)) / cols;
+        int ch = 54;
+        for (int i = 0; i < K62.NAMES.length; ++i) {
+            int col = i % cols;
+            int row = i / cols;
+            int cx = 241 + col * (cw + gap);
+            int cy = y + row * (ch + gap);
+            boolean seld = K62.sel == i;
+            K18.a(g, cx, cy, cw, ch, 10, cardFill, seld ? this.ak : cardBorder);
+            K18.b(g, K62.NAMES[i], (float)cx + (float)cw / 2.0f, (float)(cy + 32), 11.0f, seld ? -1 : -789515, K18.b);
+            int idx = i;
+            this.a(cx, cy, cw, ch, () -> {
+                K62.select(idx);
+                K62.editing = true;
+            });
+        }
+        int rows = (K62.NAMES.length + cols - 1) / cols;
+        y += rows * (ch + gap) + 4;
+        this.a(g, 241, y, 250, 28, "Rotate", this.a(-15395813), -13356484, -3947581, () -> {
+            K62.rotate();
+        });
+        this.a(g, 499, y, 250, 28, "Remove last", this.a(-15395813), -13356484, -3947581, () -> {
+            K62.removeLast();
+        });
+        this.a(g, 757, y, 249, 28, "Clear all", this.a(-15395813), -13356484, -3947581, () -> {
+            K62.clearAll();
+        });
+        y += 36;
+        K18.a(g, K62.count() + " placed  ·  rotation " + K62.rot * 90 + "°", 243.0f, (float)(y + 6), 10.5f, -7568235, K18.a);
+        return y + 20;
+    }
+
     private int s(GuiGraphicsExtractor g, int t) {
         int head = K18.a(this.ak, -1, 0.05f);
         int cardFill = this.a(this.a(-15462119, 0.07f));
@@ -4165,7 +4217,8 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
         STATS("Utilities", 60081, 346, K22.a),
         SCOREBOARD("Scoreboard", 61201, 370),
         SKY("Sky", 60022, 394, K22.a),
-        SETTINGS("Settings", 60192, 418);
+        ROOM("Room", 60237, 418, K22.a),
+        SETTINGS("Settings", 60192, 442);
 
         final String label;
         final int icon;
