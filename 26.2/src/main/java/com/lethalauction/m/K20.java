@@ -275,7 +275,7 @@ extends Screen {
     private static C82 b() {
         for (C82 p : C82.values()) {
             if (!p.name().equals(K9.ba)) continue;
-            return p;
+            return p == C82.CROSSHAIR ? C82.STATS : p;
         }
         return C82.AUCTION;
     }
@@ -435,6 +435,7 @@ extends Screen {
         int ty = 130;
         for (C82 pg : C82.values()) {
             boolean hover;
+            if (pg == C82.CROSSHAIR) continue;
             boolean active = pg == this.O;
             boolean bl = hover = mx >= 24.0f && mx < 212.0f && my >= (float)(ty - 12) && my < (float)(ty + 12);
             if (active) {
@@ -3556,6 +3557,23 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
         y += 62;
         y += 14;
         y = this.c(g, y, cardFill, cardBorder);
+        K18.a(g, "Font", 243.0f, (float)((y += 14) + 8), 12.5f, -789515, K18.c);
+        y += 22;
+        String[][] fontOpts = new String[][]{{"", "Default"}, {"font_smallcaps", "Small Caps"}};
+        for (String[] fo : fontOpts) {
+            boolean sel = K9.font.equals(fo[0]);
+            float cy = (float)y + 25.0f;
+            K18.a(g, 241, y, 765, 50, 10, cardFill, sel ? this.ak : cardBorder);
+            K18.a(g, fo[1], 257.0f, cy, 12.5f, sel ? -1 : -789515, K18.c);
+            Identifier pf = fo[0].isEmpty() ? Identifier.fromNamespaceAndPath("minecraft", "default") : K18.a(fo[0]);
+            K18.a(g, "Aa Bb  Hello 123", 540.0f, cy, 14.0f, sel ? -1 : -2039584, pf);
+            String fv = fo[0];
+            this.a(241, y, 765, 50, () -> {
+                K9.font = fv;
+                K9.b();
+            });
+            y += 58;
+        }
         return y + 6;
     }
 
