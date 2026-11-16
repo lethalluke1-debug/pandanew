@@ -125,7 +125,7 @@ public final class K62 {
                 return;
             }
             Vec3 cam = mc.gameRenderer.mainCamera().position();
-            VertexConsumer vc = buf.a(RenderTypes.entityCutout(K10.a));
+            VertexConsumer vc = buf.a(RenderTypes.entityCutoutCull(K10.a));
             Matrix4f base = ctx.poseStack().last().pose();
             for (C101 p : placed) {
                 K62.draw(vc, base, cam, p.x, p.y, p.z, p.r, p.t);
@@ -254,7 +254,7 @@ public final class K62 {
             int[] q = FACE[f];
             m.transformDirection(NORM[f][0], NORM[f][1], NORM[f][2], n);
             n.normalize();
-            int[][] tris = new int[][]{{q[0], q[1], q[2]}, {q[0], q[2], q[3]}};
+            int[][] tris = new int[][]{{q[0], q[2], q[1]}, {q[0], q[3], q[2]}};
             for (int[] tri : tris) {
                 for (int k : tri) {
                     m.transformPosition(c[k][0], c[k][1], c[k][2], p);
