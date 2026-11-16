@@ -243,19 +243,25 @@ public final class K62 {
     }
 
     // double-sided flat-colour box
+    private static final int[][] FACE = new int[][]{{0, 1, 3, 2}, {4, 6, 7, 5}, {0, 4, 5, 1}, {2, 3, 7, 6}, {1, 5, 7, 3}, {0, 2, 6, 4}};
+    private static final float[][] NORM = new float[][]{{-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}};
+
     private static void box(VertexConsumer vc, Matrix4f m, float x0, float y0, float z0, float x1, float y1, float z1, int rgb) {
         int r = rgb >> 16 & 0xFF;
         int g = rgb >> 8 & 0xFF;
         int b = rgb & 0xFF;
-        float[][] c = new float[][]{{x0, y0, z0}, {x1, y0, z0}, {x1, y0, z1}, {x0, y0, z1}, {x0, y1, z0}, {x1, y1, z0}, {x1, y1, z1}, {x0, y1, z1}};
-        int[][] faces = new int[][]{{0, 1, 2, 3}, {4, 7, 6, 5}, {0, 4, 5, 1}, {3, 2, 6, 7}, {0, 3, 7, 4}, {1, 5, 6, 2}};
+        float[][] c = new float[][]{{x0, y0, z0}, {x0, y0, z1}, {x0, y1, z0}, {x0, y1, z1}, {x1, y0, z0}, {x1, y0, z1}, {x1, y1, z0}, {x1, y1, z1}};
         Vector3f p = new Vector3f();
-        for (int[] f : faces) {
-            int[][] tris = new int[][]{{f[0], f[1], f[2]}, {f[0], f[2], f[3]}, {f[0], f[2], f[1]}, {f[0], f[3], f[2]}};
+        Vector3f n = new Vector3f();
+        for (int f = 0; f < 6; ++f) {
+            int[] q = FACE[f];
+            m.transformDirection(NORM[f][0], NORM[f][1], NORM[f][2], n);
+            n.normalize();
+            int[][] tris = new int[][]{{q[0], q[1], q[2]}, {q[0], q[2], q[3]}, {q[0], q[2], q[1]}, {q[0], q[3], q[2]}};
             for (int[] tri : tris) {
                 for (int k : tri) {
                     m.transformPosition(c[k][0], c[k][1], c[k][2], p);
-                    vc.addVertex(p.x, p.y, p.z).setColor(r, g, b, 255).setUv(0.5f, 0.5f).setUv1(0, 10).setUv2(240, 240).setNormal(0.0f, 1.0f, 0.0f);
+                    vc.addVertex(p.x, p.y, p.z).setColor(r, g, b, 255).setUv(0.5f, 0.5f).setUv1(0, 10).setUv2(240, 240).setNormal(n.x, n.y, n.z);
                 }
             }
         }
