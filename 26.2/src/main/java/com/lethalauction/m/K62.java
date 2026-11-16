@@ -125,7 +125,7 @@ public final class K62 {
                 return;
             }
             Vec3 cam = mc.gameRenderer.mainCamera().position();
-            VertexConsumer vc = buf.a(RenderTypes.entityCutout(K10.a));
+            VertexConsumer vc = buf.a(RenderTypes.entityCutoutCull(K10.a));
             Matrix4f base = ctx.poseStack().last().pose();
             for (C101 p : placed) {
                 K62.draw(vc, base, cam, p.x, p.y, p.z, p.r, p.t);
@@ -240,21 +240,24 @@ public final class K62 {
     }
 
     // double-sided flat-colour box
-    private static final int[][] FACE = new int[][]{{0, 1, 3, 2}, {4, 6, 7, 5}, {0, 4, 5, 1}, {2, 3, 7, 6}, {1, 5, 7, 3}, {0, 2, 6, 4}};
-    private static final float[][] NORM = new float[][]{{-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}};
+    // Corners: 0..3 bottom (y0), 4..7 top (y1). Each face is wound CCW as seen
+    // from outside, so with back-face culling only the outer shell draws (which
+    // stops overlapping boxes z-fighting at their junctions).
+    private static final int[][] FACE = new int[][]{{1, 5, 6, 2}, {0, 3, 7, 4}, {4, 7, 6, 5}, {0, 1, 2, 3}, {3, 2, 6, 7}, {0, 4, 5, 1}};
+    private static final float[][] NORM = new float[][]{{1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}};
 
     private static void box(VertexConsumer vc, Matrix4f m, float x0, float y0, float z0, float x1, float y1, float z1, int rgb) {
         int r = rgb >> 16 & 0xFF;
         int g = rgb >> 8 & 0xFF;
         int b = rgb & 0xFF;
-        float[][] c = new float[][]{{x0, y0, z0}, {x0, y0, z1}, {x0, y1, z0}, {x0, y1, z1}, {x1, y0, z0}, {x1, y0, z1}, {x1, y1, z0}, {x1, y1, z1}};
+        float[][] c = new float[][]{{x0, y0, z0}, {x1, y0, z0}, {x1, y0, z1}, {x0, y0, z1}, {x0, y1, z0}, {x1, y1, z0}, {x1, y1, z1}, {x0, y1, z1}};
         Vector3f p = new Vector3f();
         Vector3f n = new Vector3f();
         for (int f = 0; f < 6; ++f) {
             int[] q = FACE[f];
             m.transformDirection(NORM[f][0], NORM[f][1], NORM[f][2], n);
             n.normalize();
-            int[][] tris = new int[][]{{q[0], q[1], q[2]}, {q[0], q[2], q[3]}, {q[0], q[2], q[1]}, {q[0], q[3], q[2]}};
+            int[][] tris = new int[][]{{q[0], q[1], q[2]}, {q[0], q[2], q[3]}};
             for (int[] tri : tris) {
                 for (int k : tri) {
                     m.transformPosition(c[k][0], c[k][1], c[k][2], p);
