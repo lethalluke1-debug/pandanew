@@ -125,7 +125,7 @@ public final class K62 {
                 return;
             }
             Vec3 cam = mc.gameRenderer.mainCamera().position();
-            VertexConsumer vc = buf.a(RenderTypes.entityCutout(K10.a));
+            VertexConsumer vc = buf.a(RenderTypes.entityCutoutCull(K10.a));
             Matrix4f base = ctx.poseStack().last().pose();
             for (C101 p : placed) {
                 K62.draw(vc, base, cam, p.x, p.y, p.z, p.r, p.t);
