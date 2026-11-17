@@ -3584,7 +3584,7 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
         String label;
         boolean waiting;
         boolean bl = waiting = this.T == key;
-        label = waiting ? "Press · Del=clear" : (key.isUnbound() ? "Not set" : key.getTranslatedKeyMessage().getString());
+        label = waiting ? "Press · Esc=clear" : (key.isUnbound() ? "Not set" : key.getTranslatedKeyMessage().getString());
         if (waiting) {
             this.a(g, x, y, 110, 24, label, this.al, this.ak, this.am, () -> {
                 this.T = key;
@@ -4212,11 +4212,11 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
     public boolean keyPressed(KeyEvent event) {
         if (this.T != null) {
             int kc = event.key();
-            if (kc == 261 || kc == 259) {
+            if (kc == 261 || kc == 259 || kc == 256) {
                 this.T.setKey(InputConstants.UNKNOWN);
                 KeyMapping.resetMapping();
                 this.minecraft.options.save();
-            } else if (kc != 256) {
+            } else {
                 this.T.setKey(InputConstants.getKey((KeyEvent)event));
                 KeyMapping.resetMapping();
                 this.minecraft.options.save();
