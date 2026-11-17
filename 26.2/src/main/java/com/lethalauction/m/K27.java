@@ -140,13 +140,20 @@ implements HudElement {
         K18.a(g, "SESSION PROFIT", 86.0f, 22.0f, 10.5f, -7695450, K18.b);
         String amount = (up ? "+" : "-") + Auctions.a(Math.abs(profit));
         K18.a(g, amount, 86.0f, 46.0f, 22.0f, color, K18.c);
-        // Detail row: +received  \u00b7  -sent (grey), with a "Taxes: $X" line in
-        // yellow on the left underneath it.
+        // Detail row: three centred columns - earned (green), spent (red), taxes
+        // (yellow) - each with its value on top and a small label underneath.
+        int green = -12200829;
+        int red = -42401;
         int yellow = 0xFFFFD24A;
         long taxTotal = session.length > 2 ? session[2] : 0L;
-        String detail = "+" + Auctions.a(session[0]) + "  \u00b7  -" + Auctions.a(session[1]);
-        K18.a(g, detail, 86.0f, 64.0f, 10.0f, -9735291, K18.b);
-        K18.a(g, "Taxes: " + Auctions.a(taxTotal), 86.0f, 80.0f, 9.5f, yellow, K18.b);
+        float[] cx = new float[]{108.0f, 163.0f, 218.0f};
+        String[] vals = new String[]{"+" + Auctions.a(session[0]), "-" + Auctions.a(session[1]), Auctions.a(taxTotal)};
+        String[] labs = new String[]{"earned", "spent", "taxes"};
+        int[] cols = new int[]{green, red, yellow};
+        for (int ci = 0; ci < 3; ++ci) {
+            K18.b(g, vals[ci], cx[ci], 62.0f, 10.5f, cols[ci], K18.c);
+            K18.b(g, labs[ci], cx[ci], 78.0f, 7.5f, K18.a(cols[ci], 0.7f), K18.b);
+        }
         p.popMatrix();
         if (K9.u && mc.player != null) {
             int x0 = Math.round(x + 12.0f * s);
