@@ -45,6 +45,7 @@ public final class K62 {
     // The actual bulbs/lights are drawn emissive via glow() so they stand out.
     private static int lu = 240;
     private static int lv = 240;
+    private static long lastDbg;
 
     // Shown in the Room tab.
     public static final String[] NAMES = new String[]{"Christmas Tree", "Snow"};
@@ -146,11 +147,28 @@ public final class K62 {
             if (mc.player == null) {
                 return;
             }
+            Vec3 cam = mc.gameRenderer.mainCamera().position();
+            double maxSq = RENDER_DIST * RENDER_DIST;
+            long nowMs = System.currentTimeMillis();
+            if (nowMs - lastDbg > 3000L) {
+                lastDbg = nowMs;
+                int inRange = 0;
+                double nearest = 1.0E9;
+                for (C101 q : placed) {
+                    double ddx = (double)q.x + 0.5 - cam.x;
+                    double ddy = (double)q.y + 0.5 - cam.y;
+                    double ddz = (double)q.z + 0.5 - cam.z;
+                    double d2 = ddx * ddx + ddy * ddy + ddz * ddz;
+                    if (d2 <= maxSq) {
+                        ++inRange;
+                    }
+                    nearest = Math.min(nearest, Math.sqrt(d2));
+                }
+                LethalAuctionClient.LOGGER.info("[Room] render tick: placed={} inRange={} cam=({},{},{}) nearest={}", new Object[]{placed.size(), inRange, (int)cam.x, (int)cam.y, (int)cam.z, (int)nearest});
+            }
             if (placed.isEmpty() && !editing) {
                 return;
             }
-            Vec3 cam = mc.gameRenderer.mainCamera().position();
-            double maxSq = RENDER_DIST * RENDER_DIST;
             VertexConsumer vc = buf.a(RenderTypes.entityCutoutCull(K10.a));
             Matrix4f base = ctx.poseStack().last().pose();
             for (C101 p : placed) {
