@@ -3552,6 +3552,7 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
         K18.a(g, 241, y += 22, 765, 50, 10, cardFill, cardBorder);
         K18.a(g, "Fullbright", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
         K18.a(g, "Lights up the whole world so you can see in caves and at night. No FPS cost.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
+        this.a(g, 806, y + 13, LethalAuctionClient.fullbright());
         this.a(g, 960, y + 25, K9.T, () -> {
             K9.T = !K9.T;
             K9.b();
@@ -3583,7 +3584,7 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
         String label;
         boolean waiting;
         boolean bl = waiting = this.T == key;
-        label = waiting ? "Press a key..." : (key.isUnbound() ? "Not set" : key.getTranslatedKeyMessage().getString());
+        label = waiting ? "Press · Del=clear" : (key.isUnbound() ? "Not set" : key.getTranslatedKeyMessage().getString());
         if (waiting) {
             this.a(g, x, y, 110, 24, label, this.al, this.ak, this.am, () -> {
                 this.T = key;
@@ -3664,8 +3665,22 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
         float cyw = (float)Math.cos(yaw), syw = (float)Math.sin(yaw);
         int[][] F = new int[][]{{1, 5, 6, 2}, {0, 3, 7, 4}, {4, 7, 6, 5}, {0, 1, 2, 3}, {3, 2, 6, 7}, {0, 4, 5, 1}};
         float[] sh = new float[]{0.74f, 0.66f, 1.0f, 0.42f, 0.88f, 0.56f};
-        java.util.ArrayList<float[]> faces = new java.util.ArrayList<float[]>();
-        for (float[] b : boxes) {
+        // Sort whole boxes back-to-front (by centre depth); within each box sort its
+        // own faces back-to-front. Keeping a box's faces together avoids the
+        // flicker a global face sort gives where boxes intersect.
+        int n = boxes.size();
+        final float[] bdep = new float[n];
+        Integer[] border = new Integer[n];
+        for (int i = 0; i < n; ++i) {
+            float[] b = boxes.get(i);
+            float px = (b[0] + b[3]) / 2.0f - ccx, py = (b[1] + b[4]) / 2.0f - ccy, pz = (b[2] + b[5]) / 2.0f - ccz;
+            float rz = px * syw + pz * cyw;
+            bdep[i] = py * sp + rz * cp;
+            border[i] = i;
+        }
+        java.util.Arrays.sort(border, (a, b) -> Float.compare(bdep[a], bdep[b]));
+        for (int oi = 0; oi < n; ++oi) {
+            float[] b = boxes.get(border[oi]);
             int rgb = Float.floatToRawIntBits(b[6]);
             float[][] corn = new float[][]{{b[0], b[1], b[2]}, {b[3], b[1], b[2]}, {b[3], b[1], b[5]}, {b[0], b[1], b[5]}, {b[0], b[4], b[2]}, {b[3], b[4], b[2]}, {b[3], b[4], b[5]}, {b[0], b[4], b[5]}};
             float[][] sc = new float[8][3];
@@ -3679,16 +3694,21 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
                 sc[i][1] = cy - dy * scale;
                 sc[i][2] = dz;
             }
+            final float[] fdep = new float[6];
+            Integer[] forder = new Integer[6];
             for (int f = 0; f < 6; ++f) {
                 int[] q = F[f];
-                float depth = (sc[q[0]][2] + sc[q[1]][2] + sc[q[2]][2] + sc[q[3]][2]) / 4.0f;
-                int col = K20.roomShade(rgb, sh[f]);
-                faces.add(new float[]{depth, sc[q[0]][0], sc[q[0]][1], sc[q[1]][0] - sc[q[0]][0], sc[q[1]][1] - sc[q[0]][1], sc[q[3]][0] - sc[q[0]][0], sc[q[3]][1] - sc[q[0]][1], Float.intBitsToFloat(col)});
+                fdep[f] = (sc[q[0]][2] + sc[q[1]][2] + sc[q[2]][2] + sc[q[3]][2]) / 4.0f;
+                forder[f] = f;
             }
-        }
-        faces.sort((a, b) -> Float.compare(a[0], b[0]));
-        for (float[] fa : faces) {
-            K20.roomQuad(g, fa[1], fa[2], fa[3], fa[4], fa[5], fa[6], Float.floatToRawIntBits(fa[7]));
+            java.util.Arrays.sort(forder, (a, c) -> Float.compare(fdep[a], fdep[c]));
+            for (int fi = 0; fi < 6; ++fi) {
+                int f = forder[fi];
+                int[] q = F[f];
+                float ax = sc[q[0]][0], ay = sc[q[0]][1];
+                int col = K20.roomShade(rgb, sh[f]);
+                K20.roomQuad(g, ax, ay, sc[q[1]][0] - ax, sc[q[1]][1] - ay, sc[q[3]][0] - ax, sc[q[3]][1] - ay, col);
+            }
         }
     }
 
@@ -3722,6 +3742,10 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
             K62.toggleEditing();
         });
         y += 62;
+        K18.a(g, 241, y, 765, 44, 10, cardFill, cardBorder);
+        K18.a(g, "Place / remove key", 257.0f, (float)(y + 26), 12.5f, -789515, K18.c);
+        this.a(g, 886, y + 10, LethalAuctionClient.roomPlace());
+        y += 54;
         K18.a(g, "Decorations", 243.0f, (float)(y + 8), 12.5f, -789515, K18.c);
         y += 26;
         int cols = 3;

@@ -124,6 +124,15 @@ implements ClientModInitializer {
     private static KeyMapping openMenu;
     private static KeyMapping figureWaypoint;
     private static KeyMapping roomPlace;
+    private static KeyMapping fullbright;
+
+    public static KeyMapping roomPlace() {
+        return roomPlace;
+    }
+
+    public static KeyMapping fullbright() {
+        return fullbright;
+    }
     private static final boolean DEV_CYCLE;
     private static final String[] DEV_PAGES;
     private int devTicks = -1;
@@ -225,6 +234,7 @@ implements ClientModInitializer {
         K40.b = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.zoom", InputConstants.Type.KEYSYM, 67, CATEGORY));
         figureWaypoint = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.waypoint", InputConstants.Type.KEYSYM, 86, CATEGORY));
         roomPlace = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.room", InputConstants.Type.KEYSYM, 78, CATEGORY));
+        fullbright = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.fullbright", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
         ClientSendMessageEvents.ALLOW_COMMAND.register(command -> K35.a(command));
         ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
             if (!K9.hideSmall || K9.hideSmallStr.isBlank()) {
@@ -285,6 +295,10 @@ implements ClientModInitializer {
             }
             while (roomPlace.consumeClick()) {
                 K62.place(mc);
+            }
+            while (fullbright.consumeClick()) {
+                K9.T = !K9.T;
+                K9.b();
             }
             while (openMenu.consumeClick()) {
                 if (K37.g()) {

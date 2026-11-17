@@ -247,6 +247,23 @@ public final class K62 {
         K62.box(vc, m, -0.10f, 0.86f, 0.26f, 0.00f, 0.96f, 0.36f, GOLD);
         K62.box(vc, m, 0.20f, 0.88f, -0.30f, 0.30f, 0.98f, -0.20f, RED);
         K62.box(vc, m, -0.22f, 1.02f, 0.14f, -0.12f, 1.12f, 0.24f, WHITE);
+        // flashing string lights (small bright bulbs that twinkle over time)
+        K62.box(vc, m, 0.28f, 0.44f, 0.30f, 0.34f, 0.50f, 0.36f, K62.twinkle(0));
+        K62.box(vc, m, -0.36f, 0.50f, -0.08f, -0.30f, 0.56f, -0.02f, K62.twinkle(1));
+        K62.box(vc, m, 0.10f, 0.58f, -0.40f, 0.16f, 0.64f, -0.34f, K62.twinkle(2));
+        K62.box(vc, m, -0.30f, 0.62f, 0.22f, -0.24f, 0.68f, 0.28f, K62.twinkle(3));
+        K62.box(vc, m, 0.24f, 0.72f, 0.06f, 0.30f, 0.78f, 0.12f, K62.twinkle(4));
+        K62.box(vc, m, -0.14f, 0.80f, -0.28f, -0.08f, 0.86f, -0.22f, K62.twinkle(5));
+        K62.box(vc, m, 0.08f, 0.92f, 0.20f, 0.14f, 0.98f, 0.26f, K62.twinkle(6));
+        K62.box(vc, m, -0.18f, 0.96f, -0.06f, -0.12f, 1.02f, 0.0f, K62.twinkle(7));
+        K62.box(vc, m, 0.02f, 1.06f, -0.16f, 0.08f, 1.12f, -0.10f, K62.twinkle(8));
+    }
+
+    // Twinkling Christmas-light colour: cycles bright hues with a per-bulb phase.
+    private static int twinkle(int i) {
+        int[] cols = new int[]{0xFF4D4D, 0xFFE24A, 0x58E058, 0x5AA0FF, 0xFFFFFF, 0xFF7ACF, 0xFFA030};
+        long t = System.currentTimeMillis() / 350L + (long)(i * 3);
+        return cols[(int)(t % (long)cols.length)];
     }
 
     private static void lights(VertexConsumer vc, Matrix4f m) {
