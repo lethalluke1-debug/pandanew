@@ -397,6 +397,7 @@ public final class K62 {
                     }
                 }
             }
+            LethalAuctionClient.LOGGER.info("[Room] loaded {} decoration(s) from {} (exists={})", new Object[]{placed.size(), FILE, Files.exists(FILE)});
         }
         catch (Exception e) {
             LethalAuctionClient.LOGGER.warn("Could not read room decorations", (Throwable)e);
@@ -405,9 +406,13 @@ public final class K62 {
 
     private static synchronized void save() {
         try {
+            if (FILE.getParent() != null) {
+                Files.createDirectories(FILE.getParent());
+            }
             try (Writer w = Files.newBufferedWriter(FILE);){
                 GSON.toJson(placed, w);
             }
+            LethalAuctionClient.LOGGER.info("[Room] saved {} decoration(s) to {}", (Object)placed.size(), (Object)FILE);
         }
         catch (Exception e) {
             LethalAuctionClient.LOGGER.warn("Could not save room decorations", (Throwable)e);
