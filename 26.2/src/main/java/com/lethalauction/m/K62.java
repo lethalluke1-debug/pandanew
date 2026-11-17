@@ -257,9 +257,9 @@ public final class K62 {
             int[] q = FACE[f];
             m.transformDirection(NORM[f][0], NORM[f][1], NORM[f][2], n);
             n.normalize();
-            int[][] tris = new int[][]{{q[0], q[1], q[2]}, {q[0], q[2], q[3]}, {q[0], q[2], q[1]}, {q[0], q[3], q[2]}};
-            for (int[] tri : tris) {
-                for (int k : tri) {
+            int[][] quads = new int[][]{{q[0], q[1], q[2], q[3]}, {q[3], q[2], q[1], q[0]}};
+            for (int[] quad : quads) {
+                for (int k : quad) {
                     m.transformPosition(c[k][0], c[k][1], c[k][2], p);
                     vc.addVertex(p.x, p.y, p.z).setColor(r, g, b, 255).setUv(0.5f, 0.5f).setUv1(0, 10).setUv2(240, 240).setNormal(n.x, n.y, n.z);
                 }
