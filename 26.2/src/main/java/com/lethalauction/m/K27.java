@@ -153,8 +153,9 @@ implements HudElement {
         if (K9.winStreakOn) {
             int orange = 0xFFFF8A3D;
             float wsCx = 214.0f;
-            K18.b(g, "STREAK", wsCx, 17.0f, 9.0f, K18.a(orange, 0.9f), K18.b);
-            K18.b(g, Integer.toString(K9.winStreak), wsCx, 44.0f, 24.0f, orange, K18.c);
+            // aligned with SESSION PROFIT (label) and the profit amount (number)
+            K18.b(g, "STREAK", wsCx, 22.0f, 10.5f, K18.a(orange, 0.9f), K18.b);
+            K18.b(g, Integer.toString(K9.winStreak), wsCx, 46.0f, 22.0f, orange, K18.c);
             long since = System.currentTimeMillis() - flashAt;
             if (since >= 0L && since < 1100L) {
                 float a = 1.0f - (float)since / 1100.0f;
