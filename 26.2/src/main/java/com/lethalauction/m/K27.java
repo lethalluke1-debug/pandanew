@@ -130,8 +130,8 @@ implements HudElement {
         p.pushMatrix();
         p.translate(x, y);
         p.scale(s);
-        K18.a(g, -2, -2, 254, 88, 14, K18.a(color, 0.12f + 0.05f * (float)Math.sin(t * 2.0f)));
-        K18.a(g, 0, 0, 250, 84, 12, -435482856, K18.a(color, 0.6f));
+        K18.a(g, -2, -2, 254, 98, 14, K18.a(color, 0.12f + 0.05f * (float)Math.sin(t * 2.0f)));
+        K18.a(g, 0, 0, 250, 94, 12, -435482856, K18.a(color, 0.6f));
         K18.a(g, 0, 14, 3, 56, 1, color);
         K18.a(g, 12, 12, 60, 60, 10, -15722458);
         if (!K9.u || mc.player == null) {
@@ -140,8 +140,29 @@ implements HudElement {
         K18.a(g, "SESSION PROFIT", 86.0f, 22.0f, 10.5f, -7695450, K18.b);
         String amount = (up ? "+" : "-") + Auctions.a(Math.abs(profit));
         K18.a(g, amount, 86.0f, 46.0f, 22.0f, color, K18.c);
-        String detail = "+" + Auctions.a(session[0]) + "  \u00b7  -" + Auctions.a(session[1]);
-        K18.a(g, detail, 86.0f, 68.0f, 10.0f, -9735291, K18.b);
+        // Detail row: +received  \u00b7  -sent  \u00b7  $tax, with only the tax in yellow
+        // and a small "taxes" caption underneath it.
+        int dim = -9735291;
+        int yellow = 0xFFFFD24A;
+        long taxTotal = session.length > 2 ? session[2] : 0L;
+        String seg1 = "+" + Auctions.a(session[0]);
+        String seg2 = "-" + Auctions.a(session[1]);
+        String taxStr = "$" + Auctions.a(taxTotal);
+        String dot = "  \u00b7  ";
+        float dy = 66.0f;
+        float xx = 86.0f;
+        K18.a(g, seg1, xx, dy, 9.0f, dim, K18.b);
+        xx += K18.a(seg1, 9.0f, K18.b);
+        K18.a(g, dot, xx, dy, 9.0f, dim, K18.b);
+        xx += K18.a(dot, 9.0f, K18.b);
+        K18.a(g, seg2, xx, dy, 9.0f, dim, K18.b);
+        xx += K18.a(seg2, 9.0f, K18.b);
+        K18.a(g, dot, xx, dy, 9.0f, dim, K18.b);
+        xx += K18.a(dot, 9.0f, K18.b);
+        float taxX = xx;
+        K18.a(g, taxStr, taxX, dy, 9.0f, yellow, K18.c);
+        float taxW = K18.a(taxStr, 9.0f, K18.c);
+        K18.b(g, "taxes", taxX + taxW / 2.0f, 80.0f, 7.5f, K18.a(yellow, 0.8f), K18.b);
         p.popMatrix();
         if (K9.u && mc.player != null) {
             int x0 = Math.round(x + 12.0f * s);

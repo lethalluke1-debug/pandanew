@@ -101,15 +101,17 @@ public final class Transactions {
         long start = Transactions.b();
         long received = 0L;
         long sent = 0L;
+        long tax = 0L;
         for (C69 t : i) {
             if (t.at() < start) break;
+            tax += t.tax();
             if (t.received()) {
                 received += t.amount();
                 continue;
             }
             sent += t.amount();
         }
-        return new long[]{received, sent};
+        return new long[]{received, sent, tax};
     }
 
     public static synchronized void e() {
@@ -123,13 +125,13 @@ public final class Transactions {
         long tax = Transactions.taxOf(text);
         Matcher in = Auctions.d(text);
         if (in != null) {
-            Transactions.a(in.group("name"), Transactions.adj(Auctions.e(in.group("amount").replace(" ", "")), true, tax), true);
+            Transactions.a(in.group("name"), Transactions.adj(Auctions.e(in.group("amount").replace(" ", "")), true, tax), true, tax);
             return;
         }
         for (Pattern p : g) {
             m = p.matcher(text);
             if (!m.find()) continue;
-            Transactions.a(m.group("name"), Transactions.adj(Auctions.e(m.group("amount").replace(" ", "")), false, tax), false);
+            Transactions.a(m.group("name"), Transactions.adj(Auctions.e(m.group("amount").replace(" ", "")), false, tax), false, tax);
             return;
         }
         for (Pattern p : h) {
@@ -137,30 +139,34 @@ public final class Transactions {
             if (!m.find()) continue;
             String item = m.group("name");
             String label = item == null || item.isBlank() ? "Purchase" : item.trim();
-            Transactions.a(label, Transactions.adj(Auctions.e(m.group("amount").replace(" ", "")), false, tax), false);
+            Transactions.a(label, Transactions.adj(Auctions.e(m.group("amount").replace(" ", "")), false, tax), false, tax);
             return;
         }
         Matcher sale = k.matcher(text);
         if (sale.find()) {
-            Transactions.b(Transactions.adj(Auctions.e(sale.group("amount").replace(" ", "")), true, tax), "Sale", true);
+            Transactions.b(Transactions.adj(Auctions.e(sale.group("amount").replace(" ", "")), true, tax), "Sale", true, tax);
             return;
         }
         Matcher spend = l.matcher(text);
         if (spend.find()) {
-            Transactions.b(Transactions.adj(Auctions.e(spend.group("amount").replace(" ", "")), false, tax), "Purchase", false);
+            Transactions.b(Transactions.adj(Auctions.e(spend.group("amount").replace(" ", "")), false, tax), "Purchase", false, tax);
         }
     }
 
     // A bare "$amount" pop fires again on re-render, so drop an identical amount
     // seen within 2s to avoid counting one sale twice.
     private static synchronized void b(long amount, String label, boolean received) {
+        Transactions.b(amount, label, received, 0L);
+    }
+
+    private static synchronized void b(long amount, String label, boolean received, long tax) {
         long now = System.currentTimeMillis();
         if (amount <= 0L || amount == lastAmt && now - lastAt < 2000L) {
             return;
         }
         lastAmt = amount;
         lastAt = now;
-        Transactions.a(label, amount, received);
+        Transactions.a(label, amount, received, tax);
     }
 
     // Returns the pay amount if this chat line is a payment (incoming or
@@ -185,6 +191,10 @@ public final class Transactions {
     }
 
     public static synchronized void a(String player, long amount, boolean received) {
+        Transactions.a(player, amount, received, 0L);
+    }
+
+    public static synchronized void a(String player, long amount, boolean received, long tax) {
         if (amount <= 0L) {
             return;
         }
@@ -200,7 +210,7 @@ public final class Transactions {
             }
         }
         Transactions.f();
-        i.add(0, new C69(System.currentTimeMillis(), player, amount, received));
+        i.add(0, new C69(System.currentTimeMillis(), player, amount, received, Math.max(0L, tax)));
         while (i.size() > 5000) {
             i.remove(i.size() - 1);
         }
@@ -246,11 +256,14 @@ public final class Transactions {
         private final String player;
         private final long amount;
         private final boolean received;
-        C69(long at, String player, long amount, boolean received) { this.at = at; this.player = player; this.amount = amount; this.received = received; }
+        private final long tax;
+        C69(long at, String player, long amount, boolean received) { this(at, player, amount, received, 0L); }
+        C69(long at, String player, long amount, boolean received, long tax) { this.at = at; this.player = player; this.amount = amount; this.received = received; this.tax = tax; }
         public long at() { return this.at; }
         public String player() { return this.player; }
         public long amount() { return this.amount; }
         public boolean received() { return this.received; }
+        public long tax() { return this.tax; }
     }
 }
 
