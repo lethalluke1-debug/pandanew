@@ -169,6 +169,10 @@ public final class K62 {
         if (s != 1.0f) {
             m.scale(s);
         }
+        K62.drawGeom(vc, m, type);
+    }
+
+    private static void drawGeom(VertexConsumer vc, Matrix4f m, int type) {
         switch (type) {
             case 0: K62.tree(vc, m); break;
             case 1: K62.lights(vc, m); break;
@@ -178,6 +182,26 @@ public final class K62 {
             case 5: K62.snowman(vc, m); break;
             default: K62.tree(vc, m);
         }
+    }
+
+    // The raw boxes of a decoration as {x0,y0,z0,x1,y1,z1, rgb-as-int-bits} rows,
+    // captured by running its geometry with the renderer swapped out. Used by the
+    // GUI preview (which projects these boxes itself).
+    private static java.util.List<float[]> capture;
+
+    public static synchronized java.util.List<float[]> model(int type) {
+        java.util.ArrayList<float[]> list = new java.util.ArrayList<float[]>();
+        capture = list;
+        try {
+            K62.drawGeom(null, null, type);
+        }
+        catch (Throwable t) {
+            // ignore
+        }
+        finally {
+            capture = null;
+        }
+        return list;
     }
 
     // ===== decoration geometry (origin at the centre of the block's bottom; up is +y) =====
@@ -285,6 +309,10 @@ public final class K62 {
     private static final float[][] NORM = new float[][]{{1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}};
 
     private static void box(VertexConsumer vc, Matrix4f m, float x0, float y0, float z0, float x1, float y1, float z1, int rgb) {
+        if (capture != null) {
+            capture.add(new float[]{x0, y0, z0, x1, y1, z1, Float.intBitsToFloat(rgb)});
+            return;
+        }
         int r = rgb >> 16 & 0xFF;
         int g = rgb >> 8 & 0xFF;
         int b = rgb & 0xFF;

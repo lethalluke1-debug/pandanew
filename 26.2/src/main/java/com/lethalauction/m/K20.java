@@ -100,6 +100,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ItemLike;
+import org.joml.Matrix3x2f;
 import org.joml.Matrix3x2fStack;
 
 public class K20
@@ -3639,6 +3640,73 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
         return y + 6;
     }
 
+    // Rotating isometric 3D preview of a decoration: project its boxes and paint
+    // each face as a shaded parallelogram (painter's order), all in the 2D GUI.
+    private void roomPreview(GuiGraphicsExtractor g, int type, float cx, float cy, float sz) {
+        java.util.List<float[]> boxes = K62.model(type);
+        if (boxes.isEmpty()) {
+            return;
+        }
+        float minx = 1.0E9f, miny = 1.0E9f, minz = 1.0E9f, maxx = -1.0E9f, maxy = -1.0E9f, maxz = -1.0E9f;
+        for (float[] b : boxes) {
+            minx = Math.min(minx, b[0]); miny = Math.min(miny, b[1]); minz = Math.min(minz, b[2]);
+            maxx = Math.max(maxx, b[3]); maxy = Math.max(maxy, b[4]); maxz = Math.max(maxz, b[5]);
+        }
+        float ccx = (minx + maxx) / 2.0f, ccy = (miny + maxy) / 2.0f, ccz = (minz + maxz) / 2.0f;
+        float extent = Math.max(maxy - miny, Math.max(maxx - minx, maxz - minz));
+        if (extent <= 0.0f) {
+            extent = 1.0f;
+        }
+        float scale = sz / extent;
+        float yaw = (float)(System.currentTimeMillis() % 8000L) / 8000.0f * 6.2831855f;
+        float cp = (float)Math.cos(Math.toRadians(26.0));
+        float sp = (float)Math.sin(Math.toRadians(26.0));
+        float cyw = (float)Math.cos(yaw), syw = (float)Math.sin(yaw);
+        int[][] F = new int[][]{{1, 5, 6, 2}, {0, 3, 7, 4}, {4, 7, 6, 5}, {0, 1, 2, 3}, {3, 2, 6, 7}, {0, 4, 5, 1}};
+        float[] sh = new float[]{0.74f, 0.66f, 1.0f, 0.42f, 0.88f, 0.56f};
+        java.util.ArrayList<float[]> faces = new java.util.ArrayList<float[]>();
+        for (float[] b : boxes) {
+            int rgb = Float.floatToRawIntBits(b[6]);
+            float[][] corn = new float[][]{{b[0], b[1], b[2]}, {b[3], b[1], b[2]}, {b[3], b[1], b[5]}, {b[0], b[1], b[5]}, {b[0], b[4], b[2]}, {b[3], b[4], b[2]}, {b[3], b[4], b[5]}, {b[0], b[4], b[5]}};
+            float[][] sc = new float[8][3];
+            for (int i = 0; i < 8; ++i) {
+                float px = corn[i][0] - ccx, py = corn[i][1] - ccy, pz = corn[i][2] - ccz;
+                float rx = px * cyw - pz * syw;
+                float rz = px * syw + pz * cyw;
+                float dy = py * cp - rz * sp;
+                float dz = py * sp + rz * cp;
+                sc[i][0] = cx + rx * scale;
+                sc[i][1] = cy - dy * scale;
+                sc[i][2] = dz;
+            }
+            for (int f = 0; f < 6; ++f) {
+                int[] q = F[f];
+                float depth = (sc[q[0]][2] + sc[q[1]][2] + sc[q[2]][2] + sc[q[3]][2]) / 4.0f;
+                int col = K20.roomShade(rgb, sh[f]);
+                faces.add(new float[]{depth, sc[q[0]][0], sc[q[0]][1], sc[q[1]][0] - sc[q[0]][0], sc[q[1]][1] - sc[q[0]][1], sc[q[3]][0] - sc[q[0]][0], sc[q[3]][1] - sc[q[0]][1], Float.intBitsToFloat(col)});
+            }
+        }
+        faces.sort((a, b) -> Float.compare(a[0], b[0]));
+        for (float[] fa : faces) {
+            K20.roomQuad(g, fa[1], fa[2], fa[3], fa[4], fa[5], fa[6], Float.floatToRawIntBits(fa[7]));
+        }
+    }
+
+    private static int roomShade(int rgb, float s) {
+        int r = Math.min(255, (int)((float)(rgb >> 16 & 0xFF) * s));
+        int g = Math.min(255, (int)((float)(rgb >> 8 & 0xFF) * s));
+        int b = Math.min(255, (int)((float)(rgb & 0xFF) * s));
+        return 0xFF000000 | r << 16 | g << 8 | b;
+    }
+
+    private static void roomQuad(GuiGraphicsExtractor g, float p0x, float p0y, float e1x, float e1y, float e2x, float e2y, int argb) {
+        Matrix3x2fStack p = g.pose();
+        p.pushMatrix();
+        p.mul(new Matrix3x2f(e1x, e1y, e2x, e2y, p0x, p0y));
+        g.blit(RenderPipelines.GUI_TEXTURED, K10.a, 0, 0, 0.0f, 0.0f, 1, 1, 4, 4, 4, 4, argb);
+        p.popMatrix();
+    }
+
     private int u(GuiGraphicsExtractor g, int t) {
         int head = K18.a(this.ak, -1, 0.05f);
         int cardFill = this.a(this.a(-15462119, 0.07f));
@@ -3659,15 +3727,16 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
         int cols = 3;
         int gap = 10;
         int cw = (765 - gap * (cols - 1)) / cols;
-        int ch = 54;
+        int ch = 104;
         for (int i = 0; i < K62.NAMES.length; ++i) {
             int col = i % cols;
             int row = i / cols;
             int cx = 241 + col * (cw + gap);
             int cy = y + row * (ch + gap);
             boolean seld = K62.sel == i;
-            K18.a(g, cx, cy, cw, ch, 10, cardFill, seld ? this.ak : cardBorder);
-            K18.b(g, K62.NAMES[i], (float)cx + (float)cw / 2.0f, (float)(cy + 32), 11.0f, seld ? -1 : -789515, K18.b);
+            K18.a(g, cx, cy, cw, ch, 10, this.a(this.a(-16053235, 0.05f)), seld ? this.ak : cardBorder);
+            this.roomPreview(g, i, (float)cx + (float)cw / 2.0f, (float)(cy + 44), 56.0f);
+            K18.b(g, K62.NAMES[i], (float)cx + (float)cw / 2.0f, (float)(cy + 86), 11.0f, seld ? -1 : -789515, K18.b);
             int idx = i;
             this.a(cx, cy, cw, ch, () -> {
                 K62.select(idx);
