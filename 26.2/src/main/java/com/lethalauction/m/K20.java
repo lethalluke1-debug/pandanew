@@ -435,7 +435,7 @@ extends Screen {
             int yw = 7 + (int)Math.round(5.0 * Math.sin((double)x * 0.045));
             K18.a(g, x, yw, 3, 3, wire);
         }
-        // alternating bells and twinkling bulbs hanging from the wire
+        // alternating jingle bells and twinkling bulbs hanging from the wire
         int idx = 0;
         for (int x = 28; x <= 1012; x += 48) {
             int yw = 7 + (int)Math.round(5.0 * Math.sin((double)x * 0.045));
@@ -451,24 +451,12 @@ extends Screen {
             }
             ++idx;
         }
-        // Christmas lights down the left/right edges and along the bottom
+        // Christmas lights along the bottom
         int li = 0;
-        for (int y = 40; y <= 500; y += 40) {
-            K18.a(g, 6.0f, (float)y, 3.5f, bulbs[(int)((ms / 350L + (long)li) % (long)bulbs.length)]);
-            K18.a(g, 1029.0f, (float)y, 3.5f, bulbs[(int)((ms / 350L + (long)li + 2L) % (long)bulbs.length)]);
-            ++li;
-        }
         for (int x = 40; x <= 1000; x += 46) {
             K18.a(g, (float)x, 512.0f, 3.5f, bulbs[(int)((ms / 350L + (long)li) % (long)bulbs.length)]);
             ++li;
         }
-        // snow caps on the tops of both panels + corner mounds
-        K18.a(g, 8, 7, 215, 6, 6, white);
-        K18.a(g, 232, 7, 795, 6, 6, white);
-        K18.a(g, 12.0f, 11.0f, 10.0f, white);
-        K18.a(g, 219.0f, 11.0f, 9.0f, white);
-        K18.a(g, 238.0f, 11.0f, 11.0f, white);
-        K18.a(g, 1021.0f, 11.0f, 10.0f, white);
         // Santa in his sleigh, next to the LETHAL logo
         this.xmasSanta(g, 150, 32);
         // gentle falling snow over the whole GUI
