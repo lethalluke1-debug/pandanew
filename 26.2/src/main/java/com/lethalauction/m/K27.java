@@ -148,7 +148,7 @@ implements HudElement {
         long taxTotal = session.length > 2 ? session[2] : 0L;
         float[] cx = new float[]{108.0f, 163.0f, 218.0f};
         String[] vals = new String[]{"+" + Auctions.a(session[0]), "-" + Auctions.a(session[1]), Auctions.a(taxTotal)};
-        String[] labs = new String[]{"earned", "spent", "taxes"};
+        String[] labs = new String[]{"Earned", "Spent", "Taxes"};
         int[] cols = new int[]{green, red, yellow};
         for (int ci = 0; ci < 3; ++ci) {
             K18.b(g, vals[ci], cx[ci], 62.0f, 10.5f, cols[ci], K18.c);
