@@ -257,7 +257,7 @@ public final class K62 {
             int[] q = FACE[f];
             m.transformDirection(NORM[f][0], NORM[f][1], NORM[f][2], n);
             n.normalize();
-            int[][] tris = new int[][]{{q[0], q[2], q[1]}, {q[0], q[3], q[2]}};
+            int[][] tris = new int[][]{{q[0], q[1], q[2]}, {q[0], q[2], q[3]}, {q[0], q[2], q[1]}, {q[0], q[3], q[2]}};
             for (int[] tri : tris) {
                 for (int k : tri) {
                     m.transformPosition(c[k][0], c[k][1], c[k][2], p);
