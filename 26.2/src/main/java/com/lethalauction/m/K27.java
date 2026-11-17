@@ -106,6 +106,15 @@ implements HudElement {
         K27.a(g, K27.a(g.guiWidth()), K27.b(g.guiHeight()));
     }
 
+    // Brief win/loss popup state (+1 on a win, "- All" on a loss).
+    public static long flashAt = 0L;
+    public static boolean flashWin = true;
+
+    public static void flash(boolean win) {
+        flashWin = win;
+        flashAt = System.currentTimeMillis();
+    }
+
     public static float a() {
         return 0.54f * K9.x;
     }
@@ -139,33 +148,18 @@ implements HudElement {
         K18.a(g, "SESSION PROFIT", 86.0f, 22.0f, 10.5f, -7695450, K18.b);
         String amount = (up ? "+" : "-") + Auctions.a(Math.abs(profit));
         K18.a(g, amount, 86.0f, 46.0f, 22.0f, color, K18.c);
-        // Optional win-streak badge, top-right - big, fiery, animated.
+        // Optional win-streak badge, top-right - static, with a brief +1 / -All popup.
         if (K9.winStreakOn) {
-            float pulse = 1.0f + 0.16f * (float)Math.sin((double)t * 5.0);
-            float mix = 0.5f + 0.5f * (float)Math.sin((double)t * 3.0);
-            int fire = K18.a(0xFFFF3B2F, 0xFFFFC23D, mix);
-            String num = Integer.toString(K9.winStreak);
-            float gx = 206.0f;
-            float gy = 44.0f;
-            // pulsing glow behind the number
-            K18.a(g, gx, gy, 26.0f + 5.0f * (float)Math.sin((double)t * 5.0), K18.a(fire, 0.14f));
-            K18.a(g, gx, gy, 16.0f, K18.a(fire, 0.12f));
-            // rising sparks
-            for (int si = 0; si < 5; ++si) {
-                float ph = (t * 0.6f + (float)si * 0.21f) % 1.0f;
-                float sxp = gx + (float)Math.sin((double)((float)si * 2.3f + t * 1.7f)) * 13.0f;
-                float syp = gy + 12.0f - ph * 30.0f;
-                float af = 1.0f - ph;
-                K18.a(g, sxp, syp, 1.8f * (1.0f - ph * 0.5f), K18.a(fire, 0.55f * af));
+            int orange = 0xFFFF8A3D;
+            K18.c(g, "WIN STREAK", 243.0f, 16.0f, 8.5f, K18.a(orange, 0.9f), K18.c);
+            K18.c(g, Integer.toString(K9.winStreak), 243.0f, 42.0f, 24.0f, orange, K18.c);
+            long since = System.currentTimeMillis() - flashAt;
+            if (since >= 0L && since < 1100L) {
+                float a = 1.0f - (float)since / 1100.0f;
+                int col = flashWin ? 0xFF4DE07A : 0xFFFF5555;
+                String txt = flashWin ? "+1" : "- All";
+                K18.c(g, txt, 243.0f, 60.0f - (1.0f - a) * 6.0f, 11.0f, K18.a(col, a), K18.c);
             }
-            // label + big pulsing number
-            K18.c(g, "WIN STREAK", 243.0f, 16.0f, 8.5f, K18.a(fire, 0.9f), K18.c);
-            Matrix3x2fStack wp = g.pose();
-            wp.pushMatrix();
-            wp.translate(gx, gy + 1.0f);
-            wp.scale(pulse);
-            K18.b(g, num, 0.0f, 0.0f, 28.0f, fire, K18.c);
-            wp.popMatrix();
         }
         // Earned / Spent / Taxes details live in the Transactions tab, not here.
         p.popMatrix();

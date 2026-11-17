@@ -130,6 +130,28 @@ implements ClientModInitializer {
         return roomPlace;
     }
 
+    // Win streak: add one (with a +1 popup and a win chime) or reset to zero
+    // (with a "- All" popup and a loss thud). Sounds differ for win vs loss.
+    private void winStreakAdd() {
+        K9.winStreak++;
+        K9.b();
+        com.lethalauction.m.K27.flash(true);
+        Minecraft m = Minecraft.getInstance();
+        if (m != null) {
+            m.getSoundManager().play(SimpleSoundInstance.forUI((net.minecraft.sounds.SoundEvent)SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.3f, 0.7f));
+        }
+    }
+
+    private void winStreakReset() {
+        K9.winStreak = 0;
+        K9.b();
+        com.lethalauction.m.K27.flash(false);
+        Minecraft m = Minecraft.getInstance();
+        if (m != null) {
+            m.getSoundManager().play(SimpleSoundInstance.forUI((net.minecraft.sounds.SoundEvent)SoundEvents.PLAYER_HURT, 0.8f, 0.7f));
+        }
+    }
+
     public static KeyMapping fullbright() {
         return fullbright;
     }
@@ -241,14 +263,14 @@ implements ClientModInitializer {
         // client-side and not sent to the server.
         ClientSendMessageEvents.ALLOW_COMMAND.register(command -> {
             String c = command.trim().toLowerCase(java.util.Locale.ROOT);
-            if (c.equals("win")) { K9.winStreak++; K9.b(); return false; }
-            if (c.equals("lose") || c.equals("loss")) { K9.winStreak = 0; K9.b(); return false; }
+            if (c.equals("win")) { winStreakAdd(); return false; }
+            if (c.equals("lose") || c.equals("loss")) { winStreakReset(); return false; }
             return true;
         });
         ClientSendMessageEvents.ALLOW_CHAT.register(message -> {
             String c = message.trim().toLowerCase(java.util.Locale.ROOT);
-            if (c.equals(".win") || c.equals("!win")) { K9.winStreak++; K9.b(); return false; }
-            if (c.equals(".lose") || c.equals(".loss") || c.equals("!lose")) { K9.winStreak = 0; K9.b(); return false; }
+            if (c.equals(".win") || c.equals("!win")) { winStreakAdd(); return false; }
+            if (c.equals(".lose") || c.equals(".loss") || c.equals("!lose")) { winStreakReset(); return false; }
             return true;
         });
         ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {

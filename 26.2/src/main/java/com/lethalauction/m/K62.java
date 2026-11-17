@@ -47,7 +47,7 @@ public final class K62 {
     private static int lv = 240;
 
     // Shown in the Room tab.
-    public static final String[] NAMES = new String[]{"Christmas Tree", "Snow"};
+    public static final String[] NAMES = new String[]{"Christmas Tree", "Snow", "Gift"};
     public static int sel = 0;      // which decoration the picker has selected
     public static int rot = 0;      // placement rotation, 0..3 (x90 degrees)
     public static float scl = 1.0f; // placement scale
@@ -247,6 +247,7 @@ public final class K62 {
         switch (type) {
             case 0: K62.tree(vc, m); break;
             case 1: K62.snow(vc, m, h); break;
+            case 2: K62.gift(vc, m); break;
             default: K62.tree(vc, m);
         }
     }
@@ -331,6 +332,14 @@ public final class K62 {
         int[] cols = new int[]{0xFF4D4D, 0xFFE24A, 0x58E058, 0x5AA0FF, 0xFFFFFF, 0xFF7ACF, 0xFFA030};
         long t = System.currentTimeMillis() / 350L + (long)(i * 3);
         return cols[(int)(t % (long)cols.length)];
+    }
+
+    // Wrapped present: red box with gold ribbons proud of each face + a bow.
+    private static void gift(VertexConsumer vc, Matrix4f m) {
+        K62.box(vc, m, -0.30f, 0.0f, -0.30f, 0.30f, 0.42f, 0.30f, RED);
+        K62.box(vc, m, -0.06f, -0.01f, -0.34f, 0.06f, 0.43f, 0.34f, GOLD);
+        K62.box(vc, m, -0.34f, -0.01f, -0.06f, 0.34f, 0.43f, 0.06f, GOLD);
+        K62.box(vc, m, -0.12f, 0.40f, -0.12f, 0.12f, 0.58f, 0.12f, GOLD);
     }
 
     private static final int SNOW = 0xF0F4FA;
