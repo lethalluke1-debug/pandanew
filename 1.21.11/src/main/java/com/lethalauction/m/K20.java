@@ -137,8 +137,8 @@ extends class_437 {
     static final class_2960 E = K18.a("textures/gui/frame.png");
     static final class_2960 F = K18.a("textures/gui/sidebar.png");
     static final class_2960 G = K18.a("textures/gui/content.png");
-    static final String[] H = new String[]{"Limelight", "Sunset", "Electric", "Nebula", "Goldrush", "Emerald", "Plasma", "Crimson"};
-    static final int[][] I = new int[][]{{12122374, 15268192, 326015, 1580036}, {16646258, 16607492, 11546111, 1966632}, {3042046, 311038, 6257407, 660016}, {10374911, 13073407, 5970121, 1441842}, {16694536, 16767081, 16619528, 2824202}, {515470, 3405747, 500337, 795424}, {16657614, 7232254, 579839, 1966402}, {16660068, 16611167, 13762567, 1835017}};
+    static final String[] H = new String[]{"Limelight", "Sunset", "Electric", "Nebula", "Goldrush", "Emerald", "Christmas", "Crimson"};
+    static final int[][] I = new int[][]{{12122374, 15268192, 326015, 1580036}, {16646258, 16607492, 11546111, 1966632}, {3042046, 311038, 6257407, 660016}, {10374911, 13073407, 5970121, 1441842}, {16694536, 16767081, 16619528, 2824202}, {515470, 3405747, 500337, 795424}, {14826811, 3123788, 16765514, 797206}, {16660068, 16611167, 13762567, 1835017}};
     static final int J = 232;
     static final int K = 54;
     static final int L = 1027;
@@ -416,7 +416,72 @@ extends class_437 {
         float contentHeight = contentBottom - top;
         this.R[pi] = Math.max(0.0f, contentHeight - 454.0f + 6.0f);
         this.b(g, contentHeight, this.Q[pi]);
+        this.xmas(g);
         p.popMatrix();
+    }
+
+    // Festive overlay: a garland of jingle bells + twinkling lights across the
+    // top, Christmas lights along the bottom, Santa in his sleigh by the logo,
+    // and gentle falling snow.
+    private void xmas(class_332 g) {
+        long ms = System.currentTimeMillis();
+        int[] bulbs = new int[]{0xFFFF5555, 0xFFFFE24A, 0xFF58E058, 0xFF5AA0FF, 0xFFFF7ACF, 0xFFFFA030};
+        int wire = 0xFF155C22;
+        int gold = 0xFFFFD24A;
+        for (int x = 12; x <= 1024; x += 3) {
+            int yw = 7 + (int)Math.round(5.0 * Math.sin((double)x * 0.045));
+            K18.a(g, x, yw, 3, 3, wire);
+        }
+        int idx = 0;
+        for (int x = 28; x <= 1012; x += 48) {
+            int yw = 7 + (int)Math.round(5.0 * Math.sin((double)x * 0.045));
+            if (idx % 2 == 0) {
+                K18.a(g, x, yw + 1, 2, 5, gold);
+                K18.a(g, (float)x + 1.0f, (float)(yw + 10), 5.5f, gold);
+                K18.a(g, x - 1, yw + 5, 5, 3, 0xFFFFE89A);
+                K18.a(g, (float)x + 1.0f, (float)(yw + 15), 1.6f, 0xFF8A6A12);
+            } else {
+                int c = bulbs[(int)((ms / 300L + (long)idx) % (long)bulbs.length)];
+                K18.a(g, x, yw + 1, 2, 4, wire);
+                K18.a(g, (float)x + 1.0f, (float)(yw + 9), 4.5f, c);
+            }
+            ++idx;
+        }
+        int li = 0;
+        for (int x = 40; x <= 1000; x += 46) {
+            K18.a(g, (float)x, 512.0f, 3.5f, bulbs[(int)((ms / 350L + (long)li) % (long)bulbs.length)]);
+            ++li;
+        }
+        this.xmasSanta(g, 150, 32);
+        for (int i = 0; i < 44; ++i) {
+            float sx = (float)((i * 61) % 1030) + 4.0f + (float)Math.sin(ms / 600.0 + (double)i) * 3.0f;
+            float speed = 16.0f + (float)(i % 5) * 7.0f;
+            float sy = (float)(((double)ms / 1000.0 * (double)speed + (double)(i * 37)) % 520.0);
+            float r = i % 3 == 0 ? 1.8f : 1.2f;
+            K18.a(g, sx, sy, r, 0x55FFFFFF);
+        }
+    }
+
+    // Tiny Santa + sleigh pixel drawing with a little snow under the runners.
+    private void xmasSanta(class_332 g, int x, int y) {
+        int red = 0xFFD23A3A;
+        int white = 0xFFFFFFFF;
+        int skin = 0xFFF0C9A0;
+        int gold = 0xFFFFD24A;
+        int green = 0xFF2FA84C;
+        K18.a(g, x - 2, y + 26, 44, 4, 2, white);
+        K18.a(g, x, y + 14, 34, 11, 4, red);
+        K18.a(g, x + 29, y + 5, 10, 20, 6, red);
+        K18.a(g, x + 2, y + 24, 36, 2, gold);
+        K18.a(g, x + 1, y + 7, 9, 9, 3, green, 0);
+        K18.a(g, x + 11, y + 9, 6, 7, 2, gold);
+        K18.a(g, x + 17, y + 4, 12, 12, 4, red);
+        K18.a(g, x + 17, y + 13, 12, 3, white);
+        K18.a(g, (float)(x + 23), (float)(y + 2), 4.5f, skin);
+        K18.a(g, x + 19, y - 3, 10, 5, 3, red);
+        K18.a(g, x + 18, y + 1, 12, 2, white);
+        K18.a(g, (float)(x + 29), (float)(y - 3), 2.0f, white);
+        K18.a(g, x + 19, y + 6, 9, 3, white);
     }
 
     private void a(class_332 g, float mx, float my) {
@@ -431,6 +496,7 @@ extends class_437 {
         K18.a(g, 26, 27, 36, 18, 10, this.ak);
         K18.a(g, 61328, 44.0f, 45.0f, 20.0f, -1);
         K18.a(g, "LETHAL", 74.0f, 45.0f, 12.0f, -1186062, K18.d);
+        K18.a(g, "v" + net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("lethalauction").map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("?"), 74.0f, 61.0f, 8.5f, -8355712, K18.b);
         K18.a(g, 26, 83, 178, 1, 0x66FFFFFF & this.a(-14013904, 0.3f));
         K18.a(g, "MODULES", 26.0f, 105.0f, 12.5f, -7568235, K18.a);
         int ty = 130;
@@ -1608,9 +1674,11 @@ extends class_437 {
         ArrayList<Transactions.C68> shown = new ArrayList<Transactions.C68>();
         long received = 0L;
         long sent = 0L;
+        long taxTotal = 0L;
         for (Transactions.C68 tx : all) {
             if (tx.amount() < min || hideThr > 0L && tx.amount() <= hideThr || aF == 1 && !tx.received() || aF == 2 && tx.received() || !q.isEmpty() && !tx.player().toLowerCase(Locale.ROOT).contains(q)) continue;
             shown.add(tx);
+            taxTotal += tx.tax();
             if (tx.received()) {
                 received += tx.amount();
                 continue;
@@ -1627,11 +1695,11 @@ extends class_437 {
         K18.a(g, "Money you got and sent in chat. Set a minimum to only see the big ones.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
         this.a(g, 892, t + 69, 108, 26, "Clear History", -15461606, -13356484, all.isEmpty() ? -9541000 : -789515, all.isEmpty() ? null : Transactions::e);
         int y = t + 110;
-        int cw = 247;
-        String[] labels = new String[]{"RECEIVED", "SENT"};
-        String[] values = new String[]{"+" + Auctions.a(received), "-" + Auctions.a(sent)};
-        int[] colors = new int[]{-12200829, -30107};
-        for (int i = 0; i < 2; ++i) {
+        int cw = 182;
+        String[] labels = new String[]{"RECEIVED", "SENT", "TAXES"};
+        String[] values = new String[]{"+" + Auctions.a(received), "-" + Auctions.a(sent), Auctions.a(taxTotal)};
+        int[] colors = new int[]{-12200829, -30107, 0xFFFFD24A};
+        for (int i = 0; i < 3; ++i) {
             int x = 241 + i * (cw + 12);
             K18.a(g, x, y, cw, 54, 10, cardFill, cardBorder);
             K18.a(g, labels[i], (float)(x + 16), (float)(y + 19), 9.5f, -7568235, K18.b);
@@ -1640,20 +1708,20 @@ extends class_437 {
         long[] session = Transactions.d();
         long profit = session[0] - session[1];
         int pc = profit >= 0L ? green : -42401;
-        int sx = 241 + 2 * (cw + 12);
+        int sx = 241 + 3 * (cw + 12);
         K18.a(g, sx, y, cw, 54, 10, cardFill, K18.a(pc, 0.45f));
-        K18.a(g, "SESSION  \u00b7  " + K20.a(System.currentTimeMillis() - Transactions.b()).replace("just now", "started now"), (float)(sx + 16), (float)(y + 19), 9.5f, -7568235, K18.b);
+        K18.a(g, "SESSION", (float)(sx + 16), (float)(y + 19), 9.5f, -7568235, K18.b);
         K18.a(g, (profit >= 0L ? "+" : "-") + Auctions.a(Math.abs(profit)), (float)(sx + 16), (float)(y + 38), 15.0f, pc, K18.c);
-        this.a(g, sx + cw - 70, y + 15, 58, 24, "Reset", this.a(-15395813), -13356484, -789515, Transactions::c);
+        this.a(g, sx + cw - 64, y + 15, 54, 24, "Reset", this.a(-15395813), -13356484, -789515, Transactions::c);
         y += 66;
         this.moneyGraph(g, all, hideThr, 241, y, 765, 118, cardFill, cardBorder);
         y += 130;
         K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
         K18.a(g, "Profit display", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
-        K18.a(g, "Shows this session's profit on screen with your skin. Red when you're down.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
-        K18.a(g, "Skin", 712.0f, (float)(y + 25), 11.0f, -3947581, K18.b);
-        this.a(g, 760, y + 25, K9.u, () -> {
-            K9.u = !K9.u;
+        K18.a(g, "Shows this session's profit on screen with your head. Red when you're down.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
+        K18.a(g, "Win streak", 640.0f, (float)(y + 25), 11.0f, -3947581, K18.b);
+        this.a(g, 724, y + 25, K9.winStreakOn, () -> {
+            K9.winStreakOn = !K9.winStreakOn;
             K9.b();
         });
         this.a(g, 806, y + 13, 110, 24, "Edit position", this.al, K18.a(this.ak, -16777216, 0.15f), this.am, () -> {
@@ -1668,7 +1736,7 @@ extends class_437 {
         y += 62;
         K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
         K18.a(g, "Hide small payments", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
-        K18.a(g, "Any payment at or below this is ignored — not shown, counted or saved.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
+        K18.a(g, "Any payment at or below this is ignored - not shown, counted or saved.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
         K18.a(g, "$", 716.0f, (float)(y + 20), 12.0f, -5001030, K18.c);
         this.a(g, this.hsField, 728, y + 10, 150, 30, "e.g. 1m");
         this.a(g, 960, y + 25, K9.hideSmall, () -> {
@@ -3639,13 +3707,94 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
         return y + 6;
     }
 
+    private void roomPreview(class_332 g, int type, float cx, float cy, float sz) {
+        java.util.List<float[]> boxes = K62.model(type);
+        if (boxes.isEmpty()) {
+            return;
+        }
+        float minx = 1.0E9f, miny = 1.0E9f, minz = 1.0E9f, maxx = -1.0E9f, maxy = -1.0E9f, maxz = -1.0E9f;
+        for (float[] b : boxes) {
+            minx = Math.min(minx, b[0]); miny = Math.min(miny, b[1]); minz = Math.min(minz, b[2]);
+            maxx = Math.max(maxx, b[3]); maxy = Math.max(maxy, b[4]); maxz = Math.max(maxz, b[5]);
+        }
+        float ccx = (minx + maxx) / 2.0f, ccy = (miny + maxy) / 2.0f, ccz = (minz + maxz) / 2.0f;
+        float extent = Math.max(maxy - miny, Math.max(maxx - minx, maxz - minz));
+        if (extent <= 0.0f) {
+            extent = 1.0f;
+        }
+        float scale = sz / extent;
+        float yaw = (float)(System.currentTimeMillis() % 8000L) / 8000.0f * 6.2831855f;
+        float cp = (float)Math.cos(Math.toRadians(26.0));
+        float sp = (float)Math.sin(Math.toRadians(26.0));
+        float cyw = (float)Math.cos(yaw), syw = (float)Math.sin(yaw);
+        int[][] F = new int[][]{{1, 5, 6, 2}, {0, 3, 7, 4}, {4, 7, 6, 5}, {0, 1, 2, 3}, {3, 2, 6, 7}, {0, 4, 5, 1}};
+        float[] sh = new float[]{0.74f, 0.66f, 1.0f, 0.42f, 0.88f, 0.56f};
+        int n = boxes.size();
+        final float[] bdep = new float[n];
+        Integer[] border = new Integer[n];
+        for (int i = 0; i < n; ++i) {
+            float[] b = boxes.get(i);
+            float px = (b[0] + b[3]) / 2.0f - ccx, py = (b[1] + b[4]) / 2.0f - ccy, pz = (b[2] + b[5]) / 2.0f - ccz;
+            float rz = px * syw + pz * cyw;
+            bdep[i] = py * sp + rz * cp;
+            border[i] = i;
+        }
+        java.util.Arrays.sort(border, (a, b) -> Float.compare(bdep[a], bdep[b]));
+        for (int oi = 0; oi < n; ++oi) {
+            float[] b = boxes.get(border[oi]);
+            int rgb = Float.floatToRawIntBits(b[6]);
+            float[][] corn = new float[][]{{b[0], b[1], b[2]}, {b[3], b[1], b[2]}, {b[3], b[1], b[5]}, {b[0], b[1], b[5]}, {b[0], b[4], b[2]}, {b[3], b[4], b[2]}, {b[3], b[4], b[5]}, {b[0], b[4], b[5]}};
+            float[][] sc = new float[8][3];
+            for (int i = 0; i < 8; ++i) {
+                float px = corn[i][0] - ccx, py = corn[i][1] - ccy, pz = corn[i][2] - ccz;
+                float rx = px * cyw - pz * syw;
+                float rz = px * syw + pz * cyw;
+                float dy = py * cp - rz * sp;
+                float dz = py * sp + rz * cp;
+                sc[i][0] = cx + rx * scale;
+                sc[i][1] = cy - dy * scale;
+                sc[i][2] = dz;
+            }
+            final float[] fdep = new float[6];
+            Integer[] forder = new Integer[6];
+            for (int f = 0; f < 6; ++f) {
+                int[] q = F[f];
+                fdep[f] = (sc[q[0]][2] + sc[q[1]][2] + sc[q[2]][2] + sc[q[3]][2]) / 4.0f;
+                forder[f] = f;
+            }
+            java.util.Arrays.sort(forder, (a, c) -> Float.compare(fdep[a], fdep[c]));
+            for (int fi = 0; fi < 6; ++fi) {
+                int f = forder[fi];
+                int[] q = F[f];
+                float ax = sc[q[0]][0], ay = sc[q[0]][1];
+                int col = K20.roomShade(rgb, sh[f]);
+                K20.roomQuad(g, ax, ay, sc[q[1]][0] - ax, sc[q[1]][1] - ay, sc[q[3]][0] - ax, sc[q[3]][1] - ay, col);
+            }
+        }
+    }
+
+    private static int roomShade(int rgb, float s) {
+        int r = Math.min(255, (int)((float)(rgb >> 16 & 0xFF) * s));
+        int g = Math.min(255, (int)((float)(rgb >> 8 & 0xFF) * s));
+        int b = Math.min(255, (int)((float)(rgb & 0xFF) * s));
+        return 0xFF000000 | r << 16 | g << 8 | b;
+    }
+
+    private static void roomQuad(class_332 g, float p0x, float p0y, float e1x, float e1y, float e2x, float e2y, int argb) {
+        Matrix3x2fStack p = g.method_51448();
+        p.pushMatrix();
+        p.mul(new org.joml.Matrix3x2f(e1x, e1y, e2x, e2y, p0x, p0y));
+        g.method_25293(class_10799.field_56883, K10.a, 0, 0, 0.0f, 0.0f, 1, 1, 4, 4, 4, 4, argb);
+        p.popMatrix();
+    }
+
     private int u(class_332 g, int t) {
         int head = K18.a(this.ak, -1, 0.05f);
         int cardFill = this.a(this.a(-15462119, 0.07f));
         int cardBorder = this.a(-14804444, 0.12f);
         K18.b(g, K22.a(60237), 253.0f, (float)(t + 80), 17.0f, head, K22.a);
         K18.a(g, "Room", 272.0f, (float)(t + 77), 13.0f, -789515, K18.c);
-        K18.a(g, "Decorate your space with holograms only you can see. Pick one, turn on Placing mode, then press the Room key (default N) while looking at a block to place it — press again on it to remove.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
+        K18.a(g, "Decorate your space with holograms only you can see. Pick one, turn on Placing mode, then press the Room key (default N) while looking at a block to place it.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
         int y = t + 122;
         K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
         K18.a(g, "Placing mode", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
@@ -3659,15 +3808,16 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
         int cols = 3;
         int gap = 10;
         int cw = (765 - gap * (cols - 1)) / cols;
-        int ch = 54;
+        int ch = 104;
         for (int i = 0; i < K62.NAMES.length; ++i) {
             int col = i % cols;
             int row = i / cols;
             int cx = 241 + col * (cw + gap);
             int cy = y + row * (ch + gap);
             boolean seld = K62.sel == i;
-            K18.a(g, cx, cy, cw, ch, 10, cardFill, seld ? this.ak : cardBorder);
-            K18.b(g, K62.NAMES[i], (float)cx + (float)cw / 2.0f, (float)(cy + 32), 11.0f, seld ? -1 : -789515, K18.b);
+            K18.a(g, cx, cy, cw, ch, 10, this.a(this.a(-16053235, 0.05f)), seld ? this.ak : cardBorder);
+            this.roomPreview(g, i, (float)cx + (float)cw / 2.0f, (float)(cy + 44), 56.0f);
+            K18.b(g, K62.NAMES[i], (float)cx + (float)cw / 2.0f, (float)(cy + 86), 11.0f, seld ? -1 : -789515, K18.b);
             int idx = i;
             this.a(cx, cy, cw, ch, () -> {
                 K62.select(idx);
@@ -3676,17 +3826,30 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
         }
         int rows = (K62.NAMES.length + cols - 1) / cols;
         y += rows * (ch + gap) + 4;
-        this.a(g, 241, y, 250, 28, "Rotate", this.a(-15395813), -13356484, -3947581, () -> {
+        K18.a(g, 241, y, 765, 46, 10, cardFill, cardBorder);
+        K18.a(g, "Size", 257.0f, (float)(y + 27), 12.5f, -789515, K18.c);
+        this.a(g, 724, y + 11, 48, 24, "-", this.a(-15395813), -13356484, -3947581, () -> {
+            K62.scaleDown();
+        });
+        K18.b(g, String.format("%.2fx", Float.valueOf(K62.scl)), 843.0f, (float)(y + 27), 13.0f, -789515, K18.c);
+        this.a(g, 914, y + 11, 48, 24, "+", this.a(-15395813), -13356484, -3947581, () -> {
+            K62.scaleUp();
+        });
+        y += 56;
+        this.a(g, 241, y, 182, 28, "Rotate", this.a(-15395813), -13356484, -3947581, () -> {
             K62.rotate();
         });
-        this.a(g, 499, y, 250, 28, "Remove last", this.a(-15395813), -13356484, -3947581, () -> {
+        this.a(g, 435, y, 182, 28, "Bring to me", this.a(-15062359), -13356484, -3342388, () -> {
+            K62.bringHere(this.field_22787);
+        });
+        this.a(g, 629, y, 182, 28, "Remove last", this.a(-15395813), -13356484, -3947581, () -> {
             K62.removeLast();
         });
-        this.a(g, 757, y, 249, 28, "Clear all", this.a(-15395813), -13356484, -3947581, () -> {
+        this.a(g, 823, y, 183, 28, "Clear all", this.a(-15395813), -13356484, -3947581, () -> {
             K62.clearAll();
         });
         y += 36;
-        K18.a(g, K62.count() + " placed  ·  rotation " + K62.rot * 90 + "°", 243.0f, (float)(y + 6), 10.5f, -7568235, K18.a);
+        K18.a(g, K62.count() + " placed  ·  rotation " + K62.rot * 90 + "  ·  Bring to me moves them to you", 243.0f, (float)(y + 6), 10.5f, -7568235, K18.a);
         return y + 20;
     }
 

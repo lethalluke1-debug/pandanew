@@ -145,6 +145,30 @@ implements ClientModInitializer {
         return class_3414.method_47908((class_2960)class_2960.method_60655((String)"lethalauction", (String)name));
     }
 
+    // Win streak: add one (+1 popup, win chime) or reset (- All popup, loss sound).
+    private void winStreakAdd() {
+        K9.winStreak++;
+        K9.b();
+        K27.flash(true);
+        this.winSound(true);
+    }
+
+    private void winStreakReset() {
+        K9.winStreak = 0;
+        K9.b();
+        K27.flash(false);
+        this.winSound(false);
+    }
+
+    private void winSound(boolean win) {
+        class_310 mc = class_310.method_1551();
+        if (mc == null) {
+            return;
+        }
+        class_3414 snd = class_3414.method_47908((class_2960)class_2960.method_60655((String)"minecraft", (String)(win ? "entity.player.levelup" : "entity.villager.no")));
+        mc.method_1483().method_4873((class_1113)class_1109.method_4757((class_3414)snd, (float)1.0f, (float)0.8f));
+    }
+
     private static void onBidResult(Auctions.C66 r, String original) {
         if (r.a() == Auctions.C66.C113.UNREADABLE) {
             LOGGER.warn("Unrecognised payment message: {}", (Object)original);
@@ -226,6 +250,20 @@ implements ClientModInitializer {
         figureWaypoint = KeyBindingHelper.registerKeyBinding((class_304)new class_304("key.lethalauction.waypoint", class_3675.class_307.field_1668, 86, CATEGORY));
         roomPlace = KeyBindingHelper.registerKeyBinding((class_304)new class_304("key.lethalauction.room", class_3675.class_307.field_1668, 78, CATEGORY));
         ClientSendMessageEvents.ALLOW_COMMAND.register(command -> K35.a(command));
+        // Win streak: /win adds one, /lose (or /loss) resets. Handled client-side.
+        ClientSendMessageEvents.ALLOW_COMMAND.register(command -> {
+            String c = command.trim().toLowerCase(java.util.Locale.ROOT);
+            if (c.equals("win")) { this.winStreakAdd(); return false; }
+            if (c.equals("lose") || c.equals("loss")) { this.winStreakReset(); return false; }
+            return true;
+        });
+        ClientSendMessageEvents.ALLOW_CHAT.register(message -> {
+            String c = message.trim().toLowerCase(java.util.Locale.ROOT);
+            if (c.equals(".win") || c.equals("!win")) { this.winStreakAdd(); return false; }
+            if (c.equals(".lose") || c.equals(".loss") || c.equals("!lose")) { this.winStreakReset(); return false; }
+            return true;
+        });
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> K62.reload());
         ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
             if (!K9.hideSmall || K9.hideSmallStr.isBlank()) {
                 return true;

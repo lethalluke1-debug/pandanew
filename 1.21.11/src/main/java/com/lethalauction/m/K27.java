@@ -106,6 +106,15 @@ implements HudElement {
         K27.a(g, K27.a(g.method_51421()), K27.b(g.method_51443()));
     }
 
+    // Brief win/loss popup state (+1 on a win, "- All" on a loss).
+    public static long flashAt = 0L;
+    public static boolean flashWin = true;
+
+    public static void flash(boolean win) {
+        flashWin = win;
+        flashAt = System.currentTimeMillis();
+    }
+
     public static float a() {
         return 0.62f * K9.x;
     }
@@ -134,25 +143,27 @@ implements HudElement {
         K18.a(g, 0, 0, 250, 84, 12, -435482856, K18.a(color, 0.6f));
         K18.a(g, 0, 14, 3, 56, 1, color);
         K18.a(g, 12, 12, 60, 60, 10, -15722458);
-        if (!K9.u || mc.field_1724 == null) {
-            class_7532.method_52722((class_332)g, (class_8685)(mc.field_1724 != null ? mc.field_1724.method_52814() : class_1068.method_52854((GameProfile)mc.method_53462())), (int)18, (int)18, (int)48);
-        }
+        // Always render the player's head (the skin-model toggle was removed).
+        class_7532.method_52722((class_332)g, (class_8685)(mc.field_1724 != null ? mc.field_1724.method_52814() : class_1068.method_52854((GameProfile)mc.method_53462())), (int)18, (int)18, (int)48);
         K18.a(g, "SESSION PROFIT", 86.0f, 22.0f, 10.5f, -7695450, K18.b);
         String amount = (up ? "+" : "-") + Auctions.a(Math.abs(profit));
         K18.a(g, amount, 86.0f, 46.0f, 22.0f, color, K18.c);
-        String detail = "+" + Auctions.a(session[0]) + "  \u00b7  -" + Auctions.a(session[1]);
-        K18.a(g, detail, 86.0f, 68.0f, 10.0f, -9735291, K18.b);
-        p.popMatrix();
-        if (K9.u && mc.field_1724 != null) {
-            int x0 = Math.round(x + 12.0f * s);
-            int y0 = Math.round(y + 12.0f * s);
-            int x1 = Math.round(x + 72.0f * s);
-            int y1 = Math.round(y + 72.0f * s);
-            int size = Math.max(8, Math.round((float)(y1 - y0) * 0.42f));
-            float lookX = (float)(x0 + x1) / 2.0f + 6.0f * (float)Math.sin(t * 0.8f);
-            float lookY = (float)y0 + (float)(y1 - y0) * 0.3f;
-            class_490.method_2486((class_332)g, (int)x0, (int)y0, (int)x1, (int)y1, (int)size, (float)0.0625f, (float)lookX, (float)lookY, (class_1309)mc.field_1724);
+        // Optional win-streak badge, top-right - centred, static, with a brief
+        // +1 / -All popup. Earned/Spent/Taxes details live in the Transactions tab.
+        if (K9.winStreakOn) {
+            int orange = 0xFFFF8A3D;
+            float wsCx = 214.0f;
+            K18.b(g, "STREAK", wsCx, 22.0f, 10.5f, K18.a(orange, 0.9f), K18.b);
+            K18.b(g, Integer.toString(K9.winStreak), wsCx, 46.0f, 22.0f, orange, K18.c);
+            long since = System.currentTimeMillis() - flashAt;
+            if (since >= 0L && since < 1100L) {
+                float a = 1.0f - (float)since / 1100.0f;
+                int col = flashWin ? 0xFF4DE07A : 0xFFFF5555;
+                String txt = flashWin ? "+1" : "- All";
+                K18.b(g, txt, wsCx, 63.0f - (1.0f - a) * 6.0f, 11.0f, K18.a(col, a), K18.c);
+            }
         }
+        p.popMatrix();
     }
 }
 
