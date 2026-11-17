@@ -138,8 +138,8 @@ extends Screen {
     static final Identifier E = K18.a("textures/gui/frame.png");
     static final Identifier F = K18.a("textures/gui/sidebar.png");
     static final Identifier G = K18.a("textures/gui/content.png");
-    static final String[] H = new String[]{"Limelight", "Sunset", "Electric", "Nebula", "Goldrush", "Emerald", "Plasma", "Crimson"};
-    static final int[][] I = new int[][]{{12122374, 15268192, 326015, 1580036}, {16646258, 16607492, 11546111, 1966632}, {3042046, 311038, 6257407, 660016}, {10374911, 13073407, 5970121, 1441842}, {16694536, 16767081, 16619528, 2824202}, {515470, 3405747, 500337, 795424}, {16657614, 7232254, 579839, 1966402}, {16660068, 16611167, 13762567, 1835017}};
+    static final String[] H = new String[]{"Limelight", "Sunset", "Electric", "Nebula", "Goldrush", "Emerald", "Christmas", "Crimson"};
+    static final int[][] I = new int[][]{{12122374, 15268192, 326015, 1580036}, {16646258, 16607492, 11546111, 1966632}, {3042046, 311038, 6257407, 660016}, {10374911, 13073407, 5970121, 1441842}, {16694536, 16767081, 16619528, 2824202}, {515470, 3405747, 500337, 795424}, {14826811, 3123788, 16765514, 797206}, {16660068, 16611167, 13762567, 1835017}};
     static final int J = 232;
     static final int K = 54;
     static final int L = 1027;
@@ -417,7 +417,94 @@ extends Screen {
         float contentHeight = contentBottom - top;
         this.R[pi] = Math.max(0.0f, contentHeight - 454.0f + 6.0f);
         this.b(g, contentHeight, this.Q[pi]);
+        this.xmas(g);
         p.popMatrix();
+    }
+
+    // Festive overlay: a garland of jingle bells + twinkling lights across the
+    // top, Christmas lights down the sides and bottom, snow caps on the panels,
+    // Santa in his sleigh by the logo, and gentle falling snow.
+    private void xmas(GuiGraphicsExtractor g) {
+        long ms = System.currentTimeMillis();
+        int[] bulbs = new int[]{0xFFFF5555, 0xFFFFE24A, 0xFF58E058, 0xFF5AA0FF, 0xFFFF7ACF, 0xFFFFA030};
+        int wire = 0xFF155C22;
+        int gold = 0xFFFFD24A;
+        int white = 0xFFFFFFFF;
+        // garland wire with a gentle sag across the whole top
+        for (int x = 12; x <= 1024; x += 3) {
+            int yw = 7 + (int)Math.round(5.0 * Math.sin((double)x * 0.045));
+            K18.a(g, x, yw, 3, 3, wire);
+        }
+        // alternating bells and twinkling bulbs hanging from the wire
+        int idx = 0;
+        for (int x = 28; x <= 1012; x += 48) {
+            int yw = 7 + (int)Math.round(5.0 * Math.sin((double)x * 0.045));
+            if (idx % 2 == 0) {
+                K18.a(g, x, yw + 1, 2, 5, gold);
+                K18.a(g, (float)x + 1.0f, (float)(yw + 10), 5.5f, gold);
+                K18.a(g, x - 1, yw + 5, 5, 3, 0xFFFFE89A);
+                K18.a(g, (float)x + 1.0f, (float)(yw + 15), 1.6f, 0xFF8A6A12);
+            } else {
+                int c = bulbs[(int)((ms / 300L + (long)idx) % (long)bulbs.length)];
+                K18.a(g, x, yw + 1, 2, 4, wire);
+                K18.a(g, (float)x + 1.0f, (float)(yw + 9), 4.5f, c);
+            }
+            ++idx;
+        }
+        // Christmas lights down the left/right edges and along the bottom
+        int li = 0;
+        for (int y = 40; y <= 500; y += 40) {
+            K18.a(g, 6.0f, (float)y, 3.5f, bulbs[(int)((ms / 350L + (long)li) % (long)bulbs.length)]);
+            K18.a(g, 1029.0f, (float)y, 3.5f, bulbs[(int)((ms / 350L + (long)li + 2L) % (long)bulbs.length)]);
+            ++li;
+        }
+        for (int x = 40; x <= 1000; x += 46) {
+            K18.a(g, (float)x, 512.0f, 3.5f, bulbs[(int)((ms / 350L + (long)li) % (long)bulbs.length)]);
+            ++li;
+        }
+        // snow caps on the tops of both panels + corner mounds
+        K18.a(g, 8, 7, 215, 6, 6, white);
+        K18.a(g, 232, 7, 795, 6, 6, white);
+        K18.a(g, 12.0f, 11.0f, 10.0f, white);
+        K18.a(g, 219.0f, 11.0f, 9.0f, white);
+        K18.a(g, 238.0f, 11.0f, 11.0f, white);
+        K18.a(g, 1021.0f, 11.0f, 10.0f, white);
+        // Santa in his sleigh, next to the LETHAL logo
+        this.xmasSanta(g, 150, 32);
+        // gentle falling snow over the whole GUI
+        for (int i = 0; i < 44; ++i) {
+            float sx = (float)((i * 61) % 1030) + 4.0f + (float)Math.sin(ms / 600.0 + (double)i) * 3.0f;
+            float speed = 16.0f + (float)(i % 5) * 7.0f;
+            float sy = (float)(((double)ms / 1000.0 * (double)speed + (double)(i * 37)) % 520.0);
+            float r = i % 3 == 0 ? 1.8f : 1.2f;
+            K18.a(g, sx, sy, r, 0x55FFFFFF);
+        }
+    }
+
+    // Tiny Santa + sleigh pixel drawing with a little snow under the runners.
+    private void xmasSanta(GuiGraphicsExtractor g, int x, int y) {
+        int red = 0xFFD23A3A;
+        int white = 0xFFFFFFFF;
+        int skin = 0xFFF0C9A0;
+        int gold = 0xFFFFD24A;
+        int green = 0xFF2FA84C;
+        // snow under the sleigh
+        K18.a(g, x - 2, y + 26, 44, 4, 2, white);
+        // sleigh body + front curl
+        K18.a(g, x, y + 14, 34, 11, 4, red);
+        K18.a(g, x + 29, y + 5, 10, 20, 6, red);
+        K18.a(g, x + 2, y + 24, 36, 2, gold);
+        // gifts in the back
+        K18.a(g, x + 1, y + 7, 9, 9, 3, green, 0);
+        K18.a(g, x + 11, y + 9, 6, 7, 2, gold);
+        // Santa: coat, belt, face, hat
+        K18.a(g, x + 17, y + 4, 12, 12, 4, red);
+        K18.a(g, x + 17, y + 13, 12, 3, white);
+        K18.a(g, (float)(x + 23), (float)(y + 2), 4.5f, skin);
+        K18.a(g, x + 19, y - 3, 10, 5, 3, red);
+        K18.a(g, x + 18, y + 1, 12, 2, white);
+        K18.a(g, (float)(x + 29), (float)(y - 3), 2.0f, white);
+        K18.a(g, x + 19, y + 6, 9, 3, white);
     }
 
     private void a(GuiGraphicsExtractor g, float mx, float my) {
