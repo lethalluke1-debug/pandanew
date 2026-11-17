@@ -432,6 +432,7 @@ extends Screen {
         K18.a(g, 26, 27, 36, 18, 10, this.ak);
         K18.a(g, 61328, 44.0f, 45.0f, 20.0f, -1);
         K18.a(g, "LETHAL", 74.0f, 45.0f, 12.0f, -1186062, K18.d);
+        K18.a(g, "v" + net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("lethalauction").map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("?"), 74.0f, 61.0f, 8.5f, -8355712, K18.b);
         K18.a(g, 26, 83, 178, 1, 0x66FFFFFF & this.a(-14013904, 0.3f));
         K18.a(g, "MODULES", 26.0f, 105.0f, 12.5f, -7568235, K18.a);
         int ty = 130;
