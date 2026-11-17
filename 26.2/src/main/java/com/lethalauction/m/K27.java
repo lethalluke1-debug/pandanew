@@ -148,17 +148,19 @@ implements HudElement {
         K18.a(g, "SESSION PROFIT", 86.0f, 22.0f, 10.5f, -7695450, K18.b);
         String amount = (up ? "+" : "-") + Auctions.a(Math.abs(profit));
         K18.a(g, amount, 86.0f, 46.0f, 22.0f, color, K18.c);
-        // Optional win-streak badge, top-right - static, with a brief +1 / -All popup.
+        // Optional win-streak badge, top-right - centred, static, with a brief
+        // +1 / -All popup.
         if (K9.winStreakOn) {
             int orange = 0xFFFF8A3D;
-            K18.c(g, "WIN STREAK", 243.0f, 16.0f, 8.5f, K18.a(orange, 0.9f), K18.c);
-            K18.c(g, Integer.toString(K9.winStreak), 243.0f, 42.0f, 24.0f, orange, K18.c);
+            float wsCx = 214.0f;
+            K18.b(g, "STREAK", wsCx, 17.0f, 9.0f, K18.a(orange, 0.9f), K18.b);
+            K18.b(g, Integer.toString(K9.winStreak), wsCx, 44.0f, 24.0f, orange, K18.c);
             long since = System.currentTimeMillis() - flashAt;
             if (since >= 0L && since < 1100L) {
                 float a = 1.0f - (float)since / 1100.0f;
                 int col = flashWin ? 0xFF4DE07A : 0xFFFF5555;
                 String txt = flashWin ? "+1" : "- All";
-                K18.c(g, txt, 243.0f, 60.0f - (1.0f - a) * 6.0f, 11.0f, K18.a(col, a), K18.c);
+                K18.b(g, txt, wsCx, 63.0f - (1.0f - a) * 6.0f, 11.0f, K18.a(col, a), K18.c);
             }
         }
         // Earned / Spent / Taxes details live in the Transactions tab, not here.

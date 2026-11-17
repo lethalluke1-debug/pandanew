@@ -138,7 +138,7 @@ implements ClientModInitializer {
         com.lethalauction.m.K27.flash(true);
         Minecraft m = Minecraft.getInstance();
         if (m != null) {
-            m.getSoundManager().play(SimpleSoundInstance.forUI((net.minecraft.sounds.SoundEvent)SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.3f, 0.7f));
+            m.getSoundManager().play(SimpleSoundInstance.forUI((net.minecraft.sounds.SoundEvent)SoundEvents.PLAYER_LEVELUP, 1.0f, 0.8f));
         }
     }
 
@@ -148,7 +148,7 @@ implements ClientModInitializer {
         com.lethalauction.m.K27.flash(false);
         Minecraft m = Minecraft.getInstance();
         if (m != null) {
-            m.getSoundManager().play(SimpleSoundInstance.forUI((net.minecraft.sounds.SoundEvent)SoundEvents.PLAYER_HURT, 0.8f, 0.7f));
+            m.getSoundManager().play(SimpleSoundInstance.forUI((net.minecraft.sounds.SoundEvent)SoundEvents.VILLAGER_NO, 1.0f, 0.8f));
         }
     }
 
