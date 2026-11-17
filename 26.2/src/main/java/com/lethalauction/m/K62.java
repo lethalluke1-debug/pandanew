@@ -189,28 +189,40 @@ public final class K62 {
     private static final int RED = 0xC8323A;
     private static final int GOLD = 0xFFD24A;
     private static final int BLUE = 0x3A7BD5;
+    private static final int POT = 0xC8A06E;
+    private static final int POT2 = 0x9C7A4E;
+    private static final int DIRT = 0x4A3524;
 
     // Decoration parts either overlap deeply (so no thin near-coincident faces
     // z-fight) or stand clearly proud of the surface. Nothing is buried flush.
     private static void tree(VertexConsumer vc, Matrix4f m) {
+        // potted barrel base
+        K62.box(vc, m, -0.19f, 0.0f, -0.19f, 0.19f, 0.06f, 0.19f, POT2);
+        K62.box(vc, m, -0.22f, 0.05f, -0.22f, 0.22f, 0.20f, 0.22f, POT);
+        K62.box(vc, m, -0.225f, 0.10f, -0.03f, 0.225f, 0.14f, 0.03f, POT2);
+        K62.box(vc, m, -0.20f, 0.19f, -0.20f, 0.20f, 0.25f, 0.20f, POT2);
+        K62.box(vc, m, -0.17f, 0.23f, -0.17f, 0.17f, 0.27f, 0.17f, DIRT);
         // trunk
-        K62.box(vc, m, -0.08f, 0.0f, -0.08f, 0.08f, 0.18f, 0.08f, BROWN);
-        // four tiers with a gentle taper and deep overlaps
-        K62.box(vc, m, -0.40f, 0.12f, -0.40f, 0.40f, 0.42f, 0.40f, GREEN);
-        K62.box(vc, m, -0.32f, 0.36f, -0.32f, 0.32f, 0.64f, 0.32f, GREEN);
-        K62.box(vc, m, -0.23f, 0.58f, -0.23f, 0.23f, 0.84f, 0.23f, GREEN);
-        K62.box(vc, m, -0.14f, 0.78f, -0.14f, 0.14f, 1.02f, 0.14f, GREEN);
-        // star topper: two crossed slabs + a core
-        K62.box(vc, m, -0.03f, 1.00f, -0.12f, 0.03f, 1.20f, 0.12f, GOLD);
-        K62.box(vc, m, -0.12f, 1.00f, -0.03f, 0.12f, 1.20f, 0.03f, GOLD);
-        K62.box(vc, m, -0.06f, 1.03f, -0.06f, 0.06f, 1.17f, 0.06f, GOLD);
-        // ornaments straddling the tier faces (poke out, deep intersection, no coincident faces)
-        K62.box(vc, m, 0.36f, 0.24f, -0.05f, 0.46f, 0.34f, 0.05f, RED);
-        K62.box(vc, m, -0.46f, 0.20f, 0.10f, -0.36f, 0.30f, 0.20f, BLUE);
-        K62.box(vc, m, 0.05f, 0.28f, 0.36f, 0.15f, 0.38f, 0.46f, GOLD);
-        K62.box(vc, m, -0.16f, 0.46f, -0.42f, -0.06f, 0.56f, -0.32f, RED);
-        K62.box(vc, m, 0.26f, 0.48f, 0.18f, 0.36f, 0.58f, 0.28f, BLUE);
-        K62.box(vc, m, -0.08f, 0.70f, 0.20f, 0.02f, 0.80f, 0.30f, GOLD);
+        K62.box(vc, m, -0.06f, 0.25f, -0.06f, 0.06f, 0.42f, 0.06f, BROWN);
+        // five foliage tiers, gentle taper, deep overlaps
+        K62.box(vc, m, -0.44f, 0.36f, -0.44f, 0.44f, 0.60f, 0.44f, GREEN);
+        K62.box(vc, m, -0.37f, 0.56f, -0.37f, 0.37f, 0.78f, 0.37f, GREEN);
+        K62.box(vc, m, -0.29f, 0.74f, -0.29f, 0.29f, 0.96f, 0.29f, GREEN);
+        K62.box(vc, m, -0.21f, 0.92f, -0.21f, 0.21f, 1.14f, 0.21f, GREEN);
+        K62.box(vc, m, -0.12f, 1.10f, -0.12f, 0.12f, 1.32f, 0.12f, GREEN);
+        // star topper: crossed slabs + core
+        K62.box(vc, m, -0.03f, 1.28f, -0.13f, 0.03f, 1.50f, 0.13f, GOLD);
+        K62.box(vc, m, -0.13f, 1.28f, -0.03f, 0.13f, 1.50f, 0.03f, GOLD);
+        K62.box(vc, m, -0.07f, 1.31f, -0.07f, 0.07f, 1.47f, 0.07f, GOLD);
+        // ornaments standing proud of the branches (deep intersections, no coincident faces)
+        K62.box(vc, m, 0.40f, 0.44f, -0.05f, 0.50f, 0.54f, 0.05f, RED);
+        K62.box(vc, m, -0.50f, 0.40f, 0.12f, -0.40f, 0.50f, 0.22f, BLUE);
+        K62.box(vc, m, 0.06f, 0.46f, 0.40f, 0.16f, 0.56f, 0.50f, GOLD);
+        K62.box(vc, m, -0.18f, 0.64f, -0.46f, -0.08f, 0.74f, -0.36f, RED);
+        K62.box(vc, m, 0.30f, 0.66f, 0.20f, 0.40f, 0.76f, 0.30f, BLUE);
+        K62.box(vc, m, -0.10f, 0.86f, 0.26f, 0.00f, 0.96f, 0.36f, GOLD);
+        K62.box(vc, m, 0.20f, 0.88f, -0.30f, 0.30f, 0.98f, -0.20f, RED);
+        K62.box(vc, m, -0.22f, 1.02f, 0.14f, -0.12f, 1.12f, 0.24f, WHITE);
     }
 
     private static void lights(VertexConsumer vc, Matrix4f m) {
