@@ -105,7 +105,9 @@ public final class K62 {
         return null;
     }
 
-    // Place the selected decoration, or remove one already in that cell (toggle).
+    // Place the selected decoration. Never deletes: if a decoration is already
+    // in that cell this is a no-op, so pressing the key near existing ones can't
+    // wipe them. Removal is done with the Remove last / Clear all buttons.
     public static void place(Minecraft mc) {
         if (mc.player == null || mc.level == null) {
             return;
@@ -118,8 +120,6 @@ public final class K62 {
         for (int i = 0; i < placed.size(); ++i) {
             C101 p = placed.get(i);
             if (p.x == bp.getX() && p.y == bp.getY() && p.z == bp.getZ()) {
-                placed.remove(i);
-                K62.save();
                 return;
             }
         }
