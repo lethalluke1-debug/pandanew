@@ -46,8 +46,35 @@ public final class Transactions {
     // "sold" text. "+$" / "$" = money in (a sale); "-$" = money out.
     private static final Pattern k = Pattern.compile("^\\+?\\s*\\$\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\s*$", 2);
     private static final Pattern l = Pattern.compile("^-\\s*\\$\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\s*$", 2);
+    // DonutSMP now charges a tax and prints it inline, e.g.
+    //   "You paid its_skots $50M (+$ 1M tax)"
+    // Tax that ADDS to money out (a buy/pay) increases what you spent; tax on
+    // money in (a sale) reduces what you received. We parse the "(...tax)" chunk
+    // and fold it into the recorded amount so profit reflects the real coins.
+    private static final Pattern n = Pattern.compile("\\(\\s*[+-]?\\s*\\$?\\s*(?<tax>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\s*tax\\s*\\)", 2);
     private static long lastAmt;
     private static long lastAt;
+
+    private static long taxOf(String text) {
+        try {
+            Matcher m = n.matcher(text);
+            if (m.find()) {
+                return Auctions.e(m.group("tax").replace(" ", ""));
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+        return 0L;
+    }
+
+    // Fold tax into the amount: received -> subtract (you got less), sent -> add
+    // (it cost you more).
+    private static long adj(long amount, boolean received, long tax) {
+        if (tax <= 0L) {
+            return amount;
+        }
+        return received ? Math.max(0L, amount - tax) : amount + tax;
+    }
 
     private Transactions() {
     }
@@ -93,15 +120,16 @@ public final class Transactions {
     public static void a(String plain) {
         Matcher m;
         String text = Auctions.c(plain);
+        long tax = Transactions.taxOf(text);
         Matcher in = Auctions.d(text);
         if (in != null) {
-            Transactions.a(in.group("name"), Auctions.e(in.group("amount").replace(" ", "")), true);
+            Transactions.a(in.group("name"), Transactions.adj(Auctions.e(in.group("amount").replace(" ", "")), true, tax), true);
             return;
         }
         for (Pattern p : g) {
             m = p.matcher(text);
             if (!m.find()) continue;
-            Transactions.a(m.group("name"), Auctions.e(m.group("amount").replace(" ", "")), false);
+            Transactions.a(m.group("name"), Transactions.adj(Auctions.e(m.group("amount").replace(" ", "")), false, tax), false);
             return;
         }
         for (Pattern p : h) {
@@ -109,17 +137,17 @@ public final class Transactions {
             if (!m.find()) continue;
             String item = m.group("name");
             String label = item == null || item.isBlank() ? "Purchase" : item.trim();
-            Transactions.a(label, Auctions.e(m.group("amount").replace(" ", "")), false);
+            Transactions.a(label, Transactions.adj(Auctions.e(m.group("amount").replace(" ", "")), false, tax), false);
             return;
         }
         Matcher sale = k.matcher(text);
         if (sale.find()) {
-            Transactions.b(Auctions.e(sale.group("amount").replace(" ", "")), "Sale", true);
+            Transactions.b(Transactions.adj(Auctions.e(sale.group("amount").replace(" ", "")), true, tax), "Sale", true);
             return;
         }
         Matcher spend = l.matcher(text);
         if (spend.find()) {
-            Transactions.b(Auctions.e(spend.group("amount").replace(" ", "")), "Purchase", false);
+            Transactions.b(Transactions.adj(Auctions.e(spend.group("amount").replace(" ", "")), false, tax), "Purchase", false);
         }
     }
 

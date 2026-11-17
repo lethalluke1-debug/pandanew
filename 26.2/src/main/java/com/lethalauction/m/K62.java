@@ -16,6 +16,8 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.lighting.LevelLightEngine;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -35,6 +37,14 @@ public final class K62 {
     private static final K51 buf = new K51();
     private static final List<C101> placed = new ArrayList<C101>();
     private static boolean loaded;
+
+    // Only draw decorations within this many blocks of the camera.
+    private static final double RENDER_DIST = 30.0;
+    // World lightmap packed into (u,v) for the decoration body being drawn, so
+    // decorations are shaded by the real world light instead of always full-bright.
+    // The actual bulbs/lights are drawn emissive via glow() so they stand out.
+    private static int lu = 240;
+    private static int lv = 240;
 
     // Shown in the Room tab. Keep the first three as the ones the user asked for.
     public static final String[] NAMES = new String[]{"Christmas Tree", "String Lights", "Bed", "Gift", "Candy Cane", "Snowman"};
@@ -135,14 +145,23 @@ public final class K62 {
                 return;
             }
             Vec3 cam = mc.gameRenderer.mainCamera().position();
+            double maxSq = RENDER_DIST * RENDER_DIST;
             VertexConsumer vc = buf.a(RenderTypes.entityCutoutCull(K10.a));
             Matrix4f base = ctx.poseStack().last().pose();
             for (C101 p : placed) {
+                double dx = (double)p.x + 0.5 - cam.x;
+                double dy = (double)p.y + 0.5 - cam.y;
+                double dz = (double)p.z + 0.5 - cam.z;
+                if (dx * dx + dy * dy + dz * dz > maxSq) {
+                    continue;
+                }
+                K62.lightAt(mc, p.x, p.y, p.z);
                 K62.draw(vc, base, cam, p.x, p.y, p.z, p.r, p.s <= 0.0f ? 1.0f : p.s, p.t);
             }
             if (editing) {
                 BlockPos bp = K62.target(mc);
                 if (bp != null) {
+                    K62.lightAt(mc, bp.getX(), bp.getY(), bp.getZ());
                     K62.draw(vc, base, cam, bp.getX(), bp.getY(), bp.getZ(), rot, scl, sel);
                 }
             }
@@ -157,6 +176,27 @@ public final class K62 {
             catch (Throwable t) {
                 // ignore
             }
+        }
+    }
+
+    // Sample the real world light at the decoration's cell so its body is shaded
+    // like the surroundings (dark at night / in caves). The bulbs stay emissive.
+    private static void lightAt(Minecraft mc, int bx, int by, int bz) {
+        lu = 240;
+        lv = 240;
+        try {
+            if (mc.level != null) {
+                BlockPos pos = new BlockPos(bx, by, bz);
+                LevelLightEngine le = mc.level.getLightEngine();
+                int block = le.getLayerListener(LightLayer.BLOCK).getLightValue(pos);
+                int sky = le.getLayerListener(LightLayer.SKY).getLightValue(pos);
+                lu = (block & 0xF) << 4;
+                lv = (sky & 0xF) << 4;
+            }
+        }
+        catch (Throwable t) {
+            lu = 240;
+            lv = 240;
         }
     }
 
@@ -248,15 +288,15 @@ public final class K62 {
         K62.box(vc, m, 0.31f, 0.80f, -0.06f, 0.41f, 0.92f, 0.06f, BLUE);
         K62.box(vc, m, 0.10f, 0.84f, -0.41f, 0.22f, 0.96f, -0.31f, GOLD);
         // flashing string lights (twinkle over time), also floating just outside
-        K62.box(vc, m, 0.14f, 0.50f, 0.46f, 0.22f, 0.56f, 0.54f, K62.twinkle(0));
-        K62.box(vc, m, -0.54f, 0.46f, -0.20f, -0.46f, 0.52f, -0.14f, K62.twinkle(1));
-        K62.box(vc, m, 0.46f, 0.54f, 0.14f, 0.54f, 0.60f, 0.20f, K62.twinkle(2));
-        K62.box(vc, m, 0.39f, 0.62f, -0.20f, 0.47f, 0.68f, -0.14f, K62.twinkle(3));
-        K62.box(vc, m, -0.18f, 0.68f, -0.47f, -0.12f, 0.74f, -0.39f, K62.twinkle(4));
-        K62.box(vc, m, 0.14f, 0.72f, 0.39f, 0.20f, 0.78f, 0.47f, K62.twinkle(5));
-        K62.box(vc, m, -0.41f, 0.80f, 0.06f, -0.31f, 0.86f, 0.12f, K62.twinkle(6));
-        K62.box(vc, m, 0.31f, 0.86f, -0.14f, 0.39f, 0.92f, -0.08f, K62.twinkle(7));
-        K62.box(vc, m, -0.04f, 0.98f, 0.23f, 0.04f, 1.04f, 0.31f, K62.twinkle(8));
+        K62.glow(vc, m, 0.14f, 0.50f, 0.46f, 0.22f, 0.56f, 0.54f, K62.twinkle(0));
+        K62.glow(vc, m, -0.54f, 0.46f, -0.20f, -0.46f, 0.52f, -0.14f, K62.twinkle(1));
+        K62.glow(vc, m, 0.46f, 0.54f, 0.14f, 0.54f, 0.60f, 0.20f, K62.twinkle(2));
+        K62.glow(vc, m, 0.39f, 0.62f, -0.20f, 0.47f, 0.68f, -0.14f, K62.twinkle(3));
+        K62.glow(vc, m, -0.18f, 0.68f, -0.47f, -0.12f, 0.74f, -0.39f, K62.twinkle(4));
+        K62.glow(vc, m, 0.14f, 0.72f, 0.39f, 0.20f, 0.78f, 0.47f, K62.twinkle(5));
+        K62.glow(vc, m, -0.41f, 0.80f, 0.06f, -0.31f, 0.86f, 0.12f, K62.twinkle(6));
+        K62.glow(vc, m, 0.31f, 0.86f, -0.14f, 0.39f, 0.92f, -0.08f, K62.twinkle(7));
+        K62.glow(vc, m, -0.04f, 0.98f, 0.23f, 0.04f, 1.04f, 0.31f, K62.twinkle(8));
     }
 
     // Twinkling Christmas-light colour: cycles bright hues with a per-bulb phase.
@@ -274,7 +314,7 @@ public final class K62 {
         int[] cols = new int[]{RED, GOLD, GREEN, BLUE, RED, GOLD, BLUE};
         for (int i = 0; i < 7; ++i) {
             float x = -0.36f + (float)i / 6.0f * 0.72f;
-            K62.box(vc, m, x - 0.04f, 0.30f, 0.03f, x + 0.04f, 0.42f, 0.11f, cols[i]);
+            K62.glow(vc, m, x - 0.04f, 0.30f, 0.03f, x + 0.04f, 0.42f, 0.11f, cols[i]);
         }
     }
 
@@ -325,6 +365,18 @@ public final class K62 {
     private static final int[][] FACE = new int[][]{{1, 5, 6, 2}, {0, 3, 7, 4}, {4, 7, 6, 5}, {0, 1, 2, 3}, {3, 2, 6, 7}, {0, 4, 5, 1}};
     private static final float[][] NORM = new float[][]{{1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}};
 
+    // Emissive box: forces full-bright lightmap so bulbs/lights glow in the dark
+    // (they only glow visually — client holograms can't cast light on the world).
+    private static void glow(VertexConsumer vc, Matrix4f m, float x0, float y0, float z0, float x1, float y1, float z1, int rgb) {
+        int su = lu;
+        int sv = lv;
+        lu = 240;
+        lv = 240;
+        K62.box(vc, m, x0, y0, z0, x1, y1, z1, rgb);
+        lu = su;
+        lv = sv;
+    }
+
     private static void box(VertexConsumer vc, Matrix4f m, float x0, float y0, float z0, float x1, float y1, float z1, int rgb) {
         if (capture != null) {
             capture.add(new float[]{x0, y0, z0, x1, y1, z1, Float.intBitsToFloat(rgb)});
@@ -344,7 +396,7 @@ public final class K62 {
             for (int[] quad : quads) {
                 for (int k : quad) {
                     m.transformPosition(c[k][0], c[k][1], c[k][2], p);
-                    vc.addVertex(p.x, p.y, p.z).setColor(r, g, b, 255).setUv(0.5f, 0.5f).setUv1(0, 10).setUv2(240, 240).setNormal(n.x, n.y, n.z);
+                    vc.addVertex(p.x, p.y, p.z).setColor(r, g, b, 255).setUv(0.5f, 0.5f).setUv1(0, 10).setUv2(lu, lv).setNormal(n.x, n.y, n.z);
                 }
             }
         }
