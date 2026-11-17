@@ -39,7 +39,7 @@ public final class K62 {
     private static boolean loaded;
 
     // Only draw decorations within this many blocks of the camera.
-    private static final double RENDER_DIST = 30.0;
+    private static final double RENDER_DIST = 96.0;
     // World lightmap packed into (u,v) for the decoration body being drawn, so
     // decorations are shaded by the real world light instead of always full-bright.
     // The actual bulbs/lights are drawn emissive via glow() so they stand out.
@@ -83,6 +83,7 @@ public final class K62 {
 
     public static void clearAll() {
         K62.load();
+        LethalAuctionClient.LOGGER.info("[Room] clearAll() called (had {})", (Object)placed.size());
         placed.clear();
         K62.save();
     }
@@ -91,6 +92,7 @@ public final class K62 {
         K62.load();
         if (!placed.isEmpty()) {
             placed.remove(placed.size() - 1);
+            LethalAuctionClient.LOGGER.info("[Room] removeLast() -> {} left", (Object)placed.size());
             K62.save();
         }
     }
@@ -377,6 +379,7 @@ public final class K62 {
         loaded = false;
         placed.clear();
         K62.load();
+        LethalAuctionClient.LOGGER.info("[Room] reload on join -> {} decoration(s) in memory", (Object)placed.size());
     }
 
     private static synchronized void load() {
