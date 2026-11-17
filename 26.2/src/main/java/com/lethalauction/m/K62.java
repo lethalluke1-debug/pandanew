@@ -370,6 +370,15 @@ public final class K62 {
 
     // ===== persistence =====
 
+    // Force a fresh read from the save file (used on every server join so
+    // placements are always restored, even after a relog). Clears first to
+    // avoid duplicating what is already in memory.
+    public static synchronized void reload() {
+        loaded = false;
+        placed.clear();
+        K62.load();
+    }
+
     private static synchronized void load() {
         if (loaded) {
             return;

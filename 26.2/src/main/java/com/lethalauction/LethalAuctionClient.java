@@ -207,6 +207,7 @@ implements ClientModInitializer {
         LevelRenderEvents.COLLECT_SUBMITS.register(K53::a);
         LevelRenderEvents.COLLECT_SUBMITS.register(K12::a);
         LevelRenderEvents.COLLECT_SUBMITS.register(K62::render);
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> K62.reload());
         LivingEntityRenderLayerRegistrationCallback.EVENT.register((entityType, renderer, helper, context) -> {
             if (renderer instanceof AvatarRenderer) {
                 AvatarRenderer avatar = (AvatarRenderer)renderer;
