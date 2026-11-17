@@ -147,7 +147,7 @@ implements HudElement {
         long taxTotal = session.length > 2 ? session[2] : 0L;
         String seg1 = "+" + Auctions.a(session[0]);
         String seg2 = "-" + Auctions.a(session[1]);
-        String taxStr = "$" + Auctions.a(taxTotal);
+        String taxStr = Auctions.a(taxTotal);
         String dot = "  \u00b7  ";
         float dy = 66.0f;
         float xx = 86.0f;
