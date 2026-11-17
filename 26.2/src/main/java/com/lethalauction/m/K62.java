@@ -46,8 +46,8 @@ public final class K62 {
     private static int lu = 240;
     private static int lv = 240;
 
-    // Shown in the Room tab. Keep the first three as the ones the user asked for.
-    public static final String[] NAMES = new String[]{"Christmas Tree", "String Lights", "Bed", "Gift", "Candy Cane", "Snowman"};
+    // Shown in the Room tab.
+    public static final String[] NAMES = new String[]{"Christmas Tree", "Snow"};
     public static int sel = 0;      // which decoration the picker has selected
     public static int rot = 0;      // placement rotation, 0..3 (x90 degrees)
     public static float scl = 1.0f; // placement scale
@@ -130,6 +130,8 @@ public final class K62 {
         p.z = bp.getZ();
         p.r = rot;
         p.s = scl;
+        // Snow gets a random depth each time it is placed (1..8 layers).
+        p.h = sel == 1 ? 0.125f * (float)(1 + (int)(Math.random() * 8.0)) : 0.0f;
         placed.add(p);
         K62.save();
     }
@@ -156,13 +158,14 @@ public final class K62 {
                     continue;
                 }
                 K62.lightAt(mc, p.x, p.y, p.z);
-                K62.draw(vc, base, cam, p.x, p.y, p.z, p.r, p.s <= 0.0f ? 1.0f : p.s, p.t);
+                K62.draw(vc, base, cam, p.x, p.y, p.z, p.r, p.s <= 0.0f ? 1.0f : p.s, p.t, p.h);
             }
             if (editing) {
                 BlockPos bp = K62.target(mc);
                 if (bp != null) {
                     K62.lightAt(mc, bp.getX(), bp.getY(), bp.getZ());
-                    K62.draw(vc, base, cam, bp.getX(), bp.getY(), bp.getZ(), rot, scl, sel);
+                    // Ghost shows a representative snow depth (real depth is random on place).
+                    K62.draw(vc, base, cam, bp.getX(), bp.getY(), bp.getZ(), rot, scl, sel, sel == 1 ? 0.5f : 0.0f);
                 }
             }
         }
@@ -200,7 +203,7 @@ public final class K62 {
         }
     }
 
-    private static void draw(VertexConsumer vc, Matrix4fc base, Vec3 cam, int bx, int by, int bz, int r, float s, int type) {
+    private static void draw(VertexConsumer vc, Matrix4fc base, Vec3 cam, int bx, int by, int bz, int r, float s, int type, float h) {
         Matrix4f m = new Matrix4f(base);
         m.translate((float)((double)bx + 0.5 - cam.x), (float)((double)by - cam.y), (float)((double)bz + 0.5 - cam.z));
         if (r != 0) {
@@ -209,17 +212,13 @@ public final class K62 {
         if (s != 1.0f) {
             m.scale(s);
         }
-        K62.drawGeom(vc, m, type);
+        K62.drawGeom(vc, m, type, h);
     }
 
-    private static void drawGeom(VertexConsumer vc, Matrix4f m, int type) {
+    private static void drawGeom(VertexConsumer vc, Matrix4f m, int type, float h) {
         switch (type) {
             case 0: K62.tree(vc, m); break;
-            case 1: K62.lights(vc, m); break;
-            case 2: K62.bed(vc, m); break;
-            case 3: K62.gift(vc, m); break;
-            case 4: K62.candyCane(vc, m); break;
-            case 5: K62.snowman(vc, m); break;
+            case 1: K62.snow(vc, m, h); break;
             default: K62.tree(vc, m);
         }
     }
@@ -233,7 +232,7 @@ public final class K62 {
         java.util.ArrayList<float[]> list = new java.util.ArrayList<float[]>();
         capture = list;
         try {
-            K62.drawGeom(null, null, type);
+            K62.drawGeom(null, null, type, 0.5f);
         }
         catch (Throwable t) {
             // ignore
@@ -306,56 +305,20 @@ public final class K62 {
         return cols[(int)(t % (long)cols.length)];
     }
 
-    private static void lights(VertexConsumer vc, Matrix4f m) {
-        // a string of bulbs on a bar, bulbs standing clearly proud of the wire
-        K62.box(vc, m, -0.44f, 0.44f, -0.03f, 0.44f, 0.50f, 0.03f, 0x4A4A4A);
-        K62.box(vc, m, -0.44f, 0.0f, -0.02f, -0.40f, 0.50f, 0.02f, WHITE);
-        K62.box(vc, m, 0.40f, 0.0f, -0.02f, 0.44f, 0.50f, 0.02f, WHITE);
-        int[] cols = new int[]{RED, GOLD, GREEN, BLUE, RED, GOLD, BLUE};
-        for (int i = 0; i < 7; ++i) {
-            float x = -0.36f + (float)i / 6.0f * 0.72f;
-            K62.glow(vc, m, x - 0.04f, 0.30f, 0.03f, x + 0.04f, 0.42f, 0.11f, cols[i]);
+    private static final int SNOW = 0xF0F4FA;
+    private static final int SNOW2 = 0xDDE6F2;
+
+    // A snow layer covering the block footprint, of the given height. Holograms
+    // have no collision, so you can always walk through it. Height is randomised
+    // when the decoration is placed, so no two look the same.
+    private static void snow(VertexConsumer vc, Matrix4f m, float h) {
+        if (h <= 0.0f) {
+            h = 0.5f;
         }
-    }
-
-    private static void bed(VertexConsumer vc, Matrix4f m) {
-        // spans two blocks in +z. Mattress sits on a frame; pillow stands proud.
-        K62.box(vc, m, -0.42f, 0.0f, -0.46f, 0.42f, 0.14f, 1.42f, BROWN);
-        K62.box(vc, m, -0.40f, 0.14f, -0.44f, 0.40f, 0.34f, 1.40f, RED);
-        K62.box(vc, m, -0.34f, 0.34f, -0.40f, 0.34f, 0.50f, -0.06f, WHITE);
-    }
-
-    private static void gift(VertexConsumer vc, Matrix4f m) {
-        K62.box(vc, m, -0.30f, 0.0f, -0.30f, 0.30f, 0.42f, 0.30f, RED);
-        // ribbons stand 0.04 proud of each face so they never z-fight the box
-        K62.box(vc, m, -0.06f, -0.01f, -0.34f, 0.06f, 0.43f, 0.34f, GOLD);
-        K62.box(vc, m, -0.34f, -0.01f, -0.06f, 0.34f, 0.43f, 0.06f, GOLD);
-        // bow overlaps down into the ribbon so no faces coincide
-        K62.box(vc, m, -0.12f, 0.40f, -0.12f, 0.12f, 0.58f, 0.12f, GOLD);
-    }
-
-    private static void candyCane(VertexConsumer vc, Matrix4f m) {
-        for (int i = 0; i < 7; ++i) {
-            float y = i * 0.13f;
-            int col = i % 2 == 0 ? RED : WHITE;
-            K62.box(vc, m, -0.07f, y, -0.07f, 0.07f, y + 0.13f, 0.07f, col);
-        }
-        // hook: two segments deeply overlapping the top
-        K62.box(vc, m, -0.07f, 0.84f, -0.07f, 0.24f, 0.98f, 0.07f, WHITE);
-        K62.box(vc, m, 0.10f, 0.66f, -0.07f, 0.24f, 0.92f, 0.07f, RED);
-    }
-
-    private static void snowman(VertexConsumer vc, Matrix4f m) {
-        K62.box(vc, m, -0.26f, 0.0f, -0.26f, 0.26f, 0.46f, 0.26f, WHITE);
-        K62.box(vc, m, -0.19f, 0.40f, -0.19f, 0.19f, 0.80f, 0.19f, WHITE);
-        K62.box(vc, m, -0.12f, 0.74f, -0.12f, 0.12f, 1.02f, 0.12f, WHITE);
-        // hat sits proud on the head
-        K62.box(vc, m, -0.16f, 1.00f, -0.16f, 0.16f, 1.05f, 0.16f, 0x202020);
-        K62.box(vc, m, -0.10f, 1.05f, -0.10f, 0.10f, 1.22f, 0.10f, 0x202020);
-        // nose + eyes stand proud of the face (-Z)
-        K62.box(vc, m, -0.03f, 0.86f, -0.20f, 0.03f, 0.92f, -0.12f, GOLD);
-        K62.box(vc, m, -0.08f, 0.90f, -0.16f, -0.04f, 0.94f, -0.12f, 0x202020);
-        K62.box(vc, m, 0.04f, 0.90f, -0.16f, 0.08f, 0.94f, -0.12f, 0x202020);
+        // slightly inset so neighbouring snow blocks don't z-fight along the seam
+        K62.box(vc, m, -0.49f, 0.0f, -0.49f, 0.49f, h, 0.49f, SNOW);
+        // faint shaded rim near the base for a bit of depth
+        K62.box(vc, m, -0.50f, 0.0f, -0.50f, 0.50f, Math.min(0.03f, h), 0.50f, SNOW2);
     }
 
     // double-sided flat-colour box
@@ -446,6 +409,7 @@ public final class K62 {
         public int z;
         public int r;
         public float s = 1.0f;
+        public float h = 0.0f;
 
         public C101() {
         }

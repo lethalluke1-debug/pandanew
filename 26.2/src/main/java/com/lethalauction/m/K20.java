@@ -1669,7 +1669,7 @@ extends Screen {
         y += 62;
         K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
         K18.a(g, "Hide small payments", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
-        K18.a(g, "Any payment at or below this is ignored — not shown, counted or saved.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
+        K18.a(g, "Any payment at or below this is ignored - not shown, counted or saved.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
         K18.a(g, "$", 716.0f, (float)(y + 20), 12.0f, -5001030, K18.c);
         this.a(g, this.hsField, 728, y + 10, 150, 30, "e.g. 1m");
         this.a(g, 960, y + 25, K9.hideSmall, () -> {
@@ -3733,7 +3733,7 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
         int cardBorder = this.a(-14804444, 0.12f);
         K18.b(g, K22.a(60237), 253.0f, (float)(t + 80), 17.0f, head, K22.a);
         K18.a(g, "Room", 272.0f, (float)(t + 77), 13.0f, -789515, K18.c);
-        K18.a(g, "Decorate your space with holograms only you can see. Pick one, turn on Placing mode, then press the Room key (default N) while looking at a block to place it — press again on it to remove.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
+        K18.a(g, "Decorate your space with holograms only you can see. Pick one, turn on Placing mode, then press the Room key (default N) while looking at a block to place it - press again on it to remove.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
         int y = t + 122;
         K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
         K18.a(g, "Placing mode", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
@@ -3771,7 +3771,7 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
         y += rows * (ch + gap) + 4;
         K18.a(g, 241, y, 765, 46, 10, cardFill, cardBorder);
         K18.a(g, "Size", 257.0f, (float)(y + 27), 12.5f, -789515, K18.c);
-        this.a(g, 724, y + 11, 48, 24, "–", this.a(-15395813), -13356484, -3947581, () -> {
+        this.a(g, 724, y + 11, 48, 24, "-", this.a(-15395813), -13356484, -3947581, () -> {
             K62.scaleDown();
         });
         K18.b(g, String.format("%.2fx", Float.valueOf(K62.scl)), 843.0f, (float)(y + 27), 13.0f, -789515, K18.c);
@@ -3789,7 +3789,7 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
             K62.clearAll();
         });
         y += 36;
-        K18.a(g, K62.count() + " placed  ·  rotation " + K62.rot * 90 + "°", 243.0f, (float)(y + 6), 10.5f, -7568235, K18.a);
+        K18.a(g, K62.count() + " placed  ·  rotation " + K62.rot * 90, 243.0f, (float)(y + 6), 10.5f, -7568235, K18.a);
         return y + 20;
     }
 
