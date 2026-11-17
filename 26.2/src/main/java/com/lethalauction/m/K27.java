@@ -204,8 +204,9 @@ implements HudElement {
         String bal = K27.balance(mc);
         if (bal != null && !bal.isEmpty()) {
             int money = -12200829;
-            K18.c(g, "balance", 243.0f, 62.0f, 7.5f, -9735291, K18.c);
-            K18.c(g, bal, 243.0f, 76.0f, 13.0f, money, K18.c);
+            float valW = K18.a(bal, 11.0f, K18.c);
+            K18.c(g, bal, 243.0f, 74.0f, 11.0f, money, K18.c);
+            K18.c(g, "Balance: ", 243.0f - valW, 74.0f, 11.0f, -9735291, K18.c);
         }
         p.popMatrix();
     }
