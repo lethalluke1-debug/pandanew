@@ -3860,17 +3860,20 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
             K62.scaleUp();
         });
         y += 56;
-        this.a(g, 241, y, 250, 28, "Rotate", this.a(-15395813), -13356484, -3947581, () -> {
+        this.a(g, 241, y, 182, 28, "Rotate", this.a(-15395813), -13356484, -3947581, () -> {
             K62.rotate();
         });
-        this.a(g, 499, y, 250, 28, "Remove last", this.a(-15395813), -13356484, -3947581, () -> {
+        this.a(g, 435, y, 182, 28, "Bring to me", this.a(-15062359), -13356484, -3342388, () -> {
+            K62.bringHere(this.minecraft);
+        });
+        this.a(g, 629, y, 182, 28, "Remove last", this.a(-15395813), -13356484, -3947581, () -> {
             K62.removeLast();
         });
-        this.a(g, 757, y, 249, 28, "Clear all", this.a(-15395813), -13356484, -3947581, () -> {
+        this.a(g, 823, y, 183, 28, "Clear all", this.a(-15395813), -13356484, -3947581, () -> {
             K62.clearAll();
         });
         y += 36;
-        K18.a(g, K62.count() + " placed  ·  rotation " + K62.rot * 90, 243.0f, (float)(y + 6), 10.5f, -7568235, K18.a);
+        K18.a(g, K62.count() + " placed  ·  rotation " + K62.rot * 90 + "  ·  Bring to me moves them to you", 243.0f, (float)(y + 6), 10.5f, -7568235, K18.a);
         return y + 20;
     }
 
