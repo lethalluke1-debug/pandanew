@@ -1653,6 +1653,11 @@ extends Screen {
         K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
         K18.a(g, "Profit display", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
         K18.a(g, "Shows this session's profit on screen with your skin. Red when you're down.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
+        K18.a(g, "Details", 586.0f, (float)(y + 25), 11.0f, -3947581, K18.b);
+        this.a(g, 648, y + 25, K9.hudDetail, () -> {
+            K9.hudDetail = !K9.hudDetail;
+            K9.b();
+        });
         K18.a(g, "Skin", 712.0f, (float)(y + 25), 11.0f, -3947581, K18.b);
         this.a(g, 760, y + 25, K9.u, () -> {
             K9.u = !K9.u;
