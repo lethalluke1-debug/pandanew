@@ -130,9 +130,8 @@ implements HudElement {
         p.pushMatrix();
         p.translate(x, y);
         p.scale(s);
-        int cardH = K9.hudDetail ? 94 : 62;
-        K18.a(g, -2, -2, 254, cardH + 4, 14, K18.a(color, 0.12f + 0.05f * (float)Math.sin(t * 2.0f)));
-        K18.a(g, 0, 0, 250, cardH, 12, -435482856, K18.a(color, 0.6f));
+        K18.a(g, -2, -2, 254, 98, 14, K18.a(color, 0.12f + 0.05f * (float)Math.sin(t * 2.0f)));
+        K18.a(g, 0, 0, 250, 94, 12, -435482856, K18.a(color, 0.6f));
         K18.a(g, 0, 14, 3, 56, 1, color);
         K18.a(g, 12, 12, 60, 60, 10, -15722458);
         if (!K9.u || mc.player == null) {
