@@ -130,8 +130,9 @@ public final class K62 {
         p.z = bp.getZ();
         p.r = rot;
         p.s = scl;
-        // Snow gets a random depth each time it is placed (1..8 layers).
-        p.h = sel == 1 ? 0.125f * (float)(1 + (int)(Math.random() * 8.0)) : 0.0f;
+        // Snow gets a random shallow depth each time it is placed (a low layer,
+        // never a full block): 0.10, 0.15, 0.20, 0.25 or 0.30 of a block.
+        p.h = sel == 1 ? 0.10f + 0.05f * (float)(int)(Math.random() * 5.0) : 0.0f;
         placed.add(p);
         K62.save();
     }
@@ -157,15 +158,17 @@ public final class K62 {
                 if (dx * dx + dy * dy + dz * dz > maxSq) {
                     continue;
                 }
+                // Snow ignores the size slider so it always stays a one-block layer.
+                float sc = p.t == 1 ? 1.0f : (p.s <= 0.0f ? 1.0f : p.s);
                 K62.lightAt(mc, p.x, p.y, p.z);
-                K62.draw(vc, base, cam, p.x, p.y, p.z, p.r, p.s <= 0.0f ? 1.0f : p.s, p.t, p.h);
+                K62.draw(vc, base, cam, p.x, p.y, p.z, p.r, sc, p.t, p.h);
             }
             if (editing) {
                 BlockPos bp = K62.target(mc);
                 if (bp != null) {
                     K62.lightAt(mc, bp.getX(), bp.getY(), bp.getZ());
                     // Ghost shows a representative snow depth (real depth is random on place).
-                    K62.draw(vc, base, cam, bp.getX(), bp.getY(), bp.getZ(), rot, scl, sel, sel == 1 ? 0.5f : 0.0f);
+                    K62.draw(vc, base, cam, bp.getX(), bp.getY(), bp.getZ(), rot, sel == 1 ? 1.0f : scl, sel, sel == 1 ? 0.2f : 0.0f);
                 }
             }
         }
@@ -313,7 +316,7 @@ public final class K62 {
     // when the decoration is placed, so no two look the same.
     private static void snow(VertexConsumer vc, Matrix4f m, float h) {
         if (h <= 0.0f) {
-            h = 0.5f;
+            h = 0.2f;
         }
         // slightly inset so neighbouring snow blocks don't z-fight along the seam
         K62.box(vc, m, -0.49f, 0.0f, -0.49f, 0.49f, h, 0.49f, SNOW);
