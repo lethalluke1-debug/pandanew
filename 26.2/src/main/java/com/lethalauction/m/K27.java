@@ -134,12 +134,17 @@ implements HudElement {
         K18.a(g, 0, 0, 250, 94, 12, -435482856, K18.a(color, 0.6f));
         K18.a(g, 0, 14, 3, 56, 1, color);
         K18.a(g, 12, 12, 60, 60, 10, -15722458);
-        if (!K9.u || mc.player == null) {
-            PlayerFaceExtractor.extractRenderState((GuiGraphicsExtractor)g, (PlayerSkin)(mc.player != null ? mc.player.getSkin() : DefaultPlayerSkin.get((GameProfile)mc.getGameProfile())), (int)18, (int)18, (int)48);
-        }
+        // Always render the player's head (the skin-model toggle was removed).
+        PlayerFaceExtractor.extractRenderState((GuiGraphicsExtractor)g, (PlayerSkin)(mc.player != null ? mc.player.getSkin() : DefaultPlayerSkin.get((GameProfile)mc.getGameProfile())), (int)18, (int)18, (int)48);
         K18.a(g, "SESSION PROFIT", 86.0f, 22.0f, 10.5f, -7695450, K18.b);
         String amount = (up ? "+" : "-") + Auctions.a(Math.abs(profit));
         K18.a(g, amount, 86.0f, 46.0f, 22.0f, color, K18.c);
+        // Optional win-streak badge, top-right.
+        if (K9.winStreakOn) {
+            int orange = 0xFFFF8A3D;
+            K18.c(g, "WIN STREAK", 243.0f, 18.0f, 8.0f, K18.a(orange, 0.85f), K18.b);
+            K18.c(g, Integer.toString(K9.winStreak), 243.0f, 34.0f, 16.0f, orange, K18.c);
+        }
         // Detail row: three centred columns - earned (green), spent (red), taxes
         // (yellow) - each with its value on top and a small label underneath.
         int green = -12200829;
@@ -150,23 +155,11 @@ implements HudElement {
         String[] vals = new String[]{"+" + Auctions.a(session[0]), "-" + Auctions.a(session[1]), Auctions.a(taxTotal)};
         String[] labs = new String[]{"Earned", "Spent", "Taxes"};
         int[] cols = new int[]{green, red, yellow};
-        if (K9.hudDetail) {
-            for (int ci = 0; ci < 3; ++ci) {
-                K18.b(g, vals[ci], cx[ci], 62.0f, 10.5f, cols[ci], K18.c);
-                K18.b(g, labs[ci], cx[ci], 78.0f, 7.5f, K18.a(cols[ci], 0.7f), K18.b);
-            }
+        for (int ci = 0; ci < 3; ++ci) {
+            K18.b(g, vals[ci], cx[ci], 62.0f, 10.5f, cols[ci], K18.c);
+            K18.b(g, labs[ci], cx[ci], 78.0f, 7.5f, K18.a(cols[ci], 0.7f), K18.b);
         }
         p.popMatrix();
-        if (K9.u && mc.player != null) {
-            int x0 = Math.round(x + 12.0f * s);
-            int y0 = Math.round(y + 12.0f * s);
-            int x1 = Math.round(x + 72.0f * s);
-            int y1 = Math.round(y + 72.0f * s);
-            int size = Math.max(8, Math.round((float)(y1 - y0) * 0.42f));
-            float lookX = (float)(x0 + x1) / 2.0f + 6.0f * (float)Math.sin(t * 0.8f);
-            float lookY = (float)y0 + (float)(y1 - y0) * 0.3f;
-            InventoryScreen.extractEntityInInventoryFollowsMouse((GuiGraphicsExtractor)g, (int)x0, (int)y0, (int)x1, (int)y1, (int)size, (float)0.0625f, (float)lookX, (float)lookY, (LivingEntity)mc.player);
-        }
     }
 }
 

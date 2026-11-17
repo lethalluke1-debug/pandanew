@@ -237,6 +237,20 @@ implements ClientModInitializer {
         roomPlace = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.room", InputConstants.Type.KEYSYM, 78, CATEGORY));
         fullbright = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.fullbright", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
         ClientSendMessageEvents.ALLOW_COMMAND.register(command -> K35.a(command));
+        // Win streak: typing /win adds one, /lose (or /loss) resets it. Handled
+        // client-side and not sent to the server.
+        ClientSendMessageEvents.ALLOW_COMMAND.register(command -> {
+            String c = command.trim().toLowerCase(java.util.Locale.ROOT);
+            if (c.equals("win")) { K9.winStreak++; K9.b(); return false; }
+            if (c.equals("lose") || c.equals("loss")) { K9.winStreak = 0; K9.b(); return false; }
+            return true;
+        });
+        ClientSendMessageEvents.ALLOW_CHAT.register(message -> {
+            String c = message.trim().toLowerCase(java.util.Locale.ROOT);
+            if (c.equals(".win") || c.equals("!win")) { K9.winStreak++; K9.b(); return false; }
+            if (c.equals(".lose") || c.equals(".loss") || c.equals("!lose")) { K9.winStreak = 0; K9.b(); return false; }
+            return true;
+        });
         ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
             if (!K9.hideSmall || K9.hideSmallStr.isBlank()) {
                 return true;

@@ -1685,9 +1685,11 @@ extends Screen {
         ArrayList<Transactions.C69> shown = new ArrayList<Transactions.C69>();
         long received = 0L;
         long sent = 0L;
+        long taxTotal = 0L;
         for (Transactions.C69 tx : all) {
             if (tx.amount() < min || hideThr > 0L && tx.amount() <= hideThr || aF == 1 && !tx.received() || aF == 2 && tx.received() || !q.isEmpty() && !tx.player().toLowerCase(Locale.ROOT).contains(q)) continue;
             shown.add(tx);
+            taxTotal += tx.tax();
             if (tx.received()) {
                 received += tx.amount();
                 continue;
@@ -1704,11 +1706,11 @@ extends Screen {
         K18.a(g, "Money you got and sent in chat. Set a minimum to only see the big ones.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
         this.a(g, 892, t + 69, 108, 26, "Clear History", -15461606, -13356484, all.isEmpty() ? -9541000 : -789515, all.isEmpty() ? null : Transactions::e);
         int y = t + 110;
-        int cw = 247;
-        String[] labels = new String[]{"RECEIVED", "SENT"};
-        String[] values = new String[]{"+" + Auctions.a(received), "-" + Auctions.a(sent)};
-        int[] colors = new int[]{-12200829, -30107};
-        for (int i = 0; i < 2; ++i) {
+        int cw = 182;
+        String[] labels = new String[]{"RECEIVED", "SENT", "TAXES"};
+        String[] values = new String[]{"+" + Auctions.a(received), "-" + Auctions.a(sent), Auctions.a(taxTotal)};
+        int[] colors = new int[]{-12200829, -30107, 0xFFFFD24A};
+        for (int i = 0; i < 3; ++i) {
             int x = 241 + i * (cw + 12);
             K18.a(g, x, y, cw, 54, 10, cardFill, cardBorder);
             K18.a(g, labels[i], (float)(x + 16), (float)(y + 19), 9.5f, -7568235, K18.b);
@@ -1717,25 +1719,20 @@ extends Screen {
         long[] session = Transactions.d();
         long profit = session[0] - session[1];
         int pc = profit >= 0L ? green : -42401;
-        int sx = 241 + 2 * (cw + 12);
+        int sx = 241 + 3 * (cw + 12);
         K18.a(g, sx, y, cw, 54, 10, cardFill, K18.a(pc, 0.45f));
-        K18.a(g, "SESSION  \u00b7  " + K20.a(System.currentTimeMillis() - Transactions.b()).replace("just now", "started now"), (float)(sx + 16), (float)(y + 19), 9.5f, -7568235, K18.b);
+        K18.a(g, "SESSION", (float)(sx + 16), (float)(y + 19), 9.5f, -7568235, K18.b);
         K18.a(g, (profit >= 0L ? "+" : "-") + Auctions.a(Math.abs(profit)), (float)(sx + 16), (float)(y + 38), 15.0f, pc, K18.c);
-        this.a(g, sx + cw - 70, y + 15, 58, 24, "Reset", this.a(-15395813), -13356484, -789515, Transactions::c);
+        this.a(g, sx + cw - 64, y + 15, 54, 24, "Reset", this.a(-15395813), -13356484, -789515, Transactions::c);
         y += 66;
         this.moneyGraph(g, all, hideThr, 241, y, 765, 118, cardFill, cardBorder);
         y += 130;
         K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
         K18.a(g, "Profit display", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
-        K18.a(g, "Shows this session's profit on screen with your skin. Red when you're down.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
-        K18.a(g, "Details", 586.0f, (float)(y + 25), 11.0f, -3947581, K18.b);
-        this.a(g, 648, y + 25, K9.hudDetail, () -> {
-            K9.hudDetail = !K9.hudDetail;
-            K9.b();
-        });
-        K18.a(g, "Skin", 712.0f, (float)(y + 25), 11.0f, -3947581, K18.b);
-        this.a(g, 760, y + 25, K9.u, () -> {
-            K9.u = !K9.u;
+        K18.a(g, "Shows this session's profit on screen with your head. Red when you're down.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
+        K18.a(g, "Win streak", 640.0f, (float)(y + 25), 11.0f, -3947581, K18.b);
+        this.a(g, 724, y + 25, K9.winStreakOn, () -> {
+            K9.winStreakOn = !K9.winStreakOn;
             K9.b();
         });
         this.a(g, 806, y + 13, 110, 24, "Edit position", this.al, K18.a(this.ak, -16777216, 0.15f), this.am, () -> {
