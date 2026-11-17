@@ -107,7 +107,7 @@ implements HudElement {
     }
 
     public static float a() {
-        return 0.62f * K9.x;
+        return 0.54f * K9.x;
     }
 
     public static float a(int guiWidth) {

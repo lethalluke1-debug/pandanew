@@ -141,7 +141,7 @@ public final class K62 {
         try {
             K62.load();
             Minecraft mc = Minecraft.getInstance();
-            if (mc.player == null || !K37.e()) {
+            if (mc.player == null) {
                 return;
             }
             if (placed.isEmpty() && !editing) {
