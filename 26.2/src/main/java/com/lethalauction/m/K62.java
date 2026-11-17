@@ -40,7 +40,16 @@ public final class K62 {
     public static final String[] NAMES = new String[]{"Christmas Tree", "String Lights", "Bed", "Gift", "Candy Cane", "Snowman"};
     public static int sel = 0;      // which decoration the picker has selected
     public static int rot = 0;      // placement rotation, 0..3 (x90 degrees)
+    public static float scl = 1.0f; // placement scale
     public static boolean editing;  // placing mode: show a ghost at the looked-at block
+
+    public static void scaleUp() {
+        scl = Math.min(3.0f, Math.round((scl + 0.25f) * 100.0f) / 100.0f);
+    }
+
+    public static void scaleDown() {
+        scl = Math.max(0.25f, Math.round((scl - 0.25f) * 100.0f) / 100.0f);
+    }
 
     private K62() {
     }
@@ -110,6 +119,7 @@ public final class K62 {
         p.y = bp.getY();
         p.z = bp.getZ();
         p.r = rot;
+        p.s = scl;
         placed.add(p);
         K62.save();
     }
@@ -128,12 +138,12 @@ public final class K62 {
             VertexConsumer vc = buf.a(RenderTypes.entityCutoutCull(K10.a));
             Matrix4f base = ctx.poseStack().last().pose();
             for (C101 p : placed) {
-                K62.draw(vc, base, cam, p.x, p.y, p.z, p.r, p.t);
+                K62.draw(vc, base, cam, p.x, p.y, p.z, p.r, p.s <= 0.0f ? 1.0f : p.s, p.t);
             }
             if (editing) {
                 BlockPos bp = K62.target(mc);
                 if (bp != null) {
-                    K62.draw(vc, base, cam, bp.getX(), bp.getY(), bp.getZ(), rot, sel);
+                    K62.draw(vc, base, cam, bp.getX(), bp.getY(), bp.getZ(), rot, scl, sel);
                 }
             }
         }
@@ -150,11 +160,14 @@ public final class K62 {
         }
     }
 
-    private static void draw(VertexConsumer vc, Matrix4fc base, Vec3 cam, int bx, int by, int bz, int r, int type) {
+    private static void draw(VertexConsumer vc, Matrix4fc base, Vec3 cam, int bx, int by, int bz, int r, float s, int type) {
         Matrix4f m = new Matrix4f(base);
         m.translate((float)((double)bx + 0.5 - cam.x), (float)((double)by - cam.y), (float)((double)bz + 0.5 - cam.z));
         if (r != 0) {
             m.rotateY((float)Math.toRadians(r * 90));
+        }
+        if (s != 1.0f) {
+            m.scale(s);
         }
         switch (type) {
             case 0: K62.tree(vc, m); break;
@@ -180,11 +193,24 @@ public final class K62 {
     // Decoration parts either overlap deeply (so no thin near-coincident faces
     // z-fight) or stand clearly proud of the surface. Nothing is buried flush.
     private static void tree(VertexConsumer vc, Matrix4f m) {
-        K62.box(vc, m, -0.09f, 0.0f, -0.09f, 0.09f, 0.26f, 0.09f, BROWN);
-        K62.box(vc, m, -0.38f, 0.18f, -0.38f, 0.38f, 0.54f, 0.38f, GREEN);
-        K62.box(vc, m, -0.27f, 0.46f, -0.27f, 0.27f, 0.80f, 0.27f, GREEN);
-        K62.box(vc, m, -0.16f, 0.72f, -0.16f, 0.16f, 1.02f, 0.16f, GREEN);
-        K62.box(vc, m, -0.09f, 0.96f, -0.09f, 0.09f, 1.14f, 0.09f, GOLD);
+        // trunk
+        K62.box(vc, m, -0.08f, 0.0f, -0.08f, 0.08f, 0.18f, 0.08f, BROWN);
+        // four tiers with a gentle taper and deep overlaps
+        K62.box(vc, m, -0.40f, 0.12f, -0.40f, 0.40f, 0.42f, 0.40f, GREEN);
+        K62.box(vc, m, -0.32f, 0.36f, -0.32f, 0.32f, 0.64f, 0.32f, GREEN);
+        K62.box(vc, m, -0.23f, 0.58f, -0.23f, 0.23f, 0.84f, 0.23f, GREEN);
+        K62.box(vc, m, -0.14f, 0.78f, -0.14f, 0.14f, 1.02f, 0.14f, GREEN);
+        // star topper: two crossed slabs + a core
+        K62.box(vc, m, -0.03f, 1.00f, -0.12f, 0.03f, 1.20f, 0.12f, GOLD);
+        K62.box(vc, m, -0.12f, 1.00f, -0.03f, 0.12f, 1.20f, 0.03f, GOLD);
+        K62.box(vc, m, -0.06f, 1.03f, -0.06f, 0.06f, 1.17f, 0.06f, GOLD);
+        // ornaments straddling the tier faces (poke out, deep intersection, no coincident faces)
+        K62.box(vc, m, 0.36f, 0.24f, -0.05f, 0.46f, 0.34f, 0.05f, RED);
+        K62.box(vc, m, -0.46f, 0.20f, 0.10f, -0.36f, 0.30f, 0.20f, BLUE);
+        K62.box(vc, m, 0.05f, 0.28f, 0.36f, 0.15f, 0.38f, 0.46f, GOLD);
+        K62.box(vc, m, -0.16f, 0.46f, -0.42f, -0.06f, 0.56f, -0.32f, RED);
+        K62.box(vc, m, 0.26f, 0.48f, 0.18f, 0.36f, 0.58f, 0.28f, BLUE);
+        K62.box(vc, m, -0.08f, 0.70f, 0.20f, 0.02f, 0.80f, 0.30f, GOLD);
     }
 
     private static void lights(VertexConsumer vc, Matrix4f m) {
@@ -310,6 +336,7 @@ public final class K62 {
         public int y;
         public int z;
         public int r;
+        public float s = 1.0f;
 
         public C101() {
         }

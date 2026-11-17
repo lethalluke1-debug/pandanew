@@ -3676,6 +3676,16 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
         }
         int rows = (K62.NAMES.length + cols - 1) / cols;
         y += rows * (ch + gap) + 4;
+        K18.a(g, 241, y, 765, 46, 10, cardFill, cardBorder);
+        K18.a(g, "Size", 257.0f, (float)(y + 27), 12.5f, -789515, K18.c);
+        this.a(g, 724, y + 11, 48, 24, "–", this.a(-15395813), -13356484, -3947581, () -> {
+            K62.scaleDown();
+        });
+        K18.b(g, String.format("%.2fx", Float.valueOf(K62.scl)), 843.0f, (float)(y + 27), 13.0f, -789515, K18.c);
+        this.a(g, 914, y + 11, 48, 24, "+", this.a(-15395813), -13356484, -3947581, () -> {
+            K62.scaleUp();
+        });
+        y += 56;
         this.a(g, 241, y, 250, 28, "Rotate", this.a(-15395813), -13356484, -3947581, () -> {
             K62.rotate();
         });
