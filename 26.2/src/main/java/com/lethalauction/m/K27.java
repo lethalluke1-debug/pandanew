@@ -18,6 +18,10 @@ package com.lethalauction.m;
 
 import com.lethalauction.auction.Auctions;
 import com.lethalauction.auction.Transactions;
+import com.lethalauction.mixin.TabOverlayAccessor;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import com.lethalauction.m.K18;
 import com.lethalauction.m.K19;
 import com.lethalauction.m.K24;
@@ -115,6 +119,37 @@ implements HudElement {
         flashAt = System.currentTimeMillis();
     }
 
+    // DonutSMP balance, read from the tab list (player entry / footer / header).
+    private static final Pattern BAL = Pattern.compile("\\$\\s*([0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbtKMBT]?)");
+    private static long balAt = 0L;
+    private static String balStr = "";
+
+    private static String balIn(String s) {
+        if (s == null) return null;
+        Matcher m = BAL.matcher(s);
+        if (m.find()) return "$" + m.group(1).replace(" ", "").toUpperCase(java.util.Locale.ROOT);
+        return null;
+    }
+
+    private static String balance(Minecraft mc) {
+        long now = System.currentTimeMillis();
+        if (now - balAt < 500L) return balStr;
+        balAt = now;
+        try {
+            if (mc.getConnection() != null && mc.player != null) {
+                String b;
+                PlayerInfo info = mc.getConnection().getPlayerInfo(mc.player.getUUID());
+                if (info != null && info.getTabListDisplayName() != null && (b = balIn(info.getTabListDisplayName().getString())) != null) { balStr = b; return b; }
+                TabOverlayAccessor tab = (TabOverlayAccessor)mc.gui.hud.getTabList();
+                if (tab.lethalauction$footer() != null && (b = balIn(tab.lethalauction$footer().getString())) != null) { balStr = b; return b; }
+                if (tab.lethalauction$header() != null && (b = balIn(tab.lethalauction$header().getString())) != null) { balStr = b; return b; }
+            }
+        } catch (Throwable t) {
+            // ignore
+        }
+        return balStr;
+    }
+
     public static float a() {
         return 0.54f * K9.x;
     }
@@ -165,6 +200,13 @@ implements HudElement {
             }
         }
         // Earned / Spent / Taxes details live in the Transactions tab, not here.
+        // Bottom-right: your current DonutSMP money, read from the tab list.
+        String bal = K27.balance(mc);
+        if (bal != null && !bal.isEmpty()) {
+            int money = -12200829;
+            K18.c(g, "balance", 243.0f, 62.0f, 7.5f, -9735291, K18.c);
+            K18.c(g, bal, 243.0f, 76.0f, 13.0f, money, K18.c);
+        }
         p.popMatrix();
     }
 }
