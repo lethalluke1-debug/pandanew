@@ -238,24 +238,25 @@ public final class K62 {
         K62.box(vc, m, -0.03f, 1.28f, -0.13f, 0.03f, 1.50f, 0.13f, GOLD);
         K62.box(vc, m, -0.13f, 1.28f, -0.03f, 0.13f, 1.50f, 0.03f, GOLD);
         K62.box(vc, m, -0.07f, 1.31f, -0.07f, 0.07f, 1.47f, 0.07f, GOLD);
-        // ornaments: each straddles one tier face by ~0.06 (pokes out, anchored
-        // inside) so no face is near-coplanar with the branch -> no z-fighting.
-        K62.box(vc, m, 0.38f, 0.42f, -0.06f, 0.50f, 0.54f, 0.06f, RED);
-        K62.box(vc, m, -0.06f, 0.44f, -0.50f, 0.06f, 0.56f, -0.38f, BLUE);
-        K62.box(vc, m, -0.06f, 0.60f, 0.31f, 0.06f, 0.72f, 0.43f, GOLD);
-        K62.box(vc, m, -0.43f, 0.64f, 0.10f, -0.31f, 0.76f, 0.22f, RED);
-        K62.box(vc, m, 0.23f, 0.80f, -0.06f, 0.35f, 0.92f, 0.06f, BLUE);
-        K62.box(vc, m, 0.10f, 0.84f, -0.35f, 0.22f, 0.96f, -0.23f, GOLD);
-        // flashing string lights (twinkle over time), same straddle rule
-        K62.box(vc, m, 0.14f, 0.50f, 0.38f, 0.22f, 0.56f, 0.50f, K62.twinkle(0));
-        K62.box(vc, m, -0.50f, 0.46f, -0.20f, -0.38f, 0.52f, -0.14f, K62.twinkle(1));
-        K62.box(vc, m, 0.38f, 0.54f, 0.14f, 0.50f, 0.60f, 0.20f, K62.twinkle(2));
-        K62.box(vc, m, 0.31f, 0.62f, -0.20f, 0.43f, 0.68f, -0.14f, K62.twinkle(3));
-        K62.box(vc, m, -0.18f, 0.68f, -0.43f, -0.12f, 0.74f, -0.31f, K62.twinkle(4));
-        K62.box(vc, m, 0.14f, 0.72f, 0.31f, 0.20f, 0.78f, 0.43f, K62.twinkle(5));
-        K62.box(vc, m, -0.35f, 0.80f, 0.06f, -0.23f, 0.86f, 0.12f, K62.twinkle(6));
-        K62.box(vc, m, 0.23f, 0.86f, -0.14f, 0.35f, 0.92f, -0.08f, K62.twinkle(7));
-        K62.box(vc, m, -0.04f, 0.98f, 0.15f, 0.04f, 1.04f, 0.27f, K62.twinkle(8));
+        // ornaments: float ~0.02 OUTSIDE the branch face (no intersection, so no
+        // z-fighting line). Culling hides each one's inward face, so they still
+        // read as sitting on the tree.
+        K62.box(vc, m, 0.46f, 0.42f, -0.06f, 0.56f, 0.54f, 0.06f, RED);
+        K62.box(vc, m, -0.06f, 0.44f, -0.56f, 0.06f, 0.56f, -0.46f, BLUE);
+        K62.box(vc, m, -0.06f, 0.60f, 0.39f, 0.06f, 0.72f, 0.49f, GOLD);
+        K62.box(vc, m, -0.49f, 0.64f, 0.10f, -0.39f, 0.76f, 0.22f, RED);
+        K62.box(vc, m, 0.31f, 0.80f, -0.06f, 0.41f, 0.92f, 0.06f, BLUE);
+        K62.box(vc, m, 0.10f, 0.84f, -0.41f, 0.22f, 0.96f, -0.31f, GOLD);
+        // flashing string lights (twinkle over time), also floating just outside
+        K62.box(vc, m, 0.14f, 0.50f, 0.46f, 0.22f, 0.56f, 0.54f, K62.twinkle(0));
+        K62.box(vc, m, -0.54f, 0.46f, -0.20f, -0.46f, 0.52f, -0.14f, K62.twinkle(1));
+        K62.box(vc, m, 0.46f, 0.54f, 0.14f, 0.54f, 0.60f, 0.20f, K62.twinkle(2));
+        K62.box(vc, m, 0.39f, 0.62f, -0.20f, 0.47f, 0.68f, -0.14f, K62.twinkle(3));
+        K62.box(vc, m, -0.18f, 0.68f, -0.47f, -0.12f, 0.74f, -0.39f, K62.twinkle(4));
+        K62.box(vc, m, 0.14f, 0.72f, 0.39f, 0.20f, 0.78f, 0.47f, K62.twinkle(5));
+        K62.box(vc, m, -0.41f, 0.80f, 0.06f, -0.31f, 0.86f, 0.12f, K62.twinkle(6));
+        K62.box(vc, m, 0.31f, 0.86f, -0.14f, 0.39f, 0.92f, -0.08f, K62.twinkle(7));
+        K62.box(vc, m, -0.04f, 0.98f, 0.23f, 0.04f, 1.04f, 0.31f, K62.twinkle(8));
     }
 
     // Twinkling Christmas-light colour: cycles bright hues with a per-bulb phase.
