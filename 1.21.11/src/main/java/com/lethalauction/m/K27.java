@@ -119,6 +119,30 @@ implements HudElement {
         flashAt = System.currentTimeMillis();
     }
 
+    // The real skin can be a default placeholder right after launch while it
+    // loads; a SkinManager lookup drives the load and reflects the real skin.
+    private static java.util.function.Supplier<class_8685> skinLookup;
+    private static java.util.UUID skinFor;
+
+    private static class_8685 head(class_310 mc) {
+        try {
+            if (mc.field_1724 != null) {
+                if (skinLookup == null || !mc.field_1724.method_5667().equals(skinFor)) {
+                    skinFor = mc.field_1724.method_5667();
+                    skinLookup = mc.method_1582().method_73544(mc.method_53462(), false);
+                }
+                class_8685 sk = skinLookup.get();
+                if (sk != null) {
+                    return sk;
+                }
+                return mc.field_1724.method_52814();
+            }
+        } catch (Throwable t) {
+            // ignore
+        }
+        return mc.field_1724 != null ? mc.field_1724.method_52814() : class_1068.method_52854((GameProfile)mc.method_53462());
+    }
+
     // DonutSMP balance, read from the tab list (player entry / footer / header).
     private static final Pattern BAL = Pattern.compile("\\$\\s*([0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbtKMBT]?)");
     private static long balAt = 0L;
@@ -179,7 +203,7 @@ implements HudElement {
         K18.a(g, 0, 14, 3, 56, 1, color);
         K18.a(g, 12, 12, 60, 60, 10, -15722458);
         // Always render the player's head (the skin-model toggle was removed).
-        class_7532.method_52722((class_332)g, (class_8685)(mc.field_1724 != null ? mc.field_1724.method_52814() : class_1068.method_52854((GameProfile)mc.method_53462())), (int)18, (int)18, (int)48);
+        class_7532.method_52722((class_332)g, (class_8685)K27.head(mc), (int)18, (int)18, (int)48);
         K18.a(g, "SESSION PROFIT", 86.0f, 22.0f, 10.5f, -7695450, K18.b);
         String amount = (up ? "+" : "-") + Auctions.a(Math.abs(profit));
         K18.a(g, amount, 86.0f, 46.0f, 22.0f, color, K18.c);

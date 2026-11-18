@@ -119,6 +119,31 @@ implements HudElement {
         flashAt = System.currentTimeMillis();
     }
 
+    // The player's real skin can be a default placeholder right after launch
+    // while it loads. A SkinManager lookup actively drives the load and reflects
+    // the real skin once it arrives, so the head stops showing Steve/Alex.
+    private static java.util.function.Supplier<PlayerSkin> skinLookup;
+    private static java.util.UUID skinFor;
+
+    private static PlayerSkin head(Minecraft mc) {
+        try {
+            if (mc.player != null) {
+                if (skinLookup == null || !mc.player.getUUID().equals(skinFor)) {
+                    skinFor = mc.player.getUUID();
+                    skinLookup = mc.getSkinManager().createLookup(mc.player.getGameProfile(), false);
+                }
+                PlayerSkin sk = skinLookup.get();
+                if (sk != null) {
+                    return sk;
+                }
+                return mc.player.getSkin();
+            }
+        } catch (Throwable t) {
+            // ignore
+        }
+        return mc.player != null ? mc.player.getSkin() : DefaultPlayerSkin.get(mc.getGameProfile());
+    }
+
     // DonutSMP balance, read from the tab list (player entry / footer / header).
     private static final Pattern BAL = Pattern.compile("\\$\\s*([0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbtKMBT]?)");
     private static long balAt = 0L;
@@ -179,7 +204,7 @@ implements HudElement {
         K18.a(g, 0, 14, 3, 56, 1, color);
         K18.a(g, 12, 12, 60, 60, 10, -15722458);
         // Always render the player's head (the skin-model toggle was removed).
-        PlayerFaceExtractor.extractRenderState((GuiGraphicsExtractor)g, (PlayerSkin)(mc.player != null ? mc.player.getSkin() : DefaultPlayerSkin.get((GameProfile)mc.getGameProfile())), (int)18, (int)18, (int)48);
+        PlayerFaceExtractor.extractRenderState((GuiGraphicsExtractor)g, (PlayerSkin)K27.head(mc), (int)18, (int)18, (int)48);
         K18.a(g, "SESSION PROFIT", 86.0f, 22.0f, 10.5f, -7695450, K18.b);
         String amount = (up ? "+" : "-") + Auctions.a(Math.abs(profit));
         K18.a(g, amount, 86.0f, 46.0f, 22.0f, color, K18.c);
