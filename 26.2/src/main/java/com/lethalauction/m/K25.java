@@ -90,7 +90,8 @@ implements HudElement {
 
     public void extractRenderState(GuiGraphicsExtractor g, DeltaTracker deltaTracker) {
         if (Minecraft.getInstance().gui.screen() == null) {
-            K25.a(g);
+            // The now-playing card lives only in the menu; in-game shows just the
+            // top lyrics ticker.
             K25.ticker(g);
         }
     }
