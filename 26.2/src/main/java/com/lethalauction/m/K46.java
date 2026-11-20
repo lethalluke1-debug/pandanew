@@ -26,10 +26,18 @@ public final class K46 {
     private K46() {
     }
 
+    private static boolean lastOn;
+    private static boolean logged;
+
     public static void a(Minecraft mc) {
         long now;
         boolean on;
         boolean bl = on = K9.U && K37.b() && K48.a();
+        if (on != lastOn || !logged) {
+            lastOn = on;
+            logged = true;
+            K43.a("gate: on=" + on + " (U=" + K9.U + " licenseB=" + K37.b() + ")");
+        }
         if (on && !a) {
             K48.c();
             a = true;

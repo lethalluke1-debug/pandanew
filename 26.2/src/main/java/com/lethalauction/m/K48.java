@@ -52,6 +52,7 @@ public final class K48 {
             return;
         }
         c = true;
+        K43.a("start() called, WIN=" + WIN);
         if (WIN) {
             Thread sp = new Thread(K48::h, "Lethal now-playing");
             sp.setDaemon(true);
@@ -141,22 +142,30 @@ public final class K48 {
 
     private static void h() {
         try {
+            K43.a("reader: launching powershell");
             Process p = new ProcessBuilder("powershell", "-NoProfile", "-NonInteractive", "-Command", "-").redirectErrorStream(true).start();
             d = p;
             java.io.OutputStream os = p.getOutputStream();
             os.write(PS.getBytes(StandardCharsets.UTF_8));
             os.flush();
             os.close();
+            K43.a("reader: powershell started, waiting for output");
+            int n = 0;
             try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8));) {
                 String line;
                 while (c && (line = r.readLine()) != null) {
                     if (!line.isEmpty()) {
+                        if (n++ < 20) {
+                            K43.a("ps> " + line);
+                        }
                         K48.a(line);
                     }
                 }
             }
+            K43.a("reader: powershell stream ended (lines=" + n + ")");
         } catch (Exception ex) {
             d = null;
+            K43.a("reader: powershell error: " + ex);
         }
     }
 
