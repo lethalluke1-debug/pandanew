@@ -91,7 +91,111 @@ implements HudElement {
     public void extractRenderState(GuiGraphicsExtractor g, DeltaTracker deltaTracker) {
         if (Minecraft.getInstance().gui.screen() == null) {
             K25.a(g);
+            K25.ticker(g);
         }
+    }
+
+    // Top-centre karaoke lyrics ticker (like the reference video): time, mini
+    // album art, the current line with sung words lit up, and an equalizer.
+    private static int tLine = -1;
+    private static long tAt = 0L;
+
+    private static String mmss(long ms) {
+        if (ms < 0L) ms = 0L;
+        long s = ms / 1000L;
+        return s / 60L + ":" + String.format("%02d", s % 60L);
+    }
+
+    public static void ticker(GuiGraphicsExtractor g) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null || !K9.U || mc.gui.hud.isHidden() || !K37.c()) {
+            return;
+        }
+        if (!K47.d() || !K47.j() || !K47.c().a()) {
+            return;
+        }
+        long pos = K47.c().b() + (long)K9.aB - 200L;
+        int line = K47.a(pos);
+        if (line < 0) {
+            return;
+        }
+        String text = K47.a(line);
+        if (text == null || text.isBlank()) {
+            return;
+        }
+        String[] ws = K44.a(text);
+        if (ws.length == 0) {
+            return;
+        }
+        if (line != tLine) {
+            tLine = line;
+            tAt = System.currentTimeMillis();
+        }
+        long now = System.currentTimeMillis();
+        float appear = Math.min(1.0f, (float)(now - tAt) / 260.0f);
+        float ease = 1.0f - (float)Math.pow(1.0f - appear, 3.0);
+        K44 timing = K44.a(K47.k());
+        long lstart = K47.b(line);
+        long lend = K47.b(line + 1);
+        if (lend <= lstart) {
+            lend = lstart + 3000L;
+        }
+        int accent = K47.c().c().color == 0 ? -11695105 : K47.c().c().color;
+        float fs = 9.0f;
+        float space = K18.a(" ", fs, K18.b);
+        float[] ww = new float[ws.length];
+        float lineW = 0.0f;
+        for (int i = 0; i < ws.length; ++i) {
+            ww[i] = K18.a(ws[i], fs, K18.b);
+            lineW += ww[i] + (i < ws.length - 1 ? space : 0.0f);
+        }
+        String time = K25.mmss(pos);
+        float timeW = K18.a(time, 8.0f, K18.b);
+        int art = 16;
+        int eq = 18;
+        int pad = 11;
+        int gap = 8;
+        float contentW = timeW + (float)gap + (float)art + (float)gap + lineW + (float)gap + (float)eq;
+        float pw = contentW + (float)(pad * 2);
+        float ph = 24.0f;
+        float cx = (float)g.guiWidth() / 2.0f;
+        float x0 = cx - pw / 2.0f;
+        float y0 = 6.0f + (1.0f - ease) * -6.0f;
+        float cyl = y0 + ph / 2.0f;
+        float prevA = K18.h;
+        K18.h = prevA * ease;
+        // pill
+        K18.a(g, Math.round(x0), Math.round(y0), Math.round(pw), Math.round(ph), 11, -872415232, K18.a(accent, 0.35f));
+        float x = x0 + (float)pad;
+        K18.a(g, time, x, cyl, 8.0f, -5197648, K18.b);
+        x += timeW + (float)gap;
+        // mini album art
+        int ay = Math.round(y0 + (ph - (float)art) / 2.0f);
+        Identifier a = K47.n();
+        if (a != null) {
+            K18.a(g, a, Math.round(x), ay, art, art, Math.max(1, K47.o()), Math.max(1, K47.p()));
+        } else {
+            K18.a(g, Math.round(x), ay, art, art, 5, accent);
+        }
+        x += (float)art + (float)gap;
+        // karaoke words
+        for (int i = 0; i < ws.length; ++i) {
+            long wt = timing != null && line < timing.a.length && i < timing.a[line].length ? timing.a[line][i] : lstart + (long)((float)i / (float)ws.length * (float)(lend - lstart));
+            long wnext = timing != null && line < timing.a.length && i + 1 < timing.a[line].length ? timing.a[line][i + 1] : wt + 400L;
+            boolean sung = pos >= wt;
+            boolean active = pos >= wt && pos < wnext;
+            int col = active ? accent : (sung ? -1 : -8092540);
+            K18.a(g, ws[i], x, cyl, fs, col, K18.b);
+            x += ww[i] + space;
+        }
+        // equalizer
+        float ex = x0 + pw - (float)pad - (float)eq;
+        for (int i = 0; i < 4; ++i) {
+            float phase = (float)(now % 1000L) / 1000.0f * 6.2832f + (float)i * 1.3f;
+            int bh = Math.round(3.0f + 7.0f * (0.5f + 0.5f * (float)Math.sin(phase)));
+            K18.a(g, Math.round(ex + (float)(i * 4)), Math.round(cyl + 5.0f - (float)bh), 2, bh, accent);
+        }
+        K18.h = prevA;
     }
 
     public static void a(GuiGraphicsExtractor g) {
