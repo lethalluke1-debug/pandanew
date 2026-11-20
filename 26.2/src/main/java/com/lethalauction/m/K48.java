@@ -126,8 +126,8 @@ public final class K48 {
         "$mgr = Await ($tm::RequestAsync()) $tm\n" +
         "while ($true) {\n" +
         "  try {\n" +
-        "    $s = $null\n" +
-        "    foreach ($x in $mgr.GetSessions()) { if ($x.SourceAppUserModelId -like '*Spotify*') { $s = $x; break } }\n" +
+        "    $s = $mgr.GetCurrentSession()\n" +
+        "    try { foreach ($x in $mgr.GetSessions()) { if ($x.SourceAppUserModelId -like '*Spotify*') { $s = $x; break } } } catch { }\n" +
         "    if ($s) {\n" +
         "      $p = Await ($s.TryGetMediaPropertiesAsync()) $tp\n" +
         "      $pb = $s.GetPlaybackInfo()\n" +
@@ -136,7 +136,7 @@ public final class K48 {
         "      $o = [ordered]@{ app=[string]$s.SourceAppUserModelId; title=[string]$p.Title; artist=[string]$p.Artist; status=$st; pos=[long]$tl.Position.TotalMilliseconds; dur=[long]$tl.EndTime.TotalMilliseconds; art=''; t=[long]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()) }\n" +
         "      [Console]::Out.WriteLine(($o | ConvertTo-Json -Compress)); [Console]::Out.Flush()\n" +
         "    }\n" +
-        "  } catch { }\n" +
+        "  } catch { [Console]::Out.WriteLine('ERR ' + $_.ToString()); [Console]::Out.Flush() }\n" +
         "  Start-Sleep -Milliseconds 1000\n" +
         "}\n";
 
