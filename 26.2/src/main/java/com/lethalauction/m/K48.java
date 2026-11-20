@@ -92,7 +92,8 @@ public final class K48 {
             "[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager,Windows.Media.Control,ContentType=WindowsRuntime] | Out-Null\n" +
             "$tm = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]\n" +
             "$mgr = Await ($tm::RequestAsync()) $tm\n" +
-            "$s = $mgr.GetCurrentSession()\n" +
+            "$s = $null\n" +
+            "foreach ($x in $mgr.GetSessions()) { if ($x.SourceAppUserModelId -like '*Spotify*') { $s = $x; break } }\n" +
             "if ($s) { Await (" + call + ") ([bool]) | Out-Null }\n";
         Thread th = new Thread(() -> {
             try {
@@ -124,7 +125,8 @@ public final class K48 {
         "$mgr = Await ($tm::RequestAsync()) $tm\n" +
         "while ($true) {\n" +
         "  try {\n" +
-        "    $s = $mgr.GetCurrentSession()\n" +
+        "    $s = $null\n" +
+        "    foreach ($x in $mgr.GetSessions()) { if ($x.SourceAppUserModelId -like '*Spotify*') { $s = $x; break } }\n" +
         "    if ($s) {\n" +
         "      $p = Await ($s.TryGetMediaPropertiesAsync()) $tp\n" +
         "      $pb = $s.GetPlaybackInfo()\n" +
