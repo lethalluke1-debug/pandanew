@@ -218,7 +218,7 @@ public final class K9 {
             S = Boolean.parseBoolean(p.getProperty("zoomSound", "true"));
             T = Boolean.parseBoolean(p.getProperty("fullbright", "false"));
             seeThroughGui = Boolean.parseBoolean(p.getProperty("seeThroughGui", "false"));
-            U = false;
+            U = Boolean.parseBoolean(p.getProperty("musicEnabled", "false"));
             font = p.getProperty("uiFont", "");
             V = Boolean.parseBoolean(p.getProperty("musicHud", "true"));
             Z = Boolean.parseBoolean(p.getProperty("headphones", "true"));
