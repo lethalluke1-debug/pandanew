@@ -445,9 +445,8 @@ extends Screen {
         // card background
         K18.a(g, x0 - 2, y0 - 2, w + 4, h + 4, 16, K18.a(this.ak, 0.16f));
         K18.a(g, x0, y0, w, h, 14, panel, K18.a(this.ak, 0.35f));
-        // header: source dot + labels
-        int srcCol = has ? t.c().color : green;
-        K18.a(g, (float)(x0 + 24), (float)(y0 + 24), 8.0f, srcCol);
+        // header: source dot + labels (dot uses the selected theme accent)
+        K18.a(g, (float)(x0 + 24), (float)(y0 + 24), 8.0f, this.ak);
         K18.a(g, has ? t.c().label : "Spotify", (float)(x0 + 40), (float)(y0 + 18), 11.5f, -789515, K18.c);
         K18.a(g, has && t.f() ? "Now playing" : "Paused", (float)(x0 + 40), (float)(y0 + 33), 8.5f, dim, K18.a);
         // album art
@@ -471,35 +470,40 @@ extends Screen {
         float frac = dur > 0L ? Math.max(0.0f, Math.min(1.0f, (float)pos / (float)dur)) : 0.0f;
         int by = iy + 40;
         K18.a(g, x0 + 18, by, w - 36, 4, 2, -14013910);
-        K18.a(g, x0 + 18, by, Math.max(2, Math.round((float)(w - 36) * frac)), 4, 2, this.ak);
+        if (frac > 0.0f) {
+            K18.a(g, x0 + 18, by, Math.round((float)(w - 36) * frac), 4, 2, this.ak);
+        }
         K18.a(g, K20.mmss(pos), (float)(x0 + 18), (float)(by + 14), 8.5f, dim, K18.a);
         K18.a(g, K20.mmss(dur), (float)(x0 + w - 18), (float)(by + 14), 8.5f, dim, K18.c);
-        // controls: prev / play-pause / next
+        // controls: prev / play-pause / next (clickable)
         int cy = by + 42;
         float cxm = (float)(x0 + w / 2);
-        K20.playTri(g, cxm - 46.0f, (float)cy, 8.0f, -789515, true);
+        K20.playTri(g, cxm - 46.0f, (float)cy, 8.0f, -789515, false);
         K18.a(g, cxm, (float)cy, 17.0f, -789515);
         if (has && t.f()) {
             K18.a(g, Math.round(cxm - 4.0f), cy - 6, 3, 12, -16777216);
             K18.a(g, Math.round(cxm + 1.0f), cy - 6, 3, 12, -16777216);
         } else {
-            K20.playTri(g, cxm + 1.0f, (float)cy, 9.0f, -16777216, false);
+            K20.playTri(g, cxm + 1.0f, (float)cy, 9.0f, -16777216, true);
         }
-        K20.playTri(g, cxm + 46.0f, (float)cy, 8.0f, -789515, false);
+        K20.playTri(g, cxm + 46.0f, (float)cy, 8.0f, -789515, true);
+        this.a(Math.round(cxm - 56.0f), cy - 11, 22, 22, () -> com.lethalauction.m.K48.control("prev"));
+        this.a(Math.round(cxm - 17.0f), cy - 17, 34, 34, () -> com.lethalauction.m.K48.control("play"));
+        this.a(Math.round(cxm + 34.0f), cy - 11, 22, 22, () -> com.lethalauction.m.K48.control("next"));
         // synced-lyrics indicator
         int ly = cy + 40;
         boolean lyr = com.lethalauction.m.K47.j();
-        K18.a(g, (float)(x0 + 24), (float)ly, 4.0f, lyr ? green : dim);
+        K18.a(g, (float)(x0 + 24), (float)ly, 4.0f, lyr ? this.ak : dim);
         K18.a(g, lyr ? "Synced lyrics" : "No lyrics found", (float)(x0 + 34), (float)(ly - 4), 10.0f, lyr ? -789515 : dim, K18.b);
         // footer
         K18.b(g, "Lyrics: LRCLIB", cxm, (float)(y0 + h - 18), 8.5f, -9735291, K18.b);
     }
 
-    // A small filled triangle (play / skip arrow) pointing right (fwd) or left.
-    private static void playTri(GuiGraphicsExtractor g, float cx, float cy, float s, int col, boolean small) {
+    // A small filled triangle pointing right (forward) or left (back).
+    private static void playTri(GuiGraphicsExtractor g, float cx, float cy, float s, int col, boolean right) {
         int n = Math.round(s);
         for (int i = 0; i < n; ++i) {
-            int hh = Math.max(1, (n - i) * 2);
+            int hh = Math.max(1, (right ? (n - i) : (i + 1)) * 2);
             K18.a(g, Math.round(cx - s / 2.0f + (float)i), Math.round(cy - (float)hh / 2.0f), 1, hh, col);
         }
     }
@@ -2011,18 +2015,47 @@ extends Screen {
         int cardBorder = this.a(-14804444, 0.12f);
         K18.a(g, 60156, 253.0f, (float)(t + 80), 17.0f, head);
         K18.a(g, "Music", 272.0f, (float)(t + 77), 13.0f, -789515, K18.c);
-        K18.a(g, "Shows the song you're playing on a card you can move. Locked for now.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
-        K9.U = false;
-        K9.V = false;
-        K9.Z = false;
+        K18.a(g, "Show your Spotify / system song with synced lyrics and a top ticker.", 272.0f, (float)(t + 94), 10.5f, -5001030, K18.a);
+        if (K9.U) {
+            com.lethalauction.m.K48.c();
+        }
         int y = t + 116;
-        int cardH = 150;
-        K18.a(g, 241, y, 765, cardH, 12, cardFill, cardBorder);
-        float cx = 623.5f;
-        K18.b(g, K22.a(60130), cx, (float)(y + 56), 30.0f, -6710887, K22.a);
-        K18.b(g, "Locked", cx, (float)(y + 94), 15.0f, -789515, K18.c);
-        K18.b(g, "Coming in the next update", cx, (float)(y + 116), 11.0f, -7568235, K18.b);
-        return y + cardH + 6;
+        // Enable music
+        K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
+        K18.a(g, "Enable music", 257.0f, (float)(y + 20), 12.5f, -789515, K18.c);
+        K18.a(g, "Reads your current Windows now-playing (Spotify, Apple Music, etc.).", 257.0f, (float)(y + 37), 10.0f, -5001030, K18.a);
+        this.a(g, 962, y + 25, K9.U, () -> {
+            K9.U = !K9.U;
+            if (K9.U) {
+                com.lethalauction.m.K48.c();
+            }
+            K9.b();
+        });
+        y += 62;
+        // Sky lyrics
+        K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
+        K18.a(g, "Sky lyrics", 257.0f, (float)(y + 20), 12.5f, -789515, K18.c);
+        K18.a(g, "Float the lyric words out into the world around you.", 257.0f, (float)(y + 37), 10.0f, -5001030, K18.a);
+        this.a(g, 962, y + 25, K9.ay, () -> {
+            K9.ay = !K9.ay;
+            K9.b();
+        });
+        y += 62;
+        // Lyrics timing offset
+        K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
+        K18.a(g, "Lyrics timing", 257.0f, (float)(y + 20), 12.5f, -789515, K18.c);
+        K18.a(g, "Nudge the lyrics earlier (-) or later (+) to match your audio.", 257.0f, (float)(y + 37), 10.0f, -5001030, K18.a);
+        this.a(g, 858, y + 13, 40, 24, "-", this.a(-15395813), -13356484, -3947581, () -> {
+            K9.aB -= 100;
+            K9.b();
+        });
+        K18.b(g, (K9.aB > 0 ? "+" : "") + K9.aB + "ms", 930.0f, (float)(y + 27), 12.0f, -789515, K18.c);
+        this.a(g, 962, y + 13, 40, 24, "+", this.a(-15395813), -13356484, -3947581, () -> {
+            K9.aB += 100;
+            K9.b();
+        });
+        y += 62;
+        return y + 6;
     }
 
     private int k(GuiGraphicsExtractor g, int t) {

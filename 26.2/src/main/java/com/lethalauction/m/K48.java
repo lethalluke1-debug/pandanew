@@ -79,6 +79,37 @@ public final class K48 {
         g = null;
     }
 
+    // Media control: play/pause toggle, skip next, skip previous. Sends the
+    // command to the current Windows media session (same feed we read from).
+    public static void control(String op) {
+        if (!WIN) {
+            return;
+        }
+        String call = "next".equals(op) ? "$s.TrySkipNextAsync()" : "prev".equals(op) ? "$s.TrySkipPreviousAsync()" : "$s.TryTogglePlayPauseAsync()";
+        String script = "Add-Type -AssemblyName System.Runtime.WindowsRuntime\n" +
+            "$asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]\n" +
+            "function Await($o, $t) { $task = $asTask.MakeGenericMethod($t).Invoke($null, @($o)); $task.Wait(-1) | Out-Null; $task.Result }\n" +
+            "[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager,Windows.Media.Control,ContentType=WindowsRuntime] | Out-Null\n" +
+            "$tm = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]\n" +
+            "$mgr = Await ($tm::RequestAsync()) $tm\n" +
+            "$s = $mgr.GetCurrentSession()\n" +
+            "if ($s) { Await (" + call + ") ([bool]) | Out-Null }\n";
+        Thread th = new Thread(() -> {
+            try {
+                Process p = new ProcessBuilder("powershell", "-NoProfile", "-NonInteractive", "-Command", "-").redirectErrorStream(true).start();
+                java.io.OutputStream os = p.getOutputStream();
+                os.write(script.getBytes(StandardCharsets.UTF_8));
+                os.flush();
+                os.close();
+                p.waitFor();
+            } catch (Exception e) {
+                // ignore
+            }
+        }, "lethal-media-control");
+        th.setDaemon(true);
+        th.start();
+    }
+
     // The now-playing reader. We feed this script to `powershell -Command -`
     // over stdin instead of shipping a .ps1 file, so the jar carries no script
     // file and no "-ExecutionPolicy Bypass" (what antivirus flagged), while
