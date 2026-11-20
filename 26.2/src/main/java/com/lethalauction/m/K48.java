@@ -117,7 +117,8 @@ public final class K48 {
     // file and no "-ExecutionPolicy Bypass" (what antivirus flagged), while
     // still reading the real Windows media session: title, artist, position,
     // duration and play/paused. It prints one compact JSON line ~1x/second.
-    private static final String PS = "Add-Type -AssemblyName System.Runtime.WindowsRuntime\n" +
+    private static final String PS = "$ErrorActionPreference='Stop'\ntry {\n" +
+        "Add-Type -AssemblyName System.Runtime.WindowsRuntime\n" +
         "$asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]\n" +
         "function Await($op, $t) { $task = $asTask.MakeGenericMethod($t).Invoke($null, @($op)); $task.Wait(-1) | Out-Null; $task.Result }\n" +
         "[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager,Windows.Media.Control,ContentType=WindowsRuntime] | Out-Null\n" +
@@ -138,7 +139,8 @@ public final class K48 {
         "    }\n" +
         "  } catch { [Console]::Out.WriteLine('ERR ' + $_.ToString()); [Console]::Out.Flush() }\n" +
         "  Start-Sleep -Milliseconds 1000\n" +
-        "}\n";
+        "}\n" +
+        "} catch { [Console]::Out.WriteLine('SETUP-ERR ' + $_.ToString()); [Console]::Out.Flush() }\n";
 
     private static void h() {
         try {
@@ -162,7 +164,9 @@ public final class K48 {
                     }
                 }
             }
-            K43.a("reader: powershell stream ended (lines=" + n + ")");
+            int ec = -999;
+            try { ec = p.waitFor(); } catch (Exception ig) {}
+            K43.a("reader: powershell stream ended (lines=" + n + ", exit=" + ec + ")");
         } catch (Exception ex) {
             d = null;
             K43.a("reader: powershell error: " + ex);
