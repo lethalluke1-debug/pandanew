@@ -52,7 +52,6 @@ public final class K48 {
             return;
         }
         c = true;
-        K43.a("start() called, WIN=" + WIN);
         if (WIN) {
             Thread sp = new Thread(K48::h, "Lethal now-playing");
             sp.setDaemon(true);
@@ -131,7 +130,9 @@ public final class K48 {
         "      $pb = $s.GetPlaybackInfo()\n" +
         "      $tl = $s.GetTimelineProperties()\n" +
         "      $st = if ([int]$pb.PlaybackStatus -eq 4) { 'playing' } else { 'paused' }\n" +
-        "      $o = [ordered]@{ app=[string]$s.SourceAppUserModelId; title=[string]$p.Title; artist=[string]$p.Artist; status=$st; pos=[long]$tl.Position.TotalMilliseconds; dur=[long]$tl.EndTime.TotalMilliseconds; art=''; t=[long]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()) }\n" +
+        "      $posMs = [double]$tl.Position.TotalMilliseconds\n" +
+        "      if ($st -eq 'playing') { $d = ([DateTimeOffset]::Now - $tl.LastUpdatedTime).TotalMilliseconds; if ($d -gt 0 -and $d -lt 600000) { $posMs += $d } }\n" +
+        "      $o = [ordered]@{ app=[string]$s.SourceAppUserModelId; title=[string]$p.Title; artist=[string]$p.Artist; status=$st; pos=[long]$posMs; dur=[long]$tl.EndTime.TotalMilliseconds; art=''; t=[long]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()) }\n" +
         "      [Console]::Out.WriteLine(($o | ConvertTo-Json -Compress)); [Console]::Out.Flush()\n" +
         "    }\n" +
         "  } catch { [Console]::Out.WriteLine('ERR ' + $_.ToString()); [Console]::Out.Flush() }\n" +
@@ -141,29 +142,23 @@ public final class K48 {
 
     private static void h() {
         try {
-            K43.a("reader: launching powershell (encoded)");
             String b64 = java.util.Base64.getEncoder().encodeToString(PS.getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
             Process p = new ProcessBuilder("powershell", "-NoProfile", "-NonInteractive", "-EncodedCommand", b64).redirectErrorStream(true).start();
             d = p;
-            K43.a("reader: powershell started, waiting for output");
-            int n = 0;
             try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8));) {
                 String line;
                 while (c && (line = r.readLine()) != null) {
                     if (!line.isEmpty()) {
-                        if (n++ < 20) {
-                            K43.a("ps> " + line);
+                        if (line.startsWith("ERR ") || line.startsWith("SETUP-ERR ")) {
+                            K43.a(line);
+                        } else {
+                            K48.a(line);
                         }
-                        K48.a(line);
                     }
                 }
             }
-            int ec = -999;
-            try { ec = p.waitFor(); } catch (Exception ig) {}
-            K43.a("reader: powershell stream ended (lines=" + n + ", exit=" + ec + ")");
         } catch (Exception ex) {
             d = null;
-            K43.a("reader: powershell error: " + ex);
         }
     }
 
