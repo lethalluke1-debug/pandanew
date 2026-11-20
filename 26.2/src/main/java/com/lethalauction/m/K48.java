@@ -96,13 +96,10 @@ public final class K48 {
             "$s = $null\n" +
             "foreach ($x in $mgr.GetSessions()) { if ($x.SourceAppUserModelId -like '*Spotify*') { $s = $x; break } }\n" +
             "if ($s) { Await (" + call + ") ([bool]) | Out-Null }\n";
+        String b64 = java.util.Base64.getEncoder().encodeToString(script.getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
         Thread th = new Thread(() -> {
             try {
-                Process p = new ProcessBuilder("powershell", "-NoProfile", "-NonInteractive", "-Command", "-").redirectErrorStream(true).start();
-                java.io.OutputStream os = p.getOutputStream();
-                os.write(script.getBytes(StandardCharsets.UTF_8));
-                os.flush();
-                os.close();
+                Process p = new ProcessBuilder("powershell", "-NoProfile", "-NonInteractive", "-EncodedCommand", b64).redirectErrorStream(true).start();
                 p.waitFor();
             } catch (Exception e) {
                 // ignore
@@ -144,13 +141,10 @@ public final class K48 {
 
     private static void h() {
         try {
-            K43.a("reader: launching powershell");
-            Process p = new ProcessBuilder("powershell", "-NoProfile", "-NonInteractive", "-Command", "-").redirectErrorStream(true).start();
+            K43.a("reader: launching powershell (encoded)");
+            String b64 = java.util.Base64.getEncoder().encodeToString(PS.getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+            Process p = new ProcessBuilder("powershell", "-NoProfile", "-NonInteractive", "-EncodedCommand", b64).redirectErrorStream(true).start();
             d = p;
-            java.io.OutputStream os = p.getOutputStream();
-            os.write(PS.getBytes(StandardCharsets.UTF_8));
-            os.flush();
-            os.close();
             K43.a("reader: powershell started, waiting for output");
             int n = 0;
             try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8));) {
