@@ -110,6 +110,20 @@ public final class K47 {
         vAt = now;
     }
 
+    // Optimistic play/pause: flip the clock's running state at once so the UI
+    // reacts instantly on a button press; the next system reading reconciles it.
+    public static void togglePredict() {
+        long now = System.currentTimeMillis();
+        if (vPlaying) {
+            vPos = Math.max(0L, vPos + (now - vAt));
+            vAt = now;
+            vPlaying = false;
+        } else {
+            vAt = now;
+            vPlaying = true;
+        }
+    }
+
     public static int a() {
         return m;
     }
