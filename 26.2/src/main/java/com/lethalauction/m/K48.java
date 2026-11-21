@@ -219,6 +219,7 @@ public final class K48 {
             boolean playing = status.equals("playing");
             String artKey = app + "|" + title + "|" + artist;
             K47.a(new K47.C97(which, title, artist, playing, pos, dur, sampledAt, artKey));
+            K45.a(artKey, title, artist, dur);
             if (!artPath.isEmpty()) {
                 K47.a(artKey, Path.of(artPath, new String[0]));
             } else {
