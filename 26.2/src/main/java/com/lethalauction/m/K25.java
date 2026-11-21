@@ -89,9 +89,10 @@ implements HudElement {
     };
 
     public void extractRenderState(GuiGraphicsExtractor g, DeltaTracker deltaTracker) {
-        if (Minecraft.getInstance().gui.screen() == null) {
-            // The now-playing card lives only in the menu; in-game shows just the
-            // top lyrics ticker.
+        // The now-playing card lives only in the menu; in-game shows just the top
+        // lyrics ticker. Keep it visible while the chat is open (pressing T).
+        net.minecraft.client.gui.screens.Screen sc = Minecraft.getInstance().gui.screen();
+        if (sc == null || sc instanceof net.minecraft.client.gui.screens.ChatScreen) {
             K25.ticker(g);
         }
     }
@@ -156,8 +157,9 @@ implements HudElement {
         int eq = 18;
         int pad = 11;
         int gap = 8;
-        float contentW = timeW + (float)gap + (float)art + (float)gap + lineW + (float)gap + (float)eq;
-        float pw = contentW + (float)(pad * 2);
+        // FIXED pill size - it never grows/shrinks with the lyric. Long lines are
+        // scaled down to fit; the pill stays one constant width.
+        float pw = 360.0f;
         float ph = 24.0f;
         float cx = (float)g.guiWidth() / 2.0f;
         float x0 = cx - pw / 2.0f;
@@ -167,27 +169,35 @@ implements HudElement {
         K18.h = prevA * ease;
         // pill
         K18.a(g, Math.round(x0), Math.round(y0), Math.round(pw), Math.round(ph), 11, -872415232, K18.a(accent, 0.35f));
-        float x = x0 + (float)pad;
-        K18.a(g, time, x, cyl, 8.0f, -5197648, K18.b);
-        x += timeW + (float)gap;
+        K18.a(g, time, x0 + (float)pad, cyl, 8.0f, -5197648, K18.b);
         // mini album art
         int ay = Math.round(y0 + (ph - (float)art) / 2.0f);
+        float artX = x0 + (float)pad + timeW + (float)gap;
         Identifier a = K47.n();
         if (a != null) {
-            K18.a(g, a, Math.round(x), ay, art, art, Math.max(1, K47.o()), Math.max(1, K47.p()));
+            K18.a(g, a, Math.round(artX), ay, art, art, Math.max(1, K47.o()), Math.max(1, K47.p()));
         } else {
-            K18.a(g, Math.round(x), ay, art, art, 5, accent);
+            K18.a(g, Math.round(artX), ay, art, art, 5, accent);
         }
-        x += (float)art + (float)gap;
-        // karaoke words
+        // karaoke words, centred in the fixed lyric area, scaled to fit
+        float lyricLeft = artX + (float)art + (float)gap;
+        float lyricRight = x0 + pw - (float)pad - (float)eq - (float)gap;
+        float lyricArea = Math.max(40.0f, lyricRight - lyricLeft);
+        float lscale = lineW > lyricArea && lineW > 0.0f ? lyricArea / lineW : 1.0f;
+        float drawW = lineW * lscale;
+        float x = lyricLeft + (lyricArea - drawW) / 2.0f;
         for (int i = 0; i < ws.length; ++i) {
             long wt = timing != null && line < timing.a.length && i < timing.a[line].length ? timing.a[line][i] : lstart + (long)((float)i / (float)ws.length * (float)(lend - lstart));
             long wnext = timing != null && line < timing.a.length && i + 1 < timing.a[line].length ? timing.a[line][i + 1] : wt + 400L;
             boolean sung = pos >= wt;
             boolean active = pos >= wt && pos < wnext;
             int col = active ? accent : (sung ? -1 : -8092540);
-            K18.a(g, ws[i], x, cyl, fs, col, K18.b);
-            x += ww[i] + space;
+            // active word bounces up and pops slightly
+            float prog = active && wnext > wt ? (float)(pos - wt) / (float)(wnext - wt) : 0.0f;
+            float bounce = active ? -2.5f * (float)Math.sin((double)prog * 3.1416) : 0.0f;
+            float wfs = fs * lscale * (active ? 1.0f + 0.14f * (float)Math.sin((double)prog * 3.1416) : 1.0f);
+            K18.a(g, ws[i], x, cyl + bounce, wfs, col, K18.b);
+            x += (ww[i] + space) * lscale;
         }
         // equalizer
         float ex = x0 + pw - (float)pad - (float)eq;

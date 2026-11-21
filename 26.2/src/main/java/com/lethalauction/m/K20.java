@@ -2041,20 +2041,6 @@ extends Screen {
             K9.b();
         });
         y += 62;
-        // Lyrics timing offset
-        K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
-        K18.a(g, "Lyrics timing", 257.0f, (float)(y + 20), 12.5f, -789515, K18.c);
-        K18.a(g, "Nudge the lyrics earlier (-) or later (+) to match your audio.", 257.0f, (float)(y + 37), 10.0f, -5001030, K18.a);
-        this.a(g, 858, y + 13, 40, 24, "-", this.a(-15395813), -13356484, -3947581, () -> {
-            K9.aB -= 100;
-            K9.b();
-        });
-        K18.b(g, (K9.aB > 0 ? "+" : "") + K9.aB + "ms", 930.0f, (float)(y + 27), 12.0f, -789515, K18.c);
-        this.a(g, 962, y + 13, 40, 24, "+", this.a(-15395813), -13356484, -3947581, () -> {
-            K9.aB += 100;
-            K9.b();
-        });
-        y += 62;
         return y + 6;
     }
 
