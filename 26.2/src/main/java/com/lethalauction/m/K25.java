@@ -121,7 +121,7 @@ implements HudElement {
         if (!K47.d() || !K47.c().a()) {
             return;
         }
-        long pos = K47.c().b() + (long)K9.aB - 200L;
+        long pos = K47.pos() + (long)K9.aB - 200L;
         // Karaoke when the song has synced lyrics and there is a current line;
         // otherwise (no lyrics, or between lines) we show the title + artist.
         boolean hasLyrics = K47.j();
@@ -323,7 +323,7 @@ implements HudElement {
         int bw = Math.max(8, barR - barL);
         K18.a(g, barL, rowY - 1, bw, 3, 1, 0x33FFFFFF);
         if (dur > 0L) {
-            long pos = t.b();
+            long pos = K47.pos();
             float frac = Math.max(0.0f, Math.min(1.0f, (float)pos / (float)dur));
             K18.a(g, K25.a(pos), (float)tx, (float)rowY, 7.5f, -7695450, K18.b);
             if (frac > 0.0f) {

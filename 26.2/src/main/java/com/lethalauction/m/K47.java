@@ -52,6 +52,63 @@ public final class K47 {
     private static volatile int u;
     private static volatile int v;
     private static volatile long w;
+    // ---- internal playback clock -----------------------------------------
+    // The Windows media API reports a jittery, often-stale position (it lags
+    // and jumps backwards on pause/resume). So we keep our own clock that just
+    // ticks forward in real time while playing, and only re-sync to the system
+    // reading when there is a genuine seek. This is how dedicated lyric apps
+    // get frame-accurate timing off the same unreliable source.
+    private static volatile long vPos;        // virtual position (ms) captured at vAt
+    private static volatile long vAt;          // wall-clock (ms) when vPos was captured
+    private static volatile boolean vPlaying;  // is the clock currently running
+    private static final long SEEK_MS = 2500L; // reading this far from the clock = real seek
+
+    // Smoothed current playback position in ms, interpolated with the local
+    // clock so it advances smoothly between the once-a-poll system readings.
+    public static long pos() {
+        long now = System.currentTimeMillis();
+        long p = vPlaying ? vPos + (now - vAt) : vPos;
+        long dur = f.get().h();
+        if (dur > 0L) {
+            p = Math.min(p, dur);
+        }
+        return Math.max(0L, p);
+    }
+
+    // Fold a fresh system reading into the internal clock.
+    private static void clock(C97 was, C97 t, long now) {
+        boolean playing = t.f();
+        if (!t.a() || !t.j().equals(was.j())) {
+            // no song, or the track changed: anchor straight to the reading
+            vPos = Math.max(0L, t.b());
+            vAt = now;
+            vPlaying = playing && t.a();
+            return;
+        }
+        long expected = vPlaying ? vPos + (now - vAt) : vPos;
+        long raw = t.b();
+        if (!playing) {
+            // paused: freeze at where the clock is now and ignore the reported
+            // position (the system often reports a stale value on pause).
+            vPos = Math.max(0L, vPlaying ? expected : vPos);
+            vAt = now;
+            vPlaying = false;
+            return;
+        }
+        if (!vPlaying) {
+            // resume: carry on from the frozen point; only jump if the user
+            // clearly seeked forward while paused.
+            vPos = raw > expected + SEEK_MS ? raw : expected;
+            vAt = now;
+            vPlaying = true;
+            return;
+        }
+        // steady playback: trust the smooth clock; snap only on a real seek,
+        // otherwise nudge gently toward the reading to cancel slow drift.
+        long delta = raw - expected;
+        vPos = delta > SEEK_MS || delta < -SEEK_MS ? Math.max(0L, raw) : Math.max(0L, expected + delta / 8L);
+        vAt = now;
+    }
 
     public static int a() {
         return m;
@@ -104,6 +161,7 @@ public final class K47 {
     static void a(C97 t) {
         C97 was = f.getAndSet(t);
         long now = System.currentTimeMillis();
+        K47.clock(was, t, now);
         if (!(!t.a() || was.a() && t.j().equals(was.j()))) {
             i = now;
         }
@@ -164,6 +222,7 @@ public final class K47 {
 
     static void m() {
         C97 was = f.getAndSet(C97.a);
+        vPlaying = false;
         if (was.f()) {
             g = System.currentTimeMillis();
         }

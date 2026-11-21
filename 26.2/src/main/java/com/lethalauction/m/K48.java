@@ -136,7 +136,7 @@ public final class K48 {
         "      [Console]::Out.WriteLine(($o | ConvertTo-Json -Compress)); [Console]::Out.Flush()\n" +
         "    }\n" +
         "  } catch { [Console]::Out.WriteLine('ERR ' + $_.ToString()); [Console]::Out.Flush() }\n" +
-        "  Start-Sleep -Milliseconds 1000\n" +
+        "  Start-Sleep -Milliseconds 500\n" +
         "}\n" +
         "} catch { [Console]::Out.WriteLine('SETUP-ERR ' + $_.ToString()); [Console]::Out.Flush() }\n";
 

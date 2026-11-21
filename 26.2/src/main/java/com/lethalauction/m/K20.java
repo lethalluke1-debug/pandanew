@@ -465,7 +465,7 @@ extends Screen {
         K18.a(g, K20.a(has ? t.d() : "Nothing playing", (float)(w - 36), 15.0f, K18.c), (float)(x0 + 18), (float)iy, 15.0f, -789515, K18.c);
         K18.a(g, K20.a(has ? (t.e().isEmpty() ? "Unknown artist" : t.e()) : "Open Spotify to see it here", (float)(w - 36), 11.0f, K18.b), (float)(x0 + 18), (float)(iy + 18), 11.0f, dim, K18.b);
         // progress bar
-        long pos = has ? t.b() : 0L;
+        long pos = has ? K47.pos() : 0L;
         long dur = has ? t.h() : 0L;
         float frac = dur > 0L ? Math.max(0.0f, Math.min(1.0f, (float)pos / (float)dur)) : 0.0f;
         int by = iy + 40;

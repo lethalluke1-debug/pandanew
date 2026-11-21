@@ -119,7 +119,7 @@ public final class K53 {
                 j = -1;
                 k = -1;
             }
-            if ((pos = K47.c().b() + (long)K9.aB + -200L) < i - 3000L) {
+            if ((pos = K47.pos() + (long)K9.aB + -200L) < i - 3000L) {
                 f.clear();
             }
             i = pos;
