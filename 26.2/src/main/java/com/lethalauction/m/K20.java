@@ -2034,6 +2034,35 @@ extends Screen {
             K9.b();
         });
         y += 62;
+        // Lyrics font picker
+        y += 10;
+        K18.a(g, "Lyrics font", 243.0f, (float)(y + 8), 12.5f, -789515, K18.c);
+        K18.a(g, "The font the karaoke lyrics are drawn in, on the top ticker and in the sky.", 243.0f, (float)(y + 24), 10.0f, -5001030, K18.a);
+        y += 36;
+        String[][] lyrFonts = new String[][]{
+            {"", "Default"},
+            {"font_pacifico", "Pacifico"},
+            {"font_dancing", "Dancing Script"},
+            {"font_greatvibes", "Great Vibes"},
+            {"font_lobster", "Lobster"},
+            {"font_bebas", "Bebas Neue"},
+            {"font_righteous", "Righteous"},
+            {"font_comfortaa", "Comfortaa"},
+            {"font_smallcaps", "Small Caps"}};
+        for (String[] lf : lyrFonts) {
+            boolean sel = K9.lyricsFont.equals(lf[0]);
+            float cy = (float)y + 25.0f;
+            K18.a(g, 241, y, 765, 50, 10, cardFill, sel ? this.ak : cardBorder);
+            K18.a(g, lf[1], 257.0f, cy, 12.5f, sel ? -1 : -789515, K18.c);
+            Identifier pf = lf[0].isEmpty() ? K18.b : K18.a(lf[0]);
+            K18.a(g, "Never gonna give you up", 560.0f, cy, 15.0f, sel ? -1 : -2039584, pf);
+            String fv = lf[0];
+            this.a(241, y, 765, 50, () -> {
+                K9.lyricsFont = fv;
+                K9.b();
+            });
+            y += 58;
+        }
         return y + 6;
     }
 

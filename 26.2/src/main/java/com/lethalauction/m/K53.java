@@ -412,11 +412,19 @@ public final class K53 {
         return Minecraft.getInstance().font.width((FormattedText)K53.c(s));
     }
 
+    private static String skyFontKey = "\u0000";
+
     private static Component c(String s) {
+        String fk = K9.lyricsFont == null ? "" : K9.lyricsFont;
+        if (!fk.equals(skyFontKey)) {
+            n.clear();
+            skyFontKey = fk;
+        }
         if (n.size() > 600) {
             n.clear();
         }
-        return n.computeIfAbsent(s, k -> Component.literal((String)K53.a(k)).withStyle(st -> st.withFont((FontDescription)new FontDescription.Resource(K18.e))));
+        net.minecraft.resources.Identifier font = fk.isEmpty() ? K18.e : K18.a(fk);
+        return n.computeIfAbsent(s, k -> Component.literal((String)K53.a(k)).withStyle(st -> st.withFont((FontDescription)new FontDescription.Resource(font))));
     }
 
     static String a(String s) {

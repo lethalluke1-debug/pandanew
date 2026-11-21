@@ -69,6 +69,7 @@ public final class K9 {
     public static boolean seeThroughGui = false;
     public static boolean U = false;
     public static String font = "";
+    public static String lyricsFont = "";
     public static boolean V = true;
     public static float W = 0.5f;
     public static float X = 0.02f;
@@ -220,6 +221,7 @@ public final class K9 {
             seeThroughGui = Boolean.parseBoolean(p.getProperty("seeThroughGui", "false"));
             U = Boolean.parseBoolean(p.getProperty("musicEnabled", "false"));
             font = p.getProperty("uiFont", "");
+            lyricsFont = p.getProperty("lyricsFont", "");
             V = Boolean.parseBoolean(p.getProperty("musicHud", "true"));
             Z = Boolean.parseBoolean(p.getProperty("headphones", "true"));
             ab = Boolean.parseBoolean(p.getProperty("streamEnabled", "false"));
@@ -386,6 +388,7 @@ public final class K9 {
         p.setProperty("seeThroughGui", Boolean.toString(seeThroughGui));
         p.setProperty("musicEnabled", Boolean.toString(U));
         p.setProperty("uiFont", font);
+        p.setProperty("lyricsFont", lyricsFont);
         p.setProperty("musicHud", Boolean.toString(V));
         p.setProperty("musicX", Float.toString(W));
         p.setProperty("musicY", Float.toString(X));

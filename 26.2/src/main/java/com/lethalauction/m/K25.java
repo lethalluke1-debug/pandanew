@@ -108,6 +108,11 @@ implements HudElement {
         return s / 60L + ":" + String.format("%02d", s % 60L);
     }
 
+    // The font used to draw the karaoke lyric words, from the Music-tab picker.
+    public static Identifier lf() {
+        return K9.lyricsFont == null || K9.lyricsFont.isEmpty() ? K18.b : K18.a(K9.lyricsFont);
+    }
+
     public static void ticker(GuiGraphicsExtractor g) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null || !K9.U || mc.gui.hud.isHidden() || !K37.c()) {
@@ -138,11 +143,12 @@ implements HudElement {
         }
         int accent = K47.c().c().color == 0 ? -11695105 : K47.c().c().color;
         float fs = 8.0f;
-        float space = K18.a(" ", fs, K18.b);
+        Identifier lfont = K25.lf();
+        float space = K18.a(" ", fs, lfont);
         float[] ww = new float[ws.length];
         float lineW = 0.0f;
         for (int i = 0; i < ws.length; ++i) {
-            ww[i] = K18.a(ws[i], fs, K18.b);
+            ww[i] = K18.a(ws[i], fs, lfont);
             lineW += ww[i] + (i < ws.length - 1 ? space : 0.0f);
         }
         String time = K25.mmss(pos);
@@ -193,7 +199,7 @@ implements HudElement {
             float prog = active && wnext > wt ? (float)(pos - wt) / (float)(wnext - wt) : 0.0f;
             float bounce = active ? -2.5f * (float)Math.sin((double)prog * 3.1416) : 0.0f;
             float wfs = fs * lscale * (active ? 1.0f + 0.14f * (float)Math.sin((double)prog * 3.1416) : 1.0f);
-            K18.a(g, ws[i], x, cyl + bounce, wfs, col, K18.b);
+            K18.a(g, ws[i], x, cyl + bounce, wfs, col, lfont);
             x += (ww[i] + space) * lscale;
         }
         // equalizer
