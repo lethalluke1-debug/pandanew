@@ -189,9 +189,19 @@ implements HudElement {
             float lscale = lineW > lyricArea && lineW > 0.0f ? lyricArea / lineW : 1.0f;
             float drawW = lineW * lscale;
             float x = lyricLeft + (lyricArea - drawW) / 2.0f;
+            long lineEnd = lend > lstart ? lend : lstart + 3000L;
             for (int i = 0; i < ws.length; ++i) {
                 long wt = timing != null && line < timing.a.length && i < timing.a[line].length ? timing.a[line][i] : lstart + (long)((float)i / (float)ws.length * (float)(lend - lstart));
-                long wnext = timing != null && line < timing.a.length && i + 1 < timing.a[line].length ? timing.a[line][i + 1] : wt + 400L;
+                long wnext;
+                if (timing != null && line < timing.a.length && i + 1 < timing.a[line].length) {
+                    wnext = timing.a[line][i + 1];
+                } else {
+                    // Last word of the line: keep it highlighted through a held/
+                    // sustained note ("betterrr") up to the next line, capped at 4s.
+                    // Line-level lyrics give no timing inside a word, so the best
+                    // we can do is hold the final word instead of racing on.
+                    wnext = Math.max(wt + 400L, Math.min(lineEnd, wt + 4000L));
+                }
                 boolean sung = pos >= wt;
                 boolean active = pos >= wt && pos < wnext;
                 int col = active ? accent : (sung ? -1 : -8092540);
