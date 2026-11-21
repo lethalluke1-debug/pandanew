@@ -121,7 +121,7 @@ implements HudElement {
         if (!K47.d() || !K47.c().a()) {
             return;
         }
-        long pos = K47.pos() + (long)K9.aB - 200L;
+        long pos = K47.pos() + (long)K9.aB;
         // Karaoke when the song has synced lyrics and there is a current line;
         // otherwise (no lyrics, or between lines) we show the title + artist.
         boolean hasLyrics = K47.j();
