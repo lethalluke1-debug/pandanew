@@ -118,38 +118,37 @@ implements HudElement {
         if (mc.level == null || mc.player == null || !K9.U || mc.gui.hud.isHidden() || !K37.c()) {
             return;
         }
-        if (!K47.d() || !K47.j() || !K47.c().a()) {
+        if (!K47.d() || !K47.c().a()) {
             return;
         }
         long pos = K47.c().b() + (long)K9.aB - 200L;
-        int line = K47.a(pos);
-        if (line < 0) {
-            return;
-        }
-        String text = K47.a(line);
-        if (text == null || text.isBlank()) {
-            return;
-        }
-        String[] ws = K44.a(text);
-        if (ws.length == 0) {
-            return;
-        }
+        // Karaoke when the song has synced lyrics and there is a current line;
+        // otherwise (no lyrics, or between lines) we show the title + artist.
+        boolean hasLyrics = K47.j();
+        int line = hasLyrics ? K47.a(pos) : -1;
+        String text = line >= 0 ? K47.a(line) : null;
+        String[] ws = text != null && !text.isBlank() ? K44.a(text) : null;
+        boolean karaoke = ws != null && ws.length > 0;
         long now = System.currentTimeMillis();
-        K44 timing = K44.a(K47.k());
-        long lstart = K47.b(line);
-        long lend = K47.b(line + 1);
-        if (lend <= lstart) {
+        K44 timing = karaoke ? K44.a(K47.k()) : null;
+        long lstart = karaoke ? K47.b(line) : 0L;
+        long lend = karaoke ? K47.b(line + 1) : 0L;
+        if (karaoke && lend <= lstart) {
             lend = lstart + 3000L;
         }
         int accent = K47.c().c().color == 0 ? -11695105 : K47.c().c().color;
         float fs = 8.0f;
         Identifier lfont = K25.lf();
-        float space = K18.a(" ", fs, lfont);
-        float[] ww = new float[ws.length];
+        float space = 0.0f;
+        float[] ww = null;
         float lineW = 0.0f;
-        for (int i = 0; i < ws.length; ++i) {
-            ww[i] = K18.a(ws[i], fs, lfont);
-            lineW += ww[i] + (i < ws.length - 1 ? space : 0.0f);
+        if (karaoke) {
+            space = K18.a(" ", fs, lfont);
+            ww = new float[ws.length];
+            for (int i = 0; i < ws.length; ++i) {
+                ww[i] = K18.a(ws[i], fs, lfont);
+                lineW += ww[i] + (i < ws.length - 1 ? space : 0.0f);
+            }
         }
         String time = K25.mmss(pos);
         float timeW = K18.a(time, 7.0f, K18.b);
@@ -186,21 +185,40 @@ implements HudElement {
         float lyricLeft = artX + (float)art + (float)gap;
         float lyricRight = x0 + pw - (float)pad - (float)eq - (float)gap;
         float lyricArea = Math.max(40.0f, lyricRight - lyricLeft);
-        float lscale = lineW > lyricArea && lineW > 0.0f ? lyricArea / lineW : 1.0f;
-        float drawW = lineW * lscale;
-        float x = lyricLeft + (lyricArea - drawW) / 2.0f;
-        for (int i = 0; i < ws.length; ++i) {
-            long wt = timing != null && line < timing.a.length && i < timing.a[line].length ? timing.a[line][i] : lstart + (long)((float)i / (float)ws.length * (float)(lend - lstart));
-            long wnext = timing != null && line < timing.a.length && i + 1 < timing.a[line].length ? timing.a[line][i + 1] : wt + 400L;
-            boolean sung = pos >= wt;
-            boolean active = pos >= wt && pos < wnext;
-            int col = active ? accent : (sung ? -1 : -8092540);
-            // active word bounces up and pops slightly
-            float prog = active && wnext > wt ? (float)(pos - wt) / (float)(wnext - wt) : 0.0f;
-            float bounce = active ? -2.5f * (float)Math.sin((double)prog * 3.1416) : 0.0f;
-            float wfs = fs * lscale * (active ? 1.0f + 0.14f * (float)Math.sin((double)prog * 3.1416) : 1.0f);
-            K18.a(g, ws[i], x, cyl + bounce, wfs, col, lfont);
-            x += (ww[i] + space) * lscale;
+        if (karaoke) {
+            float lscale = lineW > lyricArea && lineW > 0.0f ? lyricArea / lineW : 1.0f;
+            float drawW = lineW * lscale;
+            float x = lyricLeft + (lyricArea - drawW) / 2.0f;
+            for (int i = 0; i < ws.length; ++i) {
+                long wt = timing != null && line < timing.a.length && i < timing.a[line].length ? timing.a[line][i] : lstart + (long)((float)i / (float)ws.length * (float)(lend - lstart));
+                long wnext = timing != null && line < timing.a.length && i + 1 < timing.a[line].length ? timing.a[line][i + 1] : wt + 400L;
+                boolean sung = pos >= wt;
+                boolean active = pos >= wt && pos < wnext;
+                int col = active ? accent : (sung ? -1 : -8092540);
+                // active word bounces up and pops slightly
+                float prog = active && wnext > wt ? (float)(pos - wt) / (float)(wnext - wt) : 0.0f;
+                float bounce = active ? -2.5f * (float)Math.sin((double)prog * 3.1416) : 0.0f;
+                float wfs = fs * lscale * (active ? 1.0f + 0.14f * (float)Math.sin((double)prog * 3.1416) : 1.0f);
+                K18.a(g, ws[i], x, cyl + bounce, wfs, col, lfont);
+                x += (ww[i] + space) * lscale;
+            }
+        } else {
+            // no synced lyrics: show "Title · Artist", scaled to fit, gently pulsing
+            String title = K47.c().d() == null ? "" : K47.c().d();
+            String artist = K47.c().e() == null ? "" : K47.c().e();
+            float tfs = 8.5f;
+            String sep = artist.isEmpty() ? "" : "  ·  ";
+            float tW = K18.a(title, tfs, K18.c);
+            float sW = K18.a(sep + artist, tfs, K18.b);
+            float totW = Math.max(1.0f, tW + sW);
+            float tscale = totW > lyricArea ? lyricArea / totW : 1.0f;
+            float drawW = totW * tscale;
+            float tx = lyricLeft + (lyricArea - drawW) / 2.0f;
+            float pulse = 0.82f + 0.18f * (float)Math.sin((double)(now % 2200L) / 2200.0 * 6.2832);
+            K18.a(g, title, tx, cyl, tfs * tscale, K18.a(-1, pulse), K18.c);
+            if (!artist.isEmpty()) {
+                K18.a(g, sep + artist, tx + tW * tscale, cyl, tfs * tscale, -7695450, K18.b);
+            }
         }
         // equalizer
         float ex = x0 + pw - (float)pad - (float)eq;
