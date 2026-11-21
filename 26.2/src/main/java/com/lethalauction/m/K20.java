@@ -490,13 +490,6 @@ extends Screen {
         this.a(Math.round(cxm - 56.0f), cy - 11, 22, 22, () -> com.lethalauction.m.K48.control("prev"));
         this.a(Math.round(cxm - 17.0f), cy - 17, 34, 34, () -> com.lethalauction.m.K48.control("play"));
         this.a(Math.round(cxm + 34.0f), cy - 11, 22, 22, () -> com.lethalauction.m.K48.control("next"));
-        // synced-lyrics indicator
-        int ly = cy + 40;
-        boolean lyr = com.lethalauction.m.K47.j();
-        K18.a(g, (float)(x0 + 24), (float)ly, 4.0f, lyr ? this.ak : dim);
-        K18.a(g, lyr ? "Synced lyrics" : "No lyrics found", (float)(x0 + 34), (float)(ly - 4), 10.0f, lyr ? -789515 : dim, K18.b);
-        // footer
-        K18.b(g, "Lyrics: LRCLIB", cxm, (float)(y0 + h - 18), 8.5f, -9735291, K18.b);
     }
 
     // A small filled triangle pointing right (forward) or left (back).

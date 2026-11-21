@@ -129,13 +129,7 @@ implements HudElement {
         if (ws.length == 0) {
             return;
         }
-        if (line != tLine) {
-            tLine = line;
-            tAt = System.currentTimeMillis();
-        }
         long now = System.currentTimeMillis();
-        float appear = Math.min(1.0f, (float)(now - tAt) / 260.0f);
-        float ease = 1.0f - (float)Math.pow(1.0f - appear, 3.0);
         K44 timing = K44.a(K47.k());
         long lstart = K47.b(line);
         long lend = K47.b(line + 1);
@@ -143,7 +137,7 @@ implements HudElement {
             lend = lstart + 3000L;
         }
         int accent = K47.c().c().color == 0 ? -11695105 : K47.c().c().color;
-        float fs = 9.0f;
+        float fs = 8.0f;
         float space = K18.a(" ", fs, K18.b);
         float[] ww = new float[ws.length];
         float lineW = 0.0f;
@@ -152,33 +146,34 @@ implements HudElement {
             lineW += ww[i] + (i < ws.length - 1 ? space : 0.0f);
         }
         String time = K25.mmss(pos);
-        float timeW = K18.a(time, 8.0f, K18.b);
-        int art = 16;
-        int eq = 18;
-        int pad = 11;
-        int gap = 8;
-        // FIXED pill size - it never grows/shrinks with the lyric. Long lines are
-        // scaled down to fit; the pill stays one constant width.
-        float pw = 360.0f;
-        float ph = 24.0f;
+        float timeW = K18.a(time, 7.0f, K18.b);
+        int art = 13;
+        int eq = 14;
+        int pad = 8;
+        int gap = 6;
+        // FIXED, compact pill - it never grows/shrinks or slides; long lines
+        // scale down to fit so the bar stays one constant size.
+        float pw = 300.0f;
+        float ph = 19.0f;
         float cx = (float)g.guiWidth() / 2.0f;
         float x0 = cx - pw / 2.0f;
-        float y0 = 6.0f + (1.0f - ease) * -6.0f;
+        float y0 = 6.0f;
         float cyl = y0 + ph / 2.0f;
         float prevA = K18.h;
-        K18.h = prevA * ease;
         // pill
         K18.a(g, Math.round(x0), Math.round(y0), Math.round(pw), Math.round(ph), 11, -872415232, K18.a(accent, 0.35f));
-        K18.a(g, time, x0 + (float)pad, cyl, 8.0f, -5197648, K18.b);
-        // mini album art
+        K18.a(g, time, x0 + (float)pad, cyl, 7.0f, -5197648, K18.b);
+        // mini album art with rounded corners
         int ay = Math.round(y0 + (ph - (float)art) / 2.0f);
         float artX = x0 + (float)pad + timeW + (float)gap;
         Identifier a = K47.n();
         if (a != null) {
             K18.a(g, a, Math.round(artX), ay, art, art, Math.max(1, K47.o()), Math.max(1, K47.p()));
         } else {
-            K18.a(g, Math.round(artX), ay, art, art, 5, accent);
+            K18.a(g, Math.round(artX), ay, art, art, 4, accent);
         }
+        // rounded frame masks the square corners so the art looks rounded
+        K18.a(g, Math.round(artX), ay, art, art, 4, 0, K18.a(accent, 0.9f));
         // karaoke words, centred in the fixed lyric area, scaled to fit
         float lyricLeft = artX + (float)art + (float)gap;
         float lyricRight = x0 + pw - (float)pad - (float)eq - (float)gap;
