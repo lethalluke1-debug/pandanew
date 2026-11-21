@@ -172,8 +172,10 @@ implements HudElement {
         } else {
             K18.a(g, Math.round(artX), ay, art, art, 4, accent);
         }
-        // rounded frame masks the square corners so the art looks rounded
-        K18.a(g, Math.round(artX), ay, art, art, 4, 0, K18.a(accent, 0.9f));
+        // round the picture's corners by masking them with the pill colour
+        // (no visible ring, just rounded corners)
+        K18.a(g, Math.round(artX) - 1, ay - 1, art + 2, art + 2, 4, 0, -872415232);
+        K18.a(g, Math.round(artX) - 1, ay - 1, art + 2, art + 2, 4, 0, -872415232);
         // karaoke words, centred in the fixed lyric area, scaled to fit
         float lyricLeft = artX + (float)art + (float)gap;
         float lyricRight = x0 + pw - (float)pad - (float)eq - (float)gap;
