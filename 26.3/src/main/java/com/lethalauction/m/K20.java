@@ -4329,8 +4329,8 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
             return true;
         }
         this.e();
-        float x = this.a(event.x());
-        float y = this.b(event.y());
+        float x = this.aU;
+        float y = this.aV;
         this.aM = null;
         this.T = null;
         for (C81 h : List.copyOf(this.S)) {
@@ -4347,20 +4347,20 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
     public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
         if (this.bD != null) {
             this.e();
-            this.bD.c().accept(Float.valueOf(Math.max(0.0f, Math.min(1.0f, (this.a(event.x()) - (float)this.bD.a()) / (float)this.bD.b()))));
+            this.bD.c().accept(Float.valueOf(Math.max(0.0f, Math.min(1.0f, (this.aU - (float)this.bD.a()) / (float)this.bD.b()))));
             return true;
         }
         K4.C64 crop = K4.b();
         if (this.bw && crop != null) {
             this.e();
-            float mx = this.a(event.x());
-            float my = this.b(event.y());
+            float mx = this.aU;
+            float my = this.aV;
             crop.a(this.bz + Math.round((mx - this.bx) / this.bB), this.bA + Math.round((my - this.by) / this.bB));
             return true;
         }
         if (this.be) {
             this.e();
-            this.a(this.a(event.x()));
+            this.a(this.aU);
             return true;
         }
         return super.mouseDragged(event, dragX, dragY);
