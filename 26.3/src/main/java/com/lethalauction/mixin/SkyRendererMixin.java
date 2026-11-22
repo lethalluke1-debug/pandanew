@@ -29,7 +29,7 @@ public abstract class SkyRendererMixin {
     @Final
     private RenderTarget renderTarget;
 
-    @Inject(method={"renderSkyDisc", "renderEndSky"}, at={@At(value="HEAD")}, cancellable=true)
+    @Inject(method={"renderSkyDisc", "renderEndSky"}, at={@At(value="HEAD")}, cancellable=true, require=0)
     private void lethalauction$customSky(CallbackInfo ci) {
         if (K50.a()) {
             K50.a(this.renderTarget);
@@ -37,7 +37,7 @@ public abstract class SkyRendererMixin {
         }
     }
 
-    @Inject(method={"renderSunriseAndSunset", "renderSunMoonAndStars", "renderDarkDisc", "renderEndFlash"}, at={@At(value="HEAD")}, cancellable=true)
+    @Inject(method={"renderSunriseAndSunset", "renderSunMoonAndStars", "renderDarkDisc", "renderEndFlash"}, at={@At(value="HEAD")}, cancellable=true, require=0)
     private void lethalauction$hideVanillaSky(CallbackInfo ci) {
         if (K50.a()) {
             ci.cancel();

@@ -26,7 +26,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value={LevelRenderer.class})
 public abstract class LevelRendererMixin {
-    @Inject(method={"addCloudsPass"}, at={@At(value="HEAD")}, cancellable=true)
+    @Inject(method={"addCloudsPass"}, at={@At(value="HEAD")}, cancellable=true, require=0)
     private void lethalauction$hideClouds(CallbackInfo ci) {
         if (K9.r && K50.a()) {
             ci.cancel();

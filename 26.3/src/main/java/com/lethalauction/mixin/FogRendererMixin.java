@@ -29,7 +29,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value={FogRenderer.class})
 public abstract class FogRendererMixin {
-    @Inject(method={"computeFogColor"}, at={@At(value="TAIL")})
+    @Inject(method={"computeFogColor"}, at={@At(value="TAIL")}, require=0)
     private void lethalauction$skyFog(Camera camera, float partialTicks, ClientLevel level, int renderDistance, float darkenWorldAmount, Vector4f dest, CallbackInfo ci) {
         if (K50.a() && camera.getFluidInCamera() == FogType.NONE) {
             dest.set((Vector4fc)K50.c());
