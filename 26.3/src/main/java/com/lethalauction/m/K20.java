@@ -1365,7 +1365,7 @@ extends Screen {
         }
         this.a(g, 904, t + 69, 100, 26, "Open Folder", -15461606, -13356484, -789515, () -> {
             K4.h();
-            Util.getPlatform().openPath(K4.a);
+            try { java.awt.Desktop.getDesktop().open(K4.a.toFile()); } catch (Exception ex) { /* ignore */ }
         });
         String status = K4.l();
         if (!status.isEmpty()) {
@@ -2572,7 +2572,7 @@ extends Screen {
         }
         this.a(g, 912, t + 69, 92, 26, "Open Folder", -15461606, -13356484, -789515, () -> {
             K49.f();
-            Util.getPlatform().openPath(K49.a);
+            try { java.awt.Desktop.getDesktop().open(K49.a.toFile()); } catch (Exception ex) { /* ignore */ }
         });
         String status = K49.d();
         if (!status.isEmpty()) {

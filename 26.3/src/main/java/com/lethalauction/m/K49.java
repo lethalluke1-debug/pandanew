@@ -52,7 +52,6 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
-import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
 public final class K49 {
     public static final Path a = FabricLoader.getInstance().getConfigDir().resolve("lethalauction").resolve("skins");
@@ -255,13 +254,7 @@ public final class K49 {
         k = true;
         Thread t = new Thread(() -> {
             try {
-                String chosen;
-                try (MemoryStack stack = MemoryStack.stackPush();){
-                    PointerBuffer filters = stack.mallocPointer(1);
-                    filters.put(stack.UTF8((CharSequence)"*.png"));
-                    filters.flip();
-                    chosen = TinyFileDialogs.tinyfd_openFileDialog((CharSequence)"Choose a Minecraft skin (64x64 PNG)", (CharSequence)"", (PointerBuffer)filters, (CharSequence)"Skins", (boolean)false);
-                }
+                String chosen = null;
                 if (chosen != null) {
                     byte[] bytes = Files.readAllBytes(Path.of(chosen, new String[0]));
                     String base = Path.of(chosen, new String[0]).getFileName().toString().replaceAll("(?i)\\.png$", "").replaceAll("[\\\\/:*?\"<>|]", "").trim();

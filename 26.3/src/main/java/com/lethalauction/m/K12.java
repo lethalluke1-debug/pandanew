@@ -288,7 +288,7 @@ public final class K12 {
         K12.x.A = now;
         K12.x.S = now;
         K12.x.N = now + 500L;
-        p.swing(InteractionHand.MAIN_HAND);
+        p.swing(InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, false);
         double kx = K12.x.a.x - p.getX();
         double kz = K12.x.a.z - p.getZ();
         double kl = Math.sqrt(kx * kx + kz * kz);
@@ -994,9 +994,9 @@ public final class K12 {
         PoseStack ps = ctx.poseStack();
         ps.pushPose();
         ps.translate(dx, dy + 0.02, dz);
-        ps.mulPose((Quaternionfc)Axis.YP.rotationDegrees(180.0f - yaw));
-        ps.mulPose((Quaternionfc)Axis.ZP.rotationDegrees((float)Math.toDegrees((double)bank)));
-        ps.mulPose((Quaternionfc)Axis.XP.rotationDegrees((float)Math.toDegrees((double)pitch)));
+        ps.rotate((Quaternionfc)Axis.YP.rotationDegrees(180.0f - yaw));
+        ps.rotate((Quaternionfc)Axis.ZP.rotationDegrees((float)Math.toDegrees((double)bank)));
+        ps.rotate((Quaternionfc)Axis.XP.rotationDegrees((float)Math.toDegrees((double)pitch)));
         ps.scale(fsc, fsc, fsc);
         ps.scale(-1.0f, -1.0f, 1.0f);
         ps.translate(0.0f, -1.501f, 0.0f);
@@ -1216,7 +1216,7 @@ public final class K12 {
         ps.pushPose();
         ps.translate(dx, dy, dz);
         ps.scale(sc, sc, sc);
-        ps.mulPose((Quaternionfc)Axis.YP.rotationDegrees(180.0f - yaw));
+        ps.rotate((Quaternionfc)Axis.YP.rotationDegrees(180.0f - yaw));
         ps.scale(-1.0f, -1.0f, 1.0f);
         ps.translate(0.0f, -1.501f, 0.0f);
         RenderType type = RenderTypes.entityCutout((Identifier)figure.c());
@@ -1271,8 +1271,8 @@ public final class K12 {
         PoseStack ps = ctx.poseStack();
         ps.pushPose();
         ps.translate(dx, dy + (double)seatH + (double)sway * 0.015, dz);
-        ps.mulPose((Quaternionfc)Axis.YP.rotationDegrees(180.0f - yaw));
-        ps.mulPose((Quaternionfc)Axis.ZP.rotationDegrees(sway * 4.0f));
+        ps.rotate((Quaternionfc)Axis.YP.rotationDegrees(180.0f - yaw));
+        ps.rotate((Quaternionfc)Axis.ZP.rotationDegrees(sway * 4.0f));
         ps.scale(0.55f, 0.55f, 0.55f);
         ps.scale(-1.0f, -1.0f, 1.0f);
         ps.translate(0.0f, -1.501f, 0.0f);
@@ -1373,7 +1373,7 @@ public final class K12 {
         PoseStack ps = ctx.poseStack();
         ps.pushPose();
         ps.translate(dx, dy, dz);
-        ps.mulPose((Quaternionfc)Axis.YP.rotationDegrees(180.0f - yaw));
+        ps.rotate((Quaternionfc)Axis.YP.rotationDegrees(180.0f - yaw));
         ps.translate(0.0f, -0.3f * ease, 0.0f);
         ps.pushPose();
         ps.scale(0.55f, 0.55f, 0.55f);
@@ -1412,8 +1412,8 @@ public final class K12 {
         PoseStack ps = ctx.poseStack();
         ps.pushPose();
         ps.translate(dx, dy, dz);
-        ps.mulPose((Quaternionfc)Axis.YP.rotationDegrees(180.0f - b.e));
-        ps.mulPose((Quaternionfc)Axis.XP.rotationDegrees(90.0f));
+        ps.rotate((Quaternionfc)Axis.YP.rotationDegrees(180.0f - b.e));
+        ps.rotate((Quaternionfc)Axis.XP.rotationDegrees(90.0f));
         ps.scale(0.55f, 0.55f, 0.55f);
         ps.scale(-1.0f, -1.0f, 1.0f);
         ps.translate(0.0f, -1.501f, 0.0f);

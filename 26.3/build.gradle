@@ -16,7 +16,7 @@ dependencies {
     minecraft "com.mojang:minecraft:26.3"
     mappings files("identity-mappings.jar")
     modImplementation "net.fabricmc:fabric-loader:0.20.1"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:0.161.0+26.3"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:0.166.2+26.3"
 }
 
 // ---- Obfuscation (ProGuard) ----------------------------------------------

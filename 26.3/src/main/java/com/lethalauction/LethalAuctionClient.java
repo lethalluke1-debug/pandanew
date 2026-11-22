@@ -252,12 +252,12 @@ implements ClientModInitializer {
                 });
             }
         });
-        openMenu = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.open", InputConstants.Type.KEYSYM, 344, CATEGORY));
-        K40.a = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.freelook", InputConstants.Type.KEYSYM, 342, CATEGORY));
-        K40.b = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.zoom", InputConstants.Type.KEYSYM, 67, CATEGORY));
-        figureWaypoint = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.waypoint", InputConstants.Type.KEYSYM, 86, CATEGORY));
-        roomPlace = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.room", InputConstants.Type.KEYSYM, 78, CATEGORY));
-        fullbright = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.fullbright", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
+        openMenu = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.open", InputConstants.Type.KEYBOARD, 344, CATEGORY));
+        K40.a = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.freelook", InputConstants.Type.KEYBOARD, 342, CATEGORY));
+        K40.b = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.zoom", InputConstants.Type.KEYBOARD, 67, CATEGORY));
+        figureWaypoint = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.waypoint", InputConstants.Type.KEYBOARD, 86, CATEGORY));
+        roomPlace = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.room", InputConstants.Type.KEYBOARD, 78, CATEGORY));
+        fullbright = KeyMappingHelper.registerKeyMapping((KeyMapping)new KeyMapping("key.lethalauction.fullbright", InputConstants.Type.KEYBOARD, InputConstants.UNKNOWN.getValue(), CATEGORY));
         ClientSendMessageEvents.ALLOW_COMMAND.register(command -> K35.a(command));
         // Win streak: typing /win adds one, /lose (or /loss) resets it. Handled
         // client-side and not sent to the server.

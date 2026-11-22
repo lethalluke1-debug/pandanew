@@ -44,7 +44,6 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
-import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
 public final class K4 {
     public static final Path a = FabricLoader.getInstance().getConfigDir().resolve("lethalauction").resolve("capes");
@@ -200,15 +199,10 @@ public final class K4 {
                 i = true;
                 Thread t = new Thread(() -> {
                     try {
-                        String chosen;
-                        try (MemoryStack stack = MemoryStack.stackPush();){
-                            PointerBuffer filters = stack.mallocPointer(3);
-                            filters.put(stack.UTF8((CharSequence)"*.png"));
-                            filters.put(stack.UTF8((CharSequence)"*.jpg"));
-                            filters.put(stack.UTF8((CharSequence)"*.jpeg"));
-                            filters.flip();
-                            chosen = TinyFileDialogs.tinyfd_openFileDialog((CharSequence)"Choose a picture for your cape", (CharSequence)"", (PointerBuffer)filters, (CharSequence)"Images", (boolean)false);
-                        }
+                        java.awt.FileDialog fd = new java.awt.FileDialog((java.awt.Frame)null, "Choose a picture for your cape", java.awt.FileDialog.LOAD);
+                        fd.setFile("*.png;*.jpg;*.jpeg");
+                        fd.setVisible(true);
+                        String chosen = fd.getFile() != null && fd.getDirectory() != null ? fd.getDirectory() + fd.getFile() : null;
                         if (chosen != null) {
                             byte[] bytes = Files.readAllBytes(Path.of(chosen, new String[0]));
                             String base = Path.of(chosen, new String[0]).getFileName().toString().replaceAll("\\.[A-Za-z0-9]+$", "");

@@ -52,7 +52,6 @@ import net.minecraft.world.entity.player.PlayerSkin;
 import org.joml.Matrix3x2fStack;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
-import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
 public class K61
 implements HudElement {
@@ -359,13 +358,7 @@ implements HudElement {
         t = true;
         Thread thread = new Thread(() -> {
             try {
-                String chosen;
-                try (MemoryStack stack = MemoryStack.stackPush();){
-                    PointerBuffer filters = stack.mallocPointer(1);
-                    filters.put(stack.UTF8((CharSequence)"*.png"));
-                    filters.flip();
-                    chosen = TinyFileDialogs.tinyfd_openFileDialog((CharSequence)"Choose a PNG for the wheel center", (CharSequence)"", (PointerBuffer)filters, (CharSequence)"PNG images", (boolean)false);
-                }
+                String chosen = null;
                 if (chosen == null) {
                     return;
                 }

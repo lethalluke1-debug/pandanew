@@ -141,6 +141,10 @@ implements K52.C103 {
             return this;
         }
 
+        public VertexConsumer setUv3(float u, float v) {
+            return this;
+        }
+
         public VertexConsumer setUv1(int u, int v) {
             this.d[this.c() + 1] = u & 0xFFFF | v << 16;
             this.b |= 8;
