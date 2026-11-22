@@ -442,10 +442,17 @@ extends Screen {
         int green = -12200829;
         com.lethalauction.m.K47.C97 t = com.lethalauction.m.K47.c();
         boolean has = t != null && t.a();
+        // intro animation: the card fades in and its rows load top-to-bottom
+        // each time the Music tab is opened (this.Y = last tab switch).
+        float prevH = K18.h;
+        long el = System.currentTimeMillis() - this.Y;
+        float base = Math.min(1.0f, (float)el / 170.0f);
         // card background
+        K18.h = base;
         K18.a(g, x0 - 2, y0 - 2, w + 4, h + 4, 16, K18.a(this.ak, 0.16f));
         K18.a(g, x0, y0, w, h, 14, panel, K18.a(this.ak, 0.35f));
         // header: source dot + labels (dot uses the selected theme accent)
+        K18.h = this.revA(el, base, (float)(y0 + 18), y0);
         K18.a(g, (float)(x0 + 24), (float)(y0 + 24), 8.0f, this.ak);
         K18.a(g, has ? t.c().label : "Spotify", (float)(x0 + 40), (float)(y0 + 18), 11.5f, -789515, K18.c);
         K18.a(g, has && t.f() ? "Now playing" : "Paused", (float)(x0 + 40), (float)(y0 + 33), 8.5f, dim, K18.a);
@@ -453,6 +460,7 @@ extends Screen {
         int ax = x0 + 18;
         int ay = y0 + 50;
         int as = w - 36;
+        K18.h = this.revA(el, base, (float)ay, y0);
         K18.a(g, ax, ay, as, as, 12, -16447732);
         Identifier art = com.lethalauction.m.K47.n();
         if (has && art != null) {
@@ -462,6 +470,7 @@ extends Screen {
         }
         // title + artist
         int iy = ay + as + 20;
+        K18.h = this.revA(el, base, (float)iy, y0);
         K18.a(g, K20.a(has ? t.d() : "Nothing playing", (float)(w - 36), 15.0f, K18.c), (float)(x0 + 18), (float)iy, 15.0f, -789515, K18.c);
         K18.a(g, K20.a(has ? (t.e().isEmpty() ? "Unknown artist" : t.e()) : "Open Spotify to see it here", (float)(w - 36), 11.0f, K18.b), (float)(x0 + 18), (float)(iy + 18), 11.0f, dim, K18.b);
         // progress bar
@@ -469,15 +478,17 @@ extends Screen {
         long dur = has ? t.h() : 0L;
         float frac = dur > 0L ? Math.max(0.0f, Math.min(1.0f, (float)pos / (float)dur)) : 0.0f;
         int by = iy + 40;
+        K18.h = this.revA(el, base, (float)by, y0);
         K18.a(g, x0 + 18, by, w - 36, 4, 2, -14013910);
         if (frac > 0.0f) {
             K18.a(g, x0 + 18, by, Math.round((float)(w - 36) * frac), 4, 2, this.ak);
         }
-        K18.a(g, K20.mmss(pos), (float)(x0 + 18), (float)(by + 14), 8.5f, dim, K18.a);
-        K18.a(g, K20.mmss(dur), (float)(x0 + w - 18), (float)(by + 14), 8.5f, dim, K18.c);
+        K18.a(g, K20.mmss(pos), (float)(x0 + 18), (float)(by + 14), 8.5f, dim, K18.b);
+        K18.c(g, K20.mmss(dur), (float)(x0 + w - 18), (float)(by + 14), 8.5f, dim, K18.b);
         // controls: prev / play-pause / next (clickable)
         int cy = by + 42;
         float cxm = (float)(x0 + w / 2);
+        K18.h = this.revA(el, base, (float)(cy - 12), y0);
         K20.playTri(g, cxm - 46.0f, (float)cy, 8.0f, -789515, false);
         K18.a(g, cxm, (float)cy, 17.0f, -789515);
         if (has && t.f()) {
@@ -490,6 +501,17 @@ extends Screen {
         this.a(Math.round(cxm - 56.0f), cy - 11, 22, 22, () -> com.lethalauction.m.K48.control("prev"));
         this.a(Math.round(cxm - 17.0f), cy - 17, 34, 34, () -> com.lethalauction.m.K48.control("play"));
         this.a(Math.round(cxm + 34.0f), cy - 11, 22, 22, () -> com.lethalauction.m.K48.control("next"));
+        K18.h = prevH;
+    }
+
+    // Per-row reveal alpha for the music card's intro: a front sweeps down from
+    // the card top, so rows fade in one after another; multiplied by the card's
+    // overall fade (base).
+    private float revA(long el, float base, float y, int top) {
+        float front = (float)top + 4.0f + (float)Math.max(0L, el - 60L) * 0.85f;
+        float a = (front - y) / 26.0f;
+        a = a < 0.0f ? 0.0f : (a > 1.0f ? 1.0f : a);
+        return base * a;
     }
 
     // A small filled triangle pointing right (forward) or left (back).
@@ -605,9 +627,6 @@ extends Screen {
             int activeColor = K18.a(this.ak, -1, 0.08f);
             K18.b(g, K22.a(pg.icon), 47.0f, (float)ty, 21.0f, active ? activeColor : -5924947, pg.iconFont);
             K18.a(g, pg.label, 75.0f, (float)ty, 13.0f, active ? activeColor : -4477500, active ? K18.c : K18.b);
-            if (pg == C82.MUSIC) {
-                K18.b(g, K22.a(60130), 125.0f, (float)ty, 11.0f, active ? activeColor : -7568235, K22.a);
-            }
             this.a(24, ty - 12, 188, 24, () -> {
                 if (this.O != pg) {
                     this.Y = System.currentTimeMillis();
@@ -2034,35 +2053,6 @@ extends Screen {
             K9.b();
         });
         y += 62;
-        // Lyrics font picker
-        y += 10;
-        K18.a(g, "Lyrics font", 243.0f, (float)(y + 8), 12.5f, -789515, K18.c);
-        K18.a(g, "The font the karaoke lyrics are drawn in, on the top ticker and in the sky.", 243.0f, (float)(y + 24), 10.0f, -5001030, K18.a);
-        y += 36;
-        String[][] lyrFonts = new String[][]{
-            {"", "Default"},
-            {"font_pacifico", "Pacifico"},
-            {"font_dancing", "Dancing Script"},
-            {"font_greatvibes", "Great Vibes"},
-            {"font_lobster", "Lobster"},
-            {"font_bebas", "Bebas Neue"},
-            {"font_righteous", "Righteous"},
-            {"font_comfortaa", "Comfortaa"},
-            {"font_smallcaps", "Small Caps"}};
-        for (String[] lf : lyrFonts) {
-            boolean sel = K9.lyricsFont.equals(lf[0]);
-            float cy = (float)y + 25.0f;
-            K18.a(g, 241, y, 765, 50, 10, cardFill, sel ? this.ak : cardBorder);
-            K18.a(g, lf[1], 257.0f, cy, 12.5f, sel ? -1 : -789515, K18.c);
-            Identifier pf = lf[0].isEmpty() ? K18.b : K18.a(lf[0]);
-            K18.a(g, "Never gonna give you up", 560.0f, cy, 15.0f, sel ? -1 : -2039584, pf);
-            String fv = lf[0];
-            this.a(241, y, 765, 50, () -> {
-                K9.lyricsFont = fv;
-                K9.b();
-            });
-            y += 58;
-        }
         return y + 6;
     }
 

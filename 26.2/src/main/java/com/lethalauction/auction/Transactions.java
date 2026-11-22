@@ -18,6 +18,7 @@ import com.lethalauction.m.K9;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.OpenOption;
@@ -34,24 +35,24 @@ public final class Transactions {
     private static final Path a = FabricLoader.getInstance().getConfigDir().resolve("lethalauction-transactions.json");
     private static final Gson b = new GsonBuilder().create();
     private static final int c = 5000;
-    private static final String d = "\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b";
+    private static final String d = "\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\b";
     private static final String e = "(?<name>\\.?[A-Za-z0-9_]{2,16})";
     private static final String f = "(?<name>.{1,32}?)";
-    private static final List<Pattern> g = List.of(Pattern.compile("^you (?:have )?(?:just )?(?:paid|sent|gave) (?<name>\\.?[A-Za-z0-9_]{2,16}) \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b", 2), Pattern.compile("^you (?:have )?(?:just )?(?:paid|sent|gave) \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b(?: dollars| coins| money)? to (?<name>\\.?[A-Za-z0-9_]{2,16})", 2), Pattern.compile("^-\\s*\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b (?:to|for) (?<name>\\.?[A-Za-z0-9_]{2,16})", 2), Pattern.compile("^\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b (?:has been |was )?(?:sent|paid|given) to (?<name>\\.?[A-Za-z0-9_]{2,16})", 2));
-    private static final List<Pattern> h = List.of(Pattern.compile("^you (?:have )?(?:just )?(?:bought|purchased) (?:[0-9,]+\\s*x?\\s*)?(?<name>.{1,32}?) for \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b", 2), Pattern.compile("^you (?:have )?(?:just )?spent \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b(?: on (?<name>.{1,40}))?", 2), Pattern.compile("^you (?:have )?(?:just )?paid \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b(?: dollars| coins| money)?(?: for (?<name>.{1,40}))?$", 2), Pattern.compile("^\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b (?:was |has been )?(?:withdrawn|taken|removed|deducted|charged)(?: from your (?<name>[A-Za-z ]{1,20}))?", 2));
+    private static final List<Pattern> g = List.of(Pattern.compile("^you (?:have )?(?:just )?(?:paid|sent|gave) (?<name>\\.?[A-Za-z0-9_]{2,16}) \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\b", 2), Pattern.compile("^you (?:have )?(?:just )?(?:paid|sent|gave) \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\b(?: dollars| coins| money)? to (?<name>\\.?[A-Za-z0-9_]{2,16})", 2), Pattern.compile("^-\\s*\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\b (?:to|for) (?<name>\\.?[A-Za-z0-9_]{2,16})", 2), Pattern.compile("^\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\b (?:has been |was )?(?:sent|paid|given) to (?<name>\\.?[A-Za-z0-9_]{2,16})", 2));
+    private static final List<Pattern> h = List.of(Pattern.compile("^you (?:have )?(?:just )?(?:bought|purchased) (?:[0-9,]+\\s*x?\\s*)?(?<name>.{1,32}?) for \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\b", 2), Pattern.compile("^you (?:have )?(?:just )?spent \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\b(?: on (?<name>.{1,40}))?", 2), Pattern.compile("^you (?:have )?(?:just )?paid \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\b(?: dollars| coins| money)?(?: for (?<name>.{1,40}))?$", 2), Pattern.compile("^\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\b (?:was |has been )?(?:withdrawn|taken|removed|deducted|charged)(?: from your (?<name>[A-Za-z ]{1,20}))?", 2));
     private static final List<C69> i = new ArrayList<C69>();
     private static boolean j;
     // A bare amount with nothing else: DonutSMP shows sells/earnings as a plain
     // "$35K" action-bar pop (its money icon normalises to $), with no player or
     // "sold" text. "+$" / "$" = money in (a sale); "-$" = money out.
-    private static final Pattern k = Pattern.compile("^\\+?\\s*\\$\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\s*$", 2);
-    private static final Pattern l = Pattern.compile("^-\\s*\\$\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\s*$", 2);
+    private static final Pattern k = Pattern.compile("^\\+?\\s*\\$\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\s*$", 2);
+    private static final Pattern l = Pattern.compile("^-\\s*\\$\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\s*$", 2);
     // DonutSMP now charges a tax and prints it inline, e.g.
     //   "You paid its_skots $50M (+$ 1M tax)"
     // Tax that ADDS to money out (a buy/pay) increases what you spent; tax on
     // money in (a sale) reduces what you received. We parse the "(...tax)" chunk
     // and fold it into the recorded amount so profit reflects the real coins.
-    private static final Pattern n = Pattern.compile("\\(\\s*[+-]?\\s*\\$?\\s*(?<tax>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\s*tax\\s*\\)", 2);
+    private static final Pattern n = Pattern.compile("\\(\\s*[+-]?\\s*\\$?\\s*(?<tax>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\s*tax\\s*\\)", 2);
     private static long lastAmt;
     private static long lastAt;
 
@@ -125,13 +126,17 @@ public final class Transactions {
         long tax = Transactions.taxOf(text);
         Matcher in = Auctions.d(text);
         if (in != null) {
-            Transactions.a(in.group("name"), Transactions.adj(Auctions.e(in.group("amount").replace(" ", "")), true, tax), true, tax);
+            long amt = Auctions.e(in.group("amount").replace(" ", ""));
+            Transactions.dbg(plain, in.group("amount"), amt, true, "IN");
+            Transactions.a(in.group("name"), Transactions.adj(amt, true, tax), true, tax);
             return;
         }
         for (Pattern p : g) {
             m = p.matcher(text);
             if (!m.find()) continue;
-            Transactions.a(m.group("name"), Transactions.adj(Auctions.e(m.group("amount").replace(" ", "")), false, tax), false, tax);
+            long amt = Auctions.e(m.group("amount").replace(" ", ""));
+            Transactions.dbg(plain, m.group("amount"), amt, false, "OUT-pay");
+            Transactions.a(m.group("name"), Transactions.adj(amt, false, tax), false, tax);
             return;
         }
         for (Pattern p : h) {
@@ -139,17 +144,41 @@ public final class Transactions {
             if (!m.find()) continue;
             String item = m.group("name");
             String label = item == null || item.isBlank() ? "Purchase" : item.trim();
-            Transactions.a(label, Transactions.adj(Auctions.e(m.group("amount").replace(" ", "")), false, tax), false, tax);
+            long amt = Auctions.e(m.group("amount").replace(" ", ""));
+            Transactions.dbg(plain, m.group("amount"), amt, false, "OUT-buy");
+            Transactions.a(label, Transactions.adj(amt, false, tax), false, tax);
             return;
         }
         Matcher sale = k.matcher(text);
         if (sale.find()) {
-            Transactions.b(Transactions.adj(Auctions.e(sale.group("amount").replace(" ", "")), true, tax), "Sale", true, tax);
+            long amt = Auctions.e(sale.group("amount").replace(" ", ""));
+            Transactions.dbg(plain, sale.group("amount"), amt, true, "IN-sale");
+            Transactions.b(Transactions.adj(amt, true, tax), "Sale", true, tax);
             return;
         }
         Matcher spend = l.matcher(text);
         if (spend.find()) {
-            Transactions.b(Transactions.adj(Auctions.e(spend.group("amount").replace(" ", "")), false, tax), "Purchase", false, tax);
+            long amt = Auctions.e(spend.group("amount").replace(" ", ""));
+            Transactions.dbg(plain, spend.group("amount"), amt, false, "OUT-spend");
+            Transactions.b(Transactions.adj(amt, false, tax), "Purchase", false, tax);
+        }
+    }
+
+    // Append each recognised transaction to a debug file so a mis-parse (e.g. a
+    // $18 pay read as $1B) can be traced to the exact chat line that caused it.
+    private static final Path dbgFile = FabricLoader.getInstance().getConfigDir().resolve("lethalauction-transactions-debug.txt");
+
+    private static void dbg(String rawLine, String amountGroup, long parsed, boolean received, String kind) {
+        try {
+            if (Files.exists(dbgFile, new LinkOption[0]) && Files.size(dbgFile) > 262144L) {
+                Files.deleteIfExists(dbgFile);
+            }
+            String line = java.time.LocalTime.now().withNano(0) + "  " + kind + "  " + (received ? "+" : "-")
+                + Auctions.a(parsed) + " (raw amount=\"" + amountGroup + "\" -> " + parsed + ")  | line: "
+                + (rawLine == null ? "" : rawLine.trim()) + System.lineSeparator();
+            Files.writeString(dbgFile, line, StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+        } catch (Exception ignored) {
+            // never let logging break transaction tracking
         }
     }
 

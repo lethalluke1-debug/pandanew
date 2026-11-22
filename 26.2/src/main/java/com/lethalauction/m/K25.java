@@ -108,9 +108,9 @@ implements HudElement {
         return s / 60L + ":" + String.format("%02d", s % 60L);
     }
 
-    // The font used to draw the karaoke lyric words, from the Music-tab picker.
+    // The font used to draw the karaoke lyric words.
     public static Identifier lf() {
-        return K9.lyricsFont == null || K9.lyricsFont.isEmpty() ? K18.b : K18.a(K9.lyricsFont);
+        return K18.b;
     }
 
     public static void ticker(GuiGraphicsExtractor g) {
