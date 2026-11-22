@@ -4325,6 +4325,7 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
     }
 
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        LethalAuctionClient.playClick(); // DIAGNOSTIC: proves mouseClicked fires
         if (event.button() != 0) {
             return true;
         }
