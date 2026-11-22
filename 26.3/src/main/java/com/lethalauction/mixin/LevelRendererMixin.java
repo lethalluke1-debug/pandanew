@@ -26,12 +26,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value={LevelRenderer.class})
 public abstract class LevelRendererMixin {
-    @Inject(method={"addCloudsPass"}, at={@At(value="HEAD")}, cancellable=true, require=0)
-    private void lethalauction$hideClouds(CallbackInfo ci) {
-        if (K9.r && K50.a()) {
-            ci.cancel();
-        }
-    }
+    // addCloudsPass was removed in 26.3 (clouds moved to CloudRenderer) and the
+    // custom sky is disabled here anyway, so the cloud-hide inject is gone.
 
     @Redirect(method={"addSkyPass"}, at={@At(value="FIELD", target="Lnet/minecraft/client/renderer/state/level/SkyRenderState;skybox:Lnet/minecraft/world/level/dimension/DimensionType$Skybox;", opcode=180)}, require=0)
     private DimensionType.Skybox lethalauction$forceSkyInNether(SkyRenderState state) {
