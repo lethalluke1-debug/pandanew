@@ -1,0 +1,139 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "lethalauction:font/badge_member.png",
+      "height": 8,
+      "ascent": 7,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lethalauction:font/badge_vip.png",
+      "height": 8,
+      "ascent": 7,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lethalauction:font/badge_creator.png",
+      "height": 8,
+      "ascent": 7,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lethalauction:font/badge_owner.png",
+      "height": 8,
+      "ascent": 7,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lethalauction:font/badge_staff.png",
+      "height": 8,
+      "ascent": 7,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lethalauction:font/badge_manager.png",
+      "height": 8,
+      "ascent": 7,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lethalauction:font/st_halloween.png",
+      "height": 10,
+      "ascent": 8,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lethalauction:font/st_xmas.png",
+      "height": 10,
+      "ascent": 8,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lethalauction:font/st_pumpkin.png",
+      "height": 10,
+      "ascent": 8,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lethalauction:font/st_heart.png",
+      "height": 10,
+      "ascent": 8,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lethalauction:font/st_67.png",
+      "height": 10,
+      "ascent": 8,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lethalauction:font/st_star.png",
+      "height": 10,
+      "ascent": 8,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lethalauction:font/st_skull.png",
+      "height": 10,
+      "ascent": 8,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lethalauction:font/st_fire.png",
+      "height": 10,
+      "ascent": 8,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lethalauction:font/st_diamond.png",
+      "height": 10,
+      "ascent": 8,
+      "chars": [
+        ""
+      ]
+    }
+  ]
+}

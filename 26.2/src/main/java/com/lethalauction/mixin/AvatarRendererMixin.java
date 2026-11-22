@@ -35,7 +35,7 @@ public abstract class AvatarRendererMixin {
     @Inject(method={"shouldShowName(Lnet/minecraft/world/entity/Avatar;D)Z"}, at={@At(value="RETURN")}, cancellable=true)
     private void lethalauction$showOwnName(Avatar entity, double distanceToCameraSq, CallbackInfoReturnable<Boolean> cir) {
         Minecraft mc = Minecraft.getInstance();
-        if (!((Boolean)cir.getReturnValue()).booleanValue() && entity == mc.player && mc.getCameraEntity() == mc.player && (K14.a() || K9.m && K37.e()) && !mc.options.getCameraType().isFirstPerson() && !mc.gui.hud.isHidden() && !entity.isInvisible()) {
+        if (!((Boolean)cir.getReturnValue()).booleanValue() && entity == mc.player && mc.getCameraEntity() == mc.player && (K9.selfNametag || K14.a() || K9.m && K37.e()) && !mc.options.getCameraType().isFirstPerson() && !mc.gui.hud.isHidden() && !entity.isInvisible()) {
             cir.setReturnValue(true);
         }
     }

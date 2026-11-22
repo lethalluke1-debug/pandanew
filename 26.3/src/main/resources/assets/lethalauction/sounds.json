@@ -1,0 +1,4 @@
+{
+  "click": {"sounds": ["lethalauction:click"]},
+  "coin": {"sounds": ["lethalauction:coin"]}
+}

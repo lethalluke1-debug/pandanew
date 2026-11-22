@@ -3716,6 +3716,15 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
             K9.b();
         });
         y += 62;
+        // Show own nametag
+        K18.a(g, 241, y, 765, 50, 10, cardFill, cardBorder);
+        K18.a(g, "Show own nametag", 257.0f, (float)(y + 18), 12.5f, -789515, K18.c);
+        K18.a(g, "See your own nametag above your head in third person, the way other players see it.", 257.0f, (float)(y + 35), 10.0f, -5001030, K18.a);
+        this.a(g, 960, y + 25, K9.selfNametag, () -> {
+            K9.selfNametag = !K9.selfNametag;
+            K9.b();
+        });
+        y += 62;
         y += 14;
         y = this.c(g, y, cardFill, cardBorder);
         K18.a(g, "Font", 243.0f, (float)((y += 14) + 8), 12.5f, -789515, K18.c);

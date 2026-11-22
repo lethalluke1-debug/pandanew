@@ -35,7 +35,7 @@ public abstract class AvatarRendererMixin {
     @Inject(method={"method_74935(Lnet/minecraft/class_11890;D)Z"}, at={@At(value="RETURN")}, cancellable=true)
     private void lethalauction$showOwnName(class_11890 entity, double distanceToCameraSq, CallbackInfoReturnable<Boolean> cir) {
         class_310 mc = class_310.method_1551();
-        if (!((Boolean)cir.getReturnValue()).booleanValue() && entity == mc.field_1724 && mc.method_1560() == mc.field_1724 && (K14.a() || K9.m && K37.e()) && !mc.field_1690.method_31044().method_31034() && !mc.field_1690.field_1842 && !entity.method_5767()) {
+        if (!((Boolean)cir.getReturnValue()).booleanValue() && entity == mc.field_1724 && mc.method_1560() == mc.field_1724 && (K9.selfNametag || K14.a() || K9.m && K37.e()) && !mc.field_1690.method_31044().method_31034() && !mc.field_1690.field_1842 && !entity.method_5767()) {
             cir.setReturnValue(true);
         }
     }

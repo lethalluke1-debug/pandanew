@@ -314,11 +314,7 @@ implements ClientModInitializer {
                 mc.getSoundManager().play((SoundInstance)SimpleSoundInstance.forUI((SoundEvent)SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, (float)1.0f, (float)0.8f));
             }
             this.licenseTick(mc);
-            if (!this.updateNotified && com.lethalauction.m.K39.a() == com.lethalauction.m.K39.C93.READY && mc.player != null && mc.gui.screen() == null) {
-                this.updateNotified = true;
-                mc.getSoundManager().play((SoundInstance)SimpleSoundInstance.forUI((SoundEvent)SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, (float)1.0f, (float)1.0f));
-                mc.gui.setScreen((Screen)new K34());
-            }
+            // Do not auto-open the update screen when a new update is ready.
             K30.a(mc);
             K5.a(mc);
             K40.a(mc);
@@ -338,11 +334,6 @@ implements ClientModInitializer {
                 K9.b();
             }
             while (openMenu.consumeClick()) {
-                if (K37.g()) {
-                    if (mc.gui.screen() instanceof K34) continue;
-                    mc.gui.setScreen((Screen)new K34());
-                    continue;
-                }
                 if (K37.a() && K37.k()) {
                     if (mc.gui.screen() instanceof K23) continue;
                     mc.gui.setScreen((Screen)new K23());
@@ -382,16 +373,11 @@ implements ClientModInitializer {
                 mc.gui.setScreen((Screen)new K23());
             }
         }
-        if (K37.r() && !K37.d()) {
-            if (K37.g()) {
-                if (mc.gui.screen() instanceof K20) {
-                    mc.gui.setScreen((Screen)new K34());
-                }
-            } else {
-                K21.a("Lethal Client locked", K37.m());
-                if (mc.gui.screen() instanceof K20 || mc.gui.screen() instanceof K34) {
-                    mc.gui.setScreen((Screen)new K22(null, K20::new));
-                }
+        if (K37.r() && !K37.d() && !K37.g()) {
+            // Only the genuine "locked" state redirects; an available update does not.
+            K21.a("Lethal Client locked", K37.m());
+            if (mc.gui.screen() instanceof K20 || mc.gui.screen() instanceof K34) {
+                mc.gui.setScreen((Screen)new K22(null, K20::new));
             }
         }
     }
