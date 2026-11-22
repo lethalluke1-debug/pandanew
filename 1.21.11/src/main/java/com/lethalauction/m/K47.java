@@ -52,6 +52,66 @@ public final class K47 {
     private static volatile int u;
     private static volatile int v;
     private static volatile long w;
+    // ---- internal playback clock -----------------------------------------
+    // The Windows media API reports a jittery, often-stale position (it lags
+    // and jumps backwards on pause/resume). So we keep our own clock that ticks
+    // forward in real time while playing, and only re-syncs on a genuine seek.
+    private static volatile long vPos;
+    private static volatile long vAt;
+    private static volatile boolean vPlaying;
+    private static final long SEEK_MS = 2500L;
+
+    // Smoothed current playback position in ms, interpolated with the local clock.
+    public static long pos() {
+        long now = System.currentTimeMillis();
+        long p = vPlaying ? vPos + (now - vAt) : vPos;
+        long dur = f.get().h();
+        if (dur > 0L) {
+            p = Math.min(p, dur);
+        }
+        return Math.max(0L, p);
+    }
+
+    private static void clock(C96 was, C96 t, long now) {
+        boolean playing = t.f();
+        if (!t.a() || !t.j().equals(was.j())) {
+            vPos = Math.max(0L, t.b());
+            vAt = now;
+            vPlaying = playing && t.a();
+            return;
+        }
+        long expected = vPlaying ? vPos + (now - vAt) : vPos;
+        long raw = t.b();
+        if (!playing) {
+            vPos = Math.max(0L, vPlaying ? expected : vPos);
+            vAt = now;
+            vPlaying = false;
+            return;
+        }
+        if (!vPlaying) {
+            vPos = raw > expected + SEEK_MS ? raw : expected;
+            vAt = now;
+            vPlaying = true;
+            return;
+        }
+        long delta = raw - expected;
+        vPos = delta > SEEK_MS || delta < -SEEK_MS ? Math.max(0L, raw) : Math.max(0L, expected + delta / 8L);
+        vAt = now;
+    }
+
+    // Optimistic play/pause: flip the clock's running state at once so the UI
+    // reacts instantly on a button press; the next system reading reconciles it.
+    public static void togglePredict() {
+        long now = System.currentTimeMillis();
+        if (vPlaying) {
+            vPos = Math.max(0L, vPos + (now - vAt));
+            vAt = now;
+            vPlaying = false;
+        } else {
+            vAt = now;
+            vPlaying = true;
+        }
+    }
 
     public static int a() {
         return m;
@@ -104,6 +164,7 @@ public final class K47 {
     static void a(C96 t) {
         C96 was = f.getAndSet(t);
         long now = System.currentTimeMillis();
+        K47.clock(was, t, now);
         if (!(!t.a() || was.a() && t.j().equals(was.j()))) {
             i = now;
         }
@@ -164,6 +225,7 @@ public final class K47 {
 
     static void m() {
         C96 was = f.getAndSet(C96.a);
+        vPlaying = false;
         if (was.f()) {
             g = System.currentTimeMillis();
         }

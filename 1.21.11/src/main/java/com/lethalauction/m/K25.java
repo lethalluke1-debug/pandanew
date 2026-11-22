@@ -20,6 +20,8 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
 import net.minecraft.class_2960;
 import net.minecraft.class_310;
 import net.minecraft.class_332;
+import net.minecraft.class_408;
+import net.minecraft.class_437;
 import net.minecraft.class_9779;
 import org.joml.Matrix3x2fStack;
 
@@ -89,9 +91,139 @@ implements HudElement {
     };
 
     public void render(class_332 g, class_9779 deltaTracker) {
-        if (class_310.method_1551().field_1755 == null) {
-            K25.a(g);
+        // The now-playing card lives only in the menu; in-game shows just the top
+        // lyrics ticker. Keep it visible while the chat is open (pressing T).
+        class_437 sc = class_310.method_1551().field_1755;
+        if (sc == null || sc instanceof class_408) {
+            K25.ticker(g);
         }
+    }
+
+    // The font used to draw the karaoke lyric words.
+    public static class_2960 lf() {
+        return K18.b;
+    }
+
+    private static String mmss(long ms) {
+        if (ms < 0L) {
+            ms = 0L;
+        }
+        long s = ms / 1000L;
+        return s / 60L + ":" + String.format("%02d", s % 60L);
+    }
+
+    // Top-centre karaoke lyrics ticker: time, mini album art, the current line
+    // with sung words lit up, and an equalizer. Falls back to title/artist when
+    // the song has no synced lyrics.
+    public static void ticker(class_332 g) {
+        class_310 mc = class_310.method_1551();
+        if (mc.field_1687 == null || mc.field_1724 == null || !K9.U || mc.field_1690.field_1842 || !K37.c()) {
+            return;
+        }
+        if (!K47.d() || !K47.c().a()) {
+            return;
+        }
+        long pos = K47.pos() + (long)K9.aB;
+        boolean hasLyrics = K47.j();
+        int line = hasLyrics ? K47.a(pos) : -1;
+        String text = line >= 0 ? K47.a(line) : null;
+        String[] ws = text != null && !text.isBlank() ? K44.a(text) : null;
+        boolean karaoke = ws != null && ws.length > 0;
+        long now = System.currentTimeMillis();
+        K44 timing = karaoke ? K44.a(K47.k()) : null;
+        long lstart = karaoke ? K47.b(line) : 0L;
+        long lend = karaoke ? K47.b(line + 1) : 0L;
+        if (karaoke && lend <= lstart) {
+            lend = lstart + 3000L;
+        }
+        int accent = K47.c().c().color == 0 ? -11695105 : K47.c().c().color;
+        float fs = 8.0f;
+        class_2960 lfont = K25.lf();
+        float space = 0.0f;
+        float[] ww = null;
+        float lineW = 0.0f;
+        if (karaoke) {
+            space = K18.a(" ", fs, lfont);
+            ww = new float[ws.length];
+            for (int i = 0; i < ws.length; ++i) {
+                ww[i] = K18.a(ws[i], fs, lfont);
+                lineW += ww[i] + (i < ws.length - 1 ? space : 0.0f);
+            }
+        }
+        String time = K25.mmss(pos);
+        float timeW = K18.a(time, 7.0f, K18.b);
+        int art = 13;
+        int eq = 14;
+        int pad = 8;
+        int gap = 6;
+        float pw = 300.0f;
+        float ph = 19.0f;
+        float cx = (float)g.method_51421() / 2.0f;
+        float x0 = cx - pw / 2.0f;
+        float y0 = 6.0f;
+        float cyl = y0 + ph / 2.0f;
+        float prevA = K18.h;
+        K18.a(g, Math.round(x0), Math.round(y0), Math.round(pw), Math.round(ph), 11, -872415232, K18.a(accent, 0.35f));
+        K18.a(g, time, x0 + (float)pad, cyl, 7.0f, -5197648, K18.b);
+        int ay = Math.round(y0 + (ph - (float)art) / 2.0f);
+        float artX = x0 + (float)pad + timeW + (float)gap;
+        class_2960 a = K47.n();
+        if (a != null) {
+            K18.a(g, a, Math.round(artX), ay, art, art, Math.max(1, K47.o()), Math.max(1, K47.p()));
+        } else {
+            K18.a(g, Math.round(artX), ay, art, art, 4, accent);
+        }
+        K18.a(g, Math.round(artX) - 1, ay - 1, art + 2, art + 2, 4, 0, -872415232);
+        K18.a(g, Math.round(artX) - 1, ay - 1, art + 2, art + 2, 4, 0, -872415232);
+        float lyricLeft = artX + (float)art + (float)gap;
+        float lyricRight = x0 + pw - (float)pad - (float)eq - (float)gap;
+        float lyricArea = Math.max(40.0f, lyricRight - lyricLeft);
+        if (karaoke) {
+            float lscale = lineW > lyricArea && lineW > 0.0f ? lyricArea / lineW : 1.0f;
+            float drawW = lineW * lscale;
+            float x = lyricLeft + (lyricArea - drawW) / 2.0f;
+            long lineEnd = lend > lstart ? lend : lstart + 3000L;
+            for (int i = 0; i < ws.length; ++i) {
+                long wt = timing != null && line < timing.a.length && i < timing.a[line].length ? timing.a[line][i] : lstart + (long)((float)i / (float)ws.length * (float)(lend - lstart));
+                long wnext;
+                if (timing != null && line < timing.a.length && i + 1 < timing.a[line].length) {
+                    wnext = timing.a[line][i + 1];
+                } else {
+                    wnext = Math.max(wt + 400L, Math.min(lineEnd, wt + 4000L));
+                }
+                boolean sung = pos >= wt;
+                boolean active = pos >= wt && pos < wnext;
+                int col = active ? accent : (sung ? -1 : -8092540);
+                float prog = active && wnext > wt ? (float)(pos - wt) / (float)(wnext - wt) : 0.0f;
+                float bounce = active ? -2.5f * (float)Math.sin((double)prog * 3.1416) : 0.0f;
+                float wfs = fs * lscale * (active ? 1.0f + 0.14f * (float)Math.sin((double)prog * 3.1416) : 1.0f);
+                K18.a(g, ws[i], x, cyl + bounce, wfs, col, lfont);
+                x += (ww[i] + space) * lscale;
+            }
+        } else {
+            String title = K47.c().d() == null ? "" : K47.c().d();
+            String artist = K47.c().e() == null ? "" : K47.c().e();
+            float tfs = 8.5f;
+            String sep = artist.isEmpty() ? "" : "  ·  ";
+            float tW = K18.a(title, tfs, K18.c);
+            float sW = K18.a(sep + artist, tfs, K18.b);
+            float totW = Math.max(1.0f, tW + sW);
+            float tscale = totW > lyricArea ? lyricArea / totW : 1.0f;
+            float drawW = totW * tscale;
+            float tx = lyricLeft + (lyricArea - drawW) / 2.0f;
+            float pulse = 0.82f + 0.18f * (float)Math.sin((double)(now % 2200L) / 2200.0 * 6.2832);
+            K18.a(g, title, tx, cyl, tfs * tscale, K18.a(-1, pulse), K18.c);
+            if (!artist.isEmpty()) {
+                K18.a(g, sep + artist, tx + tW * tscale, cyl, tfs * tscale, -7695450, K18.b);
+            }
+        }
+        float ex = x0 + pw - (float)pad - (float)eq;
+        for (int i = 0; i < 4; ++i) {
+            float phase = (float)(now % 1000L) / 1000.0f * 6.2832f + (float)i * 1.3f;
+            int bh = Math.round(3.0f + 7.0f * (0.5f + 0.5f * (float)Math.sin(phase)));
+            K18.a(g, Math.round(ex + (float)(i * 4)), Math.round(cyl + 5.0f - (float)bh), 2, bh, accent);
+        }
+        K18.h = prevA;
     }
 
     public static void a(class_332 g) {

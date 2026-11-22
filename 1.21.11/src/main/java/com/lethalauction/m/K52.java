@@ -50,6 +50,7 @@ public final class K52 {
     private static final Set<Integer> f = new HashSet<Integer>();
     private static final Random g = new Random();
     private static String h = "";
+    private static long titleAt = 0L;
     private static long i = Long.MIN_VALUE;
     private static int j = -1;
     private static int k = -1;
@@ -118,13 +119,36 @@ public final class K52 {
                 j = -1;
                 k = -1;
             }
-            if ((pos = K47.c().b() + (long)K9.aB + -200L) < i - 3000L) {
+            if ((pos = K47.pos() + (long)K9.aB + -200L) < i - 3000L) {
                 f.clear();
             }
             i = pos;
             int line = K47.a(pos);
             if (line >= 0 && line < K47.l() && pos <= K52.c(line) + 450L) {
                 active = K52.a(mc, line, pos, cam, pt, now);
+            }
+        } else if (K47.d() && K47.c().a()) {
+            // Song playing but no synced lyrics: float its title + artist so the
+            // sky still reacts to the music. Re-spawns after the words fade.
+            String id = K47.c().j();
+            if (!id.equals(h)) {
+                h = id;
+                e.clear();
+                f.clear();
+                j = -1;
+                k = -1;
+                titleAt = 0L;
+            }
+            if (e.isEmpty() && now >= titleAt) {
+                String title = K47.c().d();
+                String artist = K47.c().e();
+                if (title != null && !title.isEmpty()) {
+                    K52.a(title, mc, cam, pt, now);
+                    if (artist != null && !artist.isEmpty()) {
+                        K52.a(artist, mc, cam, pt, now);
+                    }
+                    titleAt = now + 2600L;
+                }
             }
         }
         if (!active) {

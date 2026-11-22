@@ -134,12 +134,13 @@ public final class K44 {
             out[i] = new long[ws.length];
             if (ws.length == 0) continue;
             long start = lines.get(i).a();
-            long span = Math.min(K44.a(lines, i) - start, 7000L);
+            long rawSpan = K44.a(lines, i) - start;
+            long span = Math.min(rawSpan, Math.max(1500L, (long)ws.length * 460L));
             float total = 0.0f;
             for (String word : ws) {
                 total += K44.c(word);
             }
-            double occupy = Math.min((double)span * 0.92, Math.max(300.0, (double)(total / sylPerSec) * 1000.0));
+            double occupy = (double)span * 0.94;
             double snap = 0.0;
             if (hasBeat) {
                 double perWord = occupy / (double)ws.length;

@@ -46,9 +46,9 @@ public final class Auctions {
     private static final int c = 50;
     private static final Path d = FabricLoader.getInstance().getConfigDir().resolve("lethalauction-history.json");
     private static final Gson e = new GsonBuilder().setPrettyPrinting().create();
-    private static final String f = "\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b";
+    private static final String f = "\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\b";
     private static final String g = "(?<name>\\.?[A-Za-z0-9_]{2,16})";
-    private static final List<Pattern> h = List.of(Pattern.compile("^(?<name>\\.?[A-Za-z0-9_]{2,16}) (?:has )?(?:just )?(?:paid|sent|gave|given) you \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b", 2), Pattern.compile("^you (?:have )?(?:just )?(?:received|got|been paid|were paid|was paid) \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b(?: dollars| coins| money)? (?:from|by) (?<name>\\.?[A-Za-z0-9_]{2,16})", 2), Pattern.compile("^\\+\\s*\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b (?:from|by) (?<name>\\.?[A-Za-z0-9_]{2,16})", 2), Pattern.compile("^\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)\\b (?:has been |was )?(?:received|paid to you|sent to you) (?:from|by) (?<name>\\.?[A-Za-z0-9_]{2,16})", 2));
+    private static final List<Pattern> h = List.of(Pattern.compile("^(?<name>\\.?[A-Za-z0-9_]{2,16}) (?:has )?(?:just )?(?:paid|sent|gave|given) you \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\b", 2), Pattern.compile("^you (?:have )?(?:just )?(?:received|got|been paid|were paid|was paid) \\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\b(?: dollars| coins| money)? (?:from|by) (?<name>\\.?[A-Za-z0-9_]{2,16})", 2), Pattern.compile("^\\+\\s*\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\b (?:from|by) (?<name>\\.?[A-Za-z0-9_]{2,16})", 2), Pattern.compile("^\\$?\\s*(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kmbt]?)\\b (?:has been |was )?(?:received|paid to you|sent to you) (?:from|by) (?<name>\\.?[A-Za-z0-9_]{2,16})", 2));
     private static final Pattern i = Pattern.compile("^(?:\\[[^\\]]{0,24}\\]|\\([^)]{0,24}\\)|[^A-Za-z0-9$+.]+)\\s*");
     private static final String j = "\u1d00\u0299\u1d04\u1d05\u1d07\ua730\u0262\u029c\u026a\u1d0a\u1d0b\u029f\u1d0d\u0274\u1d0f\u1d18\u01eb\u0280\ua731\u1d1b\u1d1c\u1d20\u1d21x\u028f\u1d22";
 

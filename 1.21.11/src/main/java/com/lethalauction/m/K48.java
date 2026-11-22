@@ -35,6 +35,9 @@ public final class K48 {
     private static volatile long lastValid = 0L;   // last reading that had a real song
     private static long songStart = 0L;            // when the current song was first seen
     private static String lastKey = "";            // current song key, to detect changes
+    private static Process ctrlProc;               // warm media-control process
+    private static java.io.Writer ctrlIn;          // its stdin (one command per line)
+    private static final Object CTRL_LOCK = new Object();
 
     private K48() {
     }
@@ -62,6 +65,14 @@ public final class K48 {
         poll.setDaemon(true);
         g = poll;
         poll.start();
+        if (WIN) {
+            // warm up the control process so the first pause press is instant too
+            try {
+                K48.ensureCtrl();
+            } catch (Exception ignored) {
+                // ignore
+            }
+        }
     }
 
     public static synchronized void d() {
@@ -75,8 +86,114 @@ public final class K48 {
             }
             d = null;
         }
+        if (ctrlProc != null) {
+            try {
+                ctrlProc.destroy();
+            } catch (Exception exception) {
+                // ignore
+            }
+            ctrlProc = null;
+            ctrlIn = null;
+        }
         e = null;
         g = null;
+    }
+
+    // A long-lived control process. It loads the Windows media session manager
+    // once, then waits on stdin and runs one command per line (toggle/next/prev)
+    // the instant it arrives - so the pause button reacts immediately instead of
+    // paying a fresh PowerShell cold-start on every press.
+    private static final String CTRL_PS = "$ErrorActionPreference='Stop'\ntry {\n" +
+        "Add-Type -AssemblyName System.Runtime.WindowsRuntime\n" +
+        "$asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]\n" +
+        "function Await($o, $t) { $task = $asTask.MakeGenericMethod($t).Invoke($null, @($o)); $task.Wait(-1) | Out-Null; $task.Result }\n" +
+        "[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager,Windows.Media.Control,ContentType=WindowsRuntime] | Out-Null\n" +
+        "$tm = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]\n" +
+        "$mgr = Await ($tm::RequestAsync()) $tm\n" +
+        "while ($true) {\n" +
+        "  $cmd = [Console]::In.ReadLine()\n" +
+        "  if ($cmd -eq $null) { break }\n" +
+        "  if ($cmd.Length -eq 0) { continue }\n" +
+        "  try {\n" +
+        "    $s = $null\n" +
+        "    foreach ($x in $mgr.GetSessions()) { if ($x.SourceAppUserModelId -like '*Spotify*') { $s = $x; break } }\n" +
+        "    if ($s) {\n" +
+        "      if ($cmd -eq 'next') { Await ($s.TrySkipNextAsync()) ([bool]) | Out-Null }\n" +
+        "      elseif ($cmd -eq 'prev') { Await ($s.TrySkipPreviousAsync()) ([bool]) | Out-Null }\n" +
+        "      else { Await ($s.TryTogglePlayPauseAsync()) ([bool]) | Out-Null }\n" +
+        "    }\n" +
+        "  } catch { }\n" +
+        "}\n" +
+        "} catch { }\n";
+
+    private static synchronized void ensureCtrl() throws Exception {
+        if (ctrlProc != null && ctrlProc.isAlive() && ctrlIn != null) {
+            return;
+        }
+        String b64 = java.util.Base64.getEncoder().encodeToString(CTRL_PS.getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+        Process p = new ProcessBuilder("powershell", "-NoProfile", "-NonInteractive", "-EncodedCommand", b64).redirectErrorStream(true).start();
+        ctrlProc = p;
+        ctrlIn = new java.io.OutputStreamWriter(p.getOutputStream(), StandardCharsets.US_ASCII);
+        Thread drain = new Thread(() -> {
+            try (InputStream in = p.getInputStream()) {
+                byte[] buf = new byte[256];
+                while (in.read(buf) >= 0) {
+                }
+            } catch (Exception ignored) {
+                // ignore
+            }
+        }, "lethal-ctrl-drain");
+        drain.setDaemon(true);
+        drain.start();
+    }
+
+    // Media control: play/pause toggle, skip next, skip previous. Delivered to
+    // the warm control process over stdin for an instant response.
+    public static void control(String op) {
+        if (!WIN) {
+            return;
+        }
+        // flip our own clock right away so the UI reacts with zero delay
+        if (!"next".equals(op) && !"prev".equals(op)) {
+            K47.togglePredict();
+        }
+        try {
+            K48.ensureCtrl();
+            synchronized (CTRL_LOCK) {
+                ctrlIn.write(op);
+                ctrlIn.write("\n");
+                ctrlIn.flush();
+            }
+        } catch (Exception ex) {
+            ctrlProc = null;
+            ctrlIn = null;
+            K48.controlOneShot(op);
+        }
+    }
+
+    // Fallback if the warm process can't be reached: one-shot PowerShell.
+    private static void controlOneShot(String op) {
+        String call = "next".equals(op) ? "$s.TrySkipNextAsync()" : "prev".equals(op) ? "$s.TrySkipPreviousAsync()" : "$s.TryTogglePlayPauseAsync()";
+        String script = "Add-Type -AssemblyName System.Runtime.WindowsRuntime\n" +
+            "$asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]\n" +
+            "function Await($o, $t) { $task = $asTask.MakeGenericMethod($t).Invoke($null, @($o)); $task.Wait(-1) | Out-Null; $task.Result }\n" +
+            "[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager,Windows.Media.Control,ContentType=WindowsRuntime] | Out-Null\n" +
+            "$tm = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]\n" +
+            "$mgr = Await ($tm::RequestAsync()) $tm\n" +
+            "$s = $null\n" +
+            "foreach ($x in $mgr.GetSessions()) { if ($x.SourceAppUserModelId -like '*Spotify*') { $s = $x; break } }\n" +
+            "if ($s) { Await (" + call + ") ([bool]) | Out-Null }\n";
+        String b64 = java.util.Base64.getEncoder().encodeToString(script.getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+        Thread th = new Thread(() -> {
+            try {
+                Process p = new ProcessBuilder("powershell", "-NoProfile", "-NonInteractive", "-EncodedCommand", b64).redirectErrorStream(true).start();
+                p.waitFor();
+            } catch (Exception e) {
+                // ignore
+            }
+        }, "lethal-media-control");
+        th.setDaemon(true);
+        th.start();
     }
 
     // The now-playing reader. We feed this script to `powershell -Command -`
@@ -84,7 +201,8 @@ public final class K48 {
     // file and no "-ExecutionPolicy Bypass" (what antivirus flagged), while
     // still reading the real Windows media session: title, artist, position,
     // duration and play/paused. It prints one compact JSON line ~1x/second.
-    private static final String PS = "Add-Type -AssemblyName System.Runtime.WindowsRuntime\n" +
+    private static final String PS = "$ErrorActionPreference='Stop'\ntry {\n" +
+        "Add-Type -AssemblyName System.Runtime.WindowsRuntime\n" +
         "$asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]\n" +
         "function Await($op, $t) { $task = $asTask.MakeGenericMethod($t).Invoke($null, @($op)); $task.Wait(-1) | Out-Null; $task.Result }\n" +
         "[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager,Windows.Media.Control,ContentType=WindowsRuntime] | Out-Null\n" +
@@ -93,32 +211,39 @@ public final class K48 {
         "$mgr = Await ($tm::RequestAsync()) $tm\n" +
         "while ($true) {\n" +
         "  try {\n" +
-        "    $s = $mgr.GetCurrentSession()\n" +
+        "    $s = $null\n" +
+        "    try { foreach ($x in $mgr.GetSessions()) { if ($x.SourceAppUserModelId -like '*Spotify*') { $s = $x; break } } } catch { }\n" +
         "    if ($s) {\n" +
         "      $p = Await ($s.TryGetMediaPropertiesAsync()) $tp\n" +
         "      $pb = $s.GetPlaybackInfo()\n" +
         "      $tl = $s.GetTimelineProperties()\n" +
         "      $st = if ([int]$pb.PlaybackStatus -eq 4) { 'playing' } else { 'paused' }\n" +
-        "      $o = [ordered]@{ app=[string]$s.SourceAppUserModelId; title=[string]$p.Title; artist=[string]$p.Artist; status=$st; pos=[long]$tl.Position.TotalMilliseconds; dur=[long]$tl.EndTime.TotalMilliseconds; art=''; t=[long]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()) }\n" +
+        "      $posMs = [double]$tl.Position.TotalMilliseconds\n" +
+        "      if ($st -eq 'playing') { $d = ([DateTimeOffset]::Now - $tl.LastUpdatedTime).TotalMilliseconds; if ($d -gt 0 -and $d -lt 600000) { $posMs += $d } }\n" +
+        "      $o = [ordered]@{ app=[string]$s.SourceAppUserModelId; title=[string]$p.Title; artist=[string]$p.Artist; status=$st; pos=[long]$posMs; dur=[long]$tl.EndTime.TotalMilliseconds; art=''; t=[long]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()) }\n" +
         "      [Console]::Out.WriteLine(($o | ConvertTo-Json -Compress)); [Console]::Out.Flush()\n" +
+        "    } else {\n" +
+        "      [Console]::Out.WriteLine('{\"app\":\"\",\"title\":\"\",\"artist\":\"\",\"status\":\"paused\",\"pos\":0,\"dur\":0,\"art\":\"\",\"t\":' + ([long]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())) + '}'); [Console]::Out.Flush()\n" +
         "    }\n" +
-        "  } catch { }\n" +
-        "  Start-Sleep -Milliseconds 1000\n" +
-        "}\n";
+        "  } catch { [Console]::Out.WriteLine('ERR ' + $_.ToString()); [Console]::Out.Flush() }\n" +
+        "  Start-Sleep -Milliseconds 500\n" +
+        "}\n" +
+        "} catch { [Console]::Out.WriteLine('SETUP-ERR ' + $_.ToString()); [Console]::Out.Flush() }\n";
 
     private static void h() {
         try {
-            Process p = new ProcessBuilder("powershell", "-NoProfile", "-NonInteractive", "-Command", "-").redirectErrorStream(true).start();
+            String b64 = java.util.Base64.getEncoder().encodeToString(PS.getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+            Process p = new ProcessBuilder("powershell", "-NoProfile", "-NonInteractive", "-EncodedCommand", b64).redirectErrorStream(true).start();
             d = p;
-            java.io.OutputStream os = p.getOutputStream();
-            os.write(PS.getBytes(StandardCharsets.UTF_8));
-            os.flush();
-            os.close();
             try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8));) {
                 String line;
                 while (c && (line = r.readLine()) != null) {
                     if (!line.isEmpty()) {
-                        K48.a(line);
+                        if (line.startsWith("ERR ") || line.startsWith("SETUP-ERR ")) {
+                            K43.a(line);
+                        } else {
+                            K48.a(line);
+                        }
                     }
                 }
             }
@@ -184,6 +309,7 @@ public final class K48 {
             boolean playing = status.equals("playing");
             String artKey = app + "|" + title + "|" + artist;
             K47.a(new K47.C96(which, title, artist, playing, pos, dur, sampledAt, artKey));
+            K45.a(artKey, title, artist, dur);
             if (!artPath.isEmpty()) {
                 K47.a(artKey, Path.of(artPath, new String[0]));
             } else {

@@ -67,13 +67,13 @@ public final class K45 {
         f = false;
         String t = K45.e(title);
         String a = K45.d(artist);
-        String synced = K45.a(() -> K45.a(a, t, a, durationMs, false), () -> K45.a("", t, a, durationMs, true), () -> K45.b(a + " " + t, t, a, durationMs, true), () -> K45.a(title, artist, durationMs));
+        String synced = K45.a(() -> K45.a(t, a, durationMs), () -> K45.a(title, artist, durationMs), () -> K45.a(a, t, a, durationMs, false), () -> K45.a("", t, a, durationMs, true), () -> K45.b(a + " " + t, t, a, durationMs, true), () -> K45.b(a + " " + t, t, a, durationMs, false), () -> K45.b(t, t, a, durationMs, false));
         if (synced != null && !synced.isBlank() && !(lines = K45.a(synced)).isEmpty()) {
             K43.a("synced lyrics loaded (" + lines.size() + " lines) for \"" + title + "\"");
             K47.a(key, lines);
             return;
         }
-        String plain = K45.a(() -> K45.c(a, t, a, durationMs, false), () -> K45.c("", t, a, durationMs, true), () -> K45.d(a + " " + t, t, a, durationMs, true), () -> K45.b(title, artist, durationMs));
+        String plain = K45.a(() -> K45.c(a, t, a, durationMs, false), () -> K45.c("", t, a, durationMs, true), () -> K45.d(a + " " + t, t, a, durationMs, true), () -> K45.d(a + " " + t, t, a, durationMs, false), () -> K45.b(title, artist, durationMs));
         List<C94> est = K45.a(plain, durationMs);
         if (!est.isEmpty()) {
             K43.a("plain lyrics (estimated timing, " + est.size() + " lines) for \"" + title + "\"");
