@@ -3099,15 +3099,17 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
             }
             K18.a(g, pack.b(), (float)ex + 18.0f, (float)(ey + 34), 15.5f, -789515, K18.c);
             K18.a(g, pack.c().size() + " figures", (float)ex + 18.0f, (float)(ey + 52), 11.0f, -7568235, K18.a);
-            if (i >= packs.size() - 3) {
-                int nbw = 46;
+            if (pack.a().equals("christmas")) {
+                String tag = "Holiday Special";
+                float ts = 9.0f;
+                int nbw = Math.round(K18.a(tag, ts, K18.c) + 16.0f);
                 int nbh = 18;
                 int nbx = ex + ew - nbw - 9;
                 int nby = ey + 8;
-                float gl = 0.35f + 0.2f * (float)((Math.sin((double)now / 420.0) + 1.0) / 2.0);
-                K18.a(g, nbx - 3, nby - 3, nbw + 6, nbh + 6, 11, K18.a(-11938144, gl));
-                K18.a(g, nbx, nby, nbw, nbh, 9, -11938144);
-                K18.b(g, "NEW", (float)nbx + (float)nbw / 2.0f, (float)nby + (float)nbh / 2.0f, 10.5f, -16247534, K18.c);
+                float gl = 0.4f + 0.22f * (float)((Math.sin((double)now / 420.0) + 1.0) / 2.0);
+                K18.a(g, nbx - 3, nby - 3, nbw + 6, nbh + 6, 11, K18.a(0xFFE74C3C, gl));
+                K18.a(g, nbx, nby, nbw, nbh, 9, 0xFFC0392B);
+                K18.b(g, tag, (float)nbx + (float)nbw / 2.0f, (float)nby + (float)nbh / 2.0f, ts, 0xFFFFF4D6, K18.c);
             }
             K18.a(g, "Open box", (float)ex + 18.0f, (float)(ey + eh - 16), 12.0f, accent, K18.c);
             K20.a(g, (float)(ex + ew - 26) + hp * 3.0f, (float)(ey + eh - 22), 6, accent, false);
