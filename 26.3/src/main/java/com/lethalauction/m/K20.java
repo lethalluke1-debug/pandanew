@@ -4326,6 +4326,24 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
 
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         LethalAuctionClient.playClick(); // DIAGNOSTIC: proves mouseClicked fires
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append("click btn=").append(event.button())
+              .append(" evX=").append(event.x()).append(" evY=").append(event.y())
+              .append(" aU=").append(this.aU).append(" aV=").append(this.aV)
+              .append(" W=").append(this.W).append(" X=").append(this.X).append(" V=").append(this.V)
+              .append(" width=").append(this.width).append(" height=").append(this.height)
+              .append(" S.size=").append(this.S.size());
+            int shown = 0;
+            for (C81 h : this.S) {
+                if (shown++ > 6) break;
+                sb.append(" | r[").append(h.a()).append(",").append(h.b()).append(",").append(h.c()).append(",").append(h.d())
+                  .append(" hitAUV=").append(h.a(this.aU, this.aV))
+                  .append(" hitEV=").append(h.a((float)event.x(), (float)event.y())).append("]");
+            }
+            java.nio.file.Path p = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("lethalauction-click-debug.txt");
+            java.nio.file.Files.writeString(p, sb.append(System.lineSeparator()).toString(), java.nio.charset.StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+        } catch (Exception ignored) {}
         if (event.button() != 0) {
             return true;
         }
