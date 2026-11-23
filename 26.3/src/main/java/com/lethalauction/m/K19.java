@@ -110,7 +110,7 @@ extends Screen {
                 return true;
             }
         }
-        if (event.button() == 0 && this.a(mx, my)) {
+        if ((event.button() == 0 || event.button() == 1) && this.a(mx, my)) {
             this.c = true;
             this.d = mx - (double)this.b.a(this.width);
             this.e = my - (double)this.b.b(this.height);

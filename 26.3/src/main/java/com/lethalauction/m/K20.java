@@ -150,7 +150,6 @@ extends Screen {
     private final float[] Q = new float[C82.values().length];
     private final float[] R = new float[C82.values().length];
     private final List<C81> S = new ArrayList<C81>();
-    private java.util.List<C81> Scommit = java.util.List.of();
     private KeyMapping T;
     private boolean U;
     private float V = 1.0f;
@@ -423,7 +422,6 @@ extends Screen {
             this.nowPlayingCard(g);
         }
         p.popMatrix();
-        this.Scommit = new java.util.ArrayList<C81>(this.S);
     }
 
     // Spotify-style "now playing" card, docked to the left of the window while
@@ -4327,34 +4325,17 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
     }
 
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        LethalAuctionClient.playClick(); // DIAGNOSTIC: proves mouseClicked fires
-        try {
-            StringBuilder sb = new StringBuilder();
-            sb.append("click btn=").append(event.button())
-              .append(" evX=").append(event.x()).append(" evY=").append(event.y())
-              .append(" aU=").append(this.aU).append(" aV=").append(this.aV)
-              .append(" W=").append(this.W).append(" X=").append(this.X).append(" V=").append(this.V)
-              .append(" width=").append(this.width).append(" height=").append(this.height)
-              .append(" S.size=").append(this.S.size()).append(" Scommit.size=").append(this.Scommit.size());
-            int shown = 0;
-            for (C81 h : this.Scommit) {
-                if (shown++ > 6) break;
-                sb.append(" | r[").append(h.a()).append(",").append(h.b()).append(",").append(h.c()).append(",").append(h.d())
-                  .append(" hitAUV=").append(h.a(this.aU, this.aV))
-                  .append(" hitEV=").append(h.a((float)event.x(), (float)event.y())).append("]");
-            }
-            java.nio.file.Path p = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("lethalauction-click-debug.txt");
-            java.nio.file.Files.writeString(p, sb.append(System.lineSeparator()).toString(), java.nio.charset.StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-        } catch (Exception ignored) {}
-        if (event.button() != 0) {
+        // 26.3 reports the left mouse button as 1 (not 0); accept 0 or 1 so a
+        // left click always goes through, and ignore middle/side buttons.
+        if (event.button() != 0 && event.button() != 1) {
             return true;
         }
         this.e();
-        float x = this.aU;
-        float y = this.aV;
+        float x = this.a(event.x());
+        float y = this.b(event.y());
         this.aM = null;
         this.T = null;
-        for (C81 h : this.Scommit) {
+        for (C81 h : List.copyOf(this.S)) {
             if (!h.a(x, y)) continue;
             if (h.e() != null) {
                 h.e().run();
@@ -4368,20 +4349,20 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
     public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
         if (this.bD != null) {
             this.e();
-            this.bD.c().accept(Float.valueOf(Math.max(0.0f, Math.min(1.0f, (this.aU - (float)this.bD.a()) / (float)this.bD.b()))));
+            this.bD.c().accept(Float.valueOf(Math.max(0.0f, Math.min(1.0f, (this.a(event.x()) - (float)this.bD.a()) / (float)this.bD.b()))));
             return true;
         }
         K4.C64 crop = K4.b();
         if (this.bw && crop != null) {
             this.e();
-            float mx = this.aU;
-            float my = this.aV;
+            float mx = this.a(event.x());
+            float my = this.b(event.y());
             crop.a(this.bz + Math.round((mx - this.bx) / this.bB), this.bA + Math.round((my - this.by) / this.bB));
             return true;
         }
         if (this.be) {
             this.e();
-            this.a(this.aU);
+            this.a(this.a(event.x()));
             return true;
         }
         return super.mouseDragged(event, dragX, dragY);

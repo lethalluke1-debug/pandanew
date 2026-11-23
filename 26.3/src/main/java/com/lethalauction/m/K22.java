@@ -433,7 +433,7 @@ extends Screen {
     }
 
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() != 0) {
+        if (event.button() != 0 && event.button() != 1) {
             return true;
         }
         float x = (float)((event.x() - (double)((float)this.width / 2.0f)) / (double)this.L);

@@ -117,7 +117,7 @@ extends Screen {
     }
 
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() == 0) {
+        if (event.button() == 0 || event.button() == 1) {
             float my;
             float mx = this.a(event.x());
             if (K26.a(mx, my = this.b(event.y()), this.k, this.l, this.m, this.n)) {
