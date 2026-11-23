@@ -150,6 +150,7 @@ extends Screen {
     private final float[] Q = new float[C82.values().length];
     private final float[] R = new float[C82.values().length];
     private final List<C81> S = new ArrayList<C81>();
+    private java.util.List<C81> Scommit = java.util.List.of();
     private KeyMapping T;
     private boolean U;
     private float V = 1.0f;
@@ -422,6 +423,7 @@ extends Screen {
             this.nowPlayingCard(g);
         }
         p.popMatrix();
+        this.Scommit = new java.util.ArrayList<C81>(this.S);
     }
 
     // Spotify-style "now playing" card, docked to the left of the window while
@@ -4333,9 +4335,9 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
               .append(" aU=").append(this.aU).append(" aV=").append(this.aV)
               .append(" W=").append(this.W).append(" X=").append(this.X).append(" V=").append(this.V)
               .append(" width=").append(this.width).append(" height=").append(this.height)
-              .append(" S.size=").append(this.S.size());
+              .append(" S.size=").append(this.S.size()).append(" Scommit.size=").append(this.Scommit.size());
             int shown = 0;
-            for (C81 h : this.S) {
+            for (C81 h : this.Scommit) {
                 if (shown++ > 6) break;
                 sb.append(" | r[").append(h.a()).append(",").append(h.b()).append(",").append(h.c()).append(",").append(h.d())
                   .append(" hitAUV=").append(h.a(this.aU, this.aV))
@@ -4352,7 +4354,7 @@ private static final int[] bShoeSil = new int[]{0x000001, 0x000001, 0x000001, 0x
         float y = this.aV;
         this.aM = null;
         this.T = null;
-        for (C81 h : List.copyOf(this.S)) {
+        for (C81 h : this.Scommit) {
             if (!h.a(x, y)) continue;
             if (h.e() != null) {
                 h.e().run();
